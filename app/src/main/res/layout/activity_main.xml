@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/gradient_background_main">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:padding="80dp"
+        android:gravity="center">
+
+        <!-- Centered Logo and Wordmark Vertically -->
+        <LinearLayout
+            android:id="@+id/mainContent"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center">
+
+            <!-- Much Bigger Centered Logo -->
+            <ImageView
+                android:layout_width="500dp"
+                android:layout_height="500dp"
+                android:src="@drawable/logo"
+                android:contentDescription="WaterFountain logo"
+                android:scaleType="fitCenter"
+                android:layout_marginBottom="60dp"/>
+
+            <!-- Much Bigger Wordmark Below Logo -->
+            <ImageView
+                android:layout_width="800dp"
+                android:layout_height="160dp"
+                android:src="@drawable/white_word_mark"
+                android:contentDescription="WaterFountain wordmark"
+                android:scaleType="fitCenter"
+                android:adjustViewBounds="true"
+                android:layout_marginBottom="20dp"/>
+
+            <!-- Tagline under wordmark -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Always free from our fountains"
+                android:textSize="56sp"
+                android:textColor="#B3FFFFFF"
+                android:fontFamily="sans-serif-light"
+                android:gravity="center"
+                android:layout_marginBottom="50dp"/>
+
+            <!-- Bigger instruction text with breathing animation -->
+            <TextView
+                android:id="@+id/instructionText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Press anywhere to start"
+                android:textSize="68sp"
+                android:textColor="#FFFFFF"
+                android:fontFamily="sans-serif-medium"
+                android:gravity="center"
+                android:letterSpacing="0.02"
+                android:elevation="4dp"/>
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+    <!-- Bottom Info Section with Question Mark -->
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|center_horizontal"
+        android:layout_marginBottom="80dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:padding="20dp">
+
+        <!-- Question Mark Icon in Circle with extra space to prevent clipping -->
+        <FrameLayout
+            android:id="@+id/questionMarkButton"
+            android:layout_width="120dp"
+            android:layout_height="120dp"
+            android:layout_marginEnd="20dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:elevation="6dp">
+
+            <!-- Circular background centered within the larger frame -->
+            <View
+                android:layout_width="80dp"
+                android:layout_height="80dp"
+                android:layout_gravity="center"
+                android:background="@drawable/circle_background"/>
+
+            <TextView
+                android:id="@+id/questionMarkIcon"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:text="?"
+                android:textSize="44sp"
+                android:textColor="@android:color/white"
+                android:fontFamily="sans-serif-medium"/>
+
+        </FrameLayout>
+
+        <!-- "Powered by local businesses" text -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Powered by local businesses"
+            android:textSize="44sp"
+            android:textColor="#B3FFFFFF"
+            android:fontFamily="sans-serif-light"/>
+
+    </LinearLayout>
+
+    <!-- Modal Overlay (initially hidden) -->
+    <FrameLayout
+        android:id="@+id/modalOverlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#80000000"
+        android:visibility="gone"
+        android:clickable="true">
+
+        <!-- Modal Content -->
+        <LinearLayout
+            android:id="@+id/modalContent"
+            android:layout_width="800dp"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:background="@drawable/modal_background"
+            android:orientation="vertical"
+            android:padding="60dp"
+            android:gravity="center">
+
+            <!-- Modal Title -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Why is this free?"
+                android:textSize="42sp"
+                android:textColor="@android:color/white"
+                android:fontFamily="sans-serif-medium"
+                android:gravity="center"
+                android:layout_marginBottom="30dp"/>
+
+            <!-- Modal Message -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Our spring water is completely free. Nature doesn't charge, so neither do we. Instead, we partner with local businesses who cover the cost to keep you hydrated.\n\nGet one every single day with your phone number"
+                android:textSize="32sp"
+                android:textColor="#E0FFFFFF"
+                android:fontFamily="sans-serif-light"
+                android:gravity="center"
+                android:lineSpacingExtra="8dp"
+                android:layout_marginBottom="40dp"/>
+
+            <!-- Close Button -->
+            <TextView
+                android:id="@+id/closeModalButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Got it!"
+                android:textSize="36sp"
+                android:textColor="@android:color/white"
+                android:fontFamily="sans-serif-medium"
+                android:background="@drawable/button_background"
+                android:paddingHorizontal="40dp"
+                android:paddingVertical="16dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center"/>
+
+        </LinearLayout>
+
+    </FrameLayout>
+
+</FrameLayout>

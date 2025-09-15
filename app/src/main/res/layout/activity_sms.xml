@@ -1,0 +1,468 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/gradient_background_main">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:padding="80dp"
+        android:gravity="center">
+
+        <!-- Header with Back Button and Centered Logo/Wordmark -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="140dp"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="80dp">
+
+            <!-- Back Button - positioned absolutely to not affect centering -->
+            <FrameLayout
+                android:layout_width="140dp"
+                android:layout_height="match_parent"
+                android:gravity="center_vertical">
+
+                <ImageButton
+                    android:id="@+id/backButton"
+                    android:layout_width="120dp"
+                    android:layout_height="120dp"
+                    android:background="?android:attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="@string/back_button"
+                    android:src="@drawable/ic_arrow_back"
+                    android:alpha="0.9"
+                    android:padding="20dp"
+                    android:scaleType="fitCenter"
+                    app:tint="@android:color/white" />
+
+            </FrameLayout>
+
+            <!-- Centered Logo and Wordmark - this will be truly centered now -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:orientation="horizontal">
+
+                <ImageView
+                    android:layout_width="140dp"
+                    android:layout_height="140dp"
+                    android:layout_marginEnd="30dp"
+                    android:src="@drawable/logo"
+                    android:contentDescription="@string/waterfountain_logo"
+                    android:scaleType="fitCenter" />
+
+                <ImageView
+                    android:layout_width="400dp"
+                    android:layout_height="80dp"
+                    android:src="@drawable/white_word_mark"
+                    android:contentDescription="@string/waterfountain_wordmark"
+                    android:scaleType="fitCenter"
+                    android:adjustViewBounds="true"/>
+
+            </LinearLayout>
+
+            <!-- Empty space to balance the back button -->
+            <View
+                android:layout_width="140dp"
+                android:layout_height="match_parent" />
+
+        </LinearLayout>
+
+        <!-- Main Content Area - SMS specific content goes here -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center">
+
+            <!-- Title -->
+            <TextView
+                android:id="@+id/titleText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Enter Phone Number"
+                android:textSize="72sp"
+                android:textColor="@android:color/white"
+                android:fontFamily="sans-serif-medium"
+                android:gravity="center"
+                android:layout_marginBottom="40dp"/>
+
+            <!-- Phone Display in a Box -->
+            <LinearLayout
+                android:layout_width="600dp"
+                android:layout_height="120dp"
+                android:background="@drawable/card_gradient_background"
+                android:gravity="center"
+                android:layout_marginBottom="40dp"
+                android:elevation="4dp">
+
+                <TextView
+                    android:id="@+id/phoneDisplay"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="(___) ___-____"
+                    android:textSize="60sp"
+                    android:textColor="#333333"
+                    android:fontFamily="sans-serif-light"
+                    android:gravity="center"
+                    android:letterSpacing="0.1"/>
+
+            </LinearLayout>
+
+            <!-- Subtitle -->
+            <TextView
+                android:id="@+id/subtitleText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="We'll send you a verification code"
+                android:textSize="36sp"
+                android:textColor="#B3FFFFFF"
+                android:fontFamily="sans-serif-light"
+                android:gravity="center"
+                android:layout_marginBottom="60dp"/>
+
+            <!-- Bigger On-Screen Keypad -->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:layout_marginBottom="40dp">
+
+                <!-- Row 1: 1, 2, 3 -->
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="30dp">
+
+                    <Button
+                        android:id="@+id/btn1"
+                        android:layout_width="140dp"
+                        android:layout_height="140dp"
+                        android:text="1"
+                        android:textSize="48sp"
+                        android:textColor="@android:color/white"
+                        android:fontFamily="sans-serif-medium"
+                        android:background="@drawable/keypad_button_background"
+                        android:layout_marginEnd="30dp"/>
+
+                    <Button
+                        android:id="@+id/btn2"
+                        android:layout_width="140dp"
+                        android:layout_height="140dp"
+                        android:text="2"
+                        android:textSize="48sp"
+                        android:textColor="@android:color/white"
+                        android:fontFamily="sans-serif-medium"
+                        android:background="@drawable/keypad_button_background"
+                        android:layout_marginEnd="30dp"/>
+
+                    <Button
+                        android:id="@+id/btn3"
+                        android:layout_width="140dp"
+                        android:layout_height="140dp"
+                        android:text="3"
+                        android:textSize="48sp"
+                        android:textColor="@android:color/white"
+                        android:fontFamily="sans-serif-medium"
+                        android:background="@drawable/keypad_button_background"/>
+
+                </LinearLayout>
+
+                <!-- Row 2: 4, 5, 6 -->
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="30dp">
+
+                    <Button
+                        android:id="@+id/btn4"
+                        android:layout_width="140dp"
+                        android:layout_height="140dp"
+                        android:text="4"
+                        android:textSize="48sp"
+                        android:textColor="@android:color/white"
+                        android:fontFamily="sans-serif-medium"
+                        android:background="@drawable/keypad_button_background"
+                        android:layout_marginEnd="30dp"/>
+
+                    <Button
+                        android:id="@+id/btn5"
+                        android:layout_width="140dp"
+                        android:layout_height="140dp"
+                        android:text="5"
+                        android:textSize="48sp"
+                        android:textColor="@android:color/white"
+                        android:fontFamily="sans-serif-medium"
+                        android:background="@drawable/keypad_button_background"
+                        android:layout_marginEnd="30dp"/>
+
+                    <Button
+                        android:id="@+id/btn6"
+                        android:layout_width="140dp"
+                        android:layout_height="140dp"
+                        android:text="6"
+                        android:textSize="48sp"
+                        android:textColor="@android:color/white"
+                        android:fontFamily="sans-serif-medium"
+                        android:background="@drawable/keypad_button_background"/>
+
+                </LinearLayout>
+
+                <!-- Row 3: 7, 8, 9 -->
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="30dp">
+
+                    <Button
+                        android:id="@+id/btn7"
+                        android:layout_width="140dp"
+                        android:layout_height="140dp"
+                        android:text="7"
+                        android:textSize="48sp"
+                        android:textColor="@android:color/white"
+                        android:fontFamily="sans-serif-medium"
+                        android:background="@drawable/keypad_button_background"
+                        android:layout_marginEnd="30dp"/>
+
+                    <Button
+                        android:id="@+id/btn8"
+                        android:layout_width="140dp"
+                        android:layout_height="140dp"
+                        android:text="8"
+                        android:textSize="48sp"
+                        android:textColor="@android:color/white"
+                        android:fontFamily="sans-serif-medium"
+                        android:background="@drawable/keypad_button_background"
+                        android:layout_marginEnd="30dp"/>
+
+                    <Button
+                        android:id="@+id/btn9"
+                        android:layout_width="140dp"
+                        android:layout_height="140dp"
+                        android:text="9"
+                        android:textSize="48sp"
+                        android:textColor="@android:color/white"
+                        android:fontFamily="sans-serif-medium"
+                        android:background="@drawable/keypad_button_background"/>
+
+                </LinearLayout>
+
+                <!-- Row 4: Clear, 0, Backspace -->
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <Button
+                        android:id="@+id/btnClear"
+                        android:layout_width="140dp"
+                        android:layout_height="140dp"
+                        android:text="C"
+                        android:textSize="48sp"
+                        android:textColor="@android:color/white"
+                        android:fontFamily="sans-serif-medium"
+                        android:background="@drawable/keypad_button_background"
+                        android:layout_marginEnd="30dp"/>
+
+                    <Button
+                        android:id="@+id/btn0"
+                        android:layout_width="140dp"
+                        android:layout_height="140dp"
+                        android:text="0"
+                        android:textSize="48sp"
+                        android:textColor="@android:color/white"
+                        android:fontFamily="sans-serif-medium"
+                        android:background="@drawable/keypad_button_background"
+                        android:layout_marginEnd="30dp"/>
+
+                    <Button
+                        android:id="@+id/btnBackspace"
+                        android:layout_width="140dp"
+                        android:layout_height="140dp"
+                        android:text="⌫"
+                        android:textSize="48sp"
+                        android:textColor="@android:color/white"
+                        android:fontFamily="sans-serif-medium"
+                        android:background="@drawable/keypad_button_background"/>
+
+                </LinearLayout>
+
+            </LinearLayout>
+
+            <!-- Main Action Buttons -->
+            <!-- Send Code Button (Step 1) -->
+            <Button
+                android:id="@+id/verifyButton"
+                android:layout_width="240dp"
+                android:layout_height="120dp"
+                android:text="Send Code"
+                android:textSize="38sp"
+                android:textColor="@android:color/white"
+                android:fontFamily="sans-serif-medium"
+                android:background="@drawable/button_background"
+                android:enabled="false"
+                android:layout_marginTop="20dp"/>
+
+            <!-- OTP Step Buttons Layout (initially hidden) -->
+            <LinearLayout
+                android:id="@+id/otpButtonsLayout"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center"
+                android:layout_marginTop="20dp"
+                android:visibility="gone">
+
+                <Button
+                    android:id="@+id/verifyOtpButton"
+                    android:layout_width="240dp"
+                    android:layout_height="120dp"
+                    android:text="Verify"
+                    android:textSize="38sp"
+                    android:textColor="@android:color/white"
+                    android:fontFamily="sans-serif-medium"
+                    android:background="@drawable/button_background"
+                    android:layout_marginEnd="30dp"
+                    android:enabled="false"/>
+
+                <Button
+                    android:id="@+id/resendCodeButton"
+                    android:layout_width="240dp"
+                    android:layout_height="120dp"
+                    android:text="Resend"
+                    android:textSize="38sp"
+                    android:textColor="@android:color/white"
+                    android:fontFamily="sans-serif-light"
+                    android:background="@drawable/keypad_button_background"
+                    android:alpha="0.8"/>
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+        <!-- Bottom Info Section with Question Mark -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|center_horizontal"
+            android:layout_marginTop="40dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:padding="20dp">
+
+            <!-- Question Mark Icon in Circle with extra space to prevent clipping -->
+            <FrameLayout
+                android:id="@+id/questionMarkButton"
+                android:layout_width="120dp"
+                android:layout_height="120dp"
+                android:layout_marginEnd="20dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:elevation="6dp">
+
+                <!-- Circular background centered within the larger frame -->
+                <View
+                    android:layout_width="80dp"
+                    android:layout_height="80dp"
+                    android:layout_gravity="center"
+                    android:background="@drawable/circle_background"/>
+
+                <TextView
+                    android:id="@+id/questionMarkIcon"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:text="?"
+                    android:textSize="44sp"
+                    android:textColor="@android:color/white"
+                    android:fontFamily="sans-serif-medium"/>
+
+            </FrameLayout>
+
+            <!-- "Powered by local businesses" text -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Powered by local businesses"
+                android:textSize="44sp"
+                android:textColor="#B3FFFFFF"
+                android:fontFamily="sans-serif-light"/>
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+    <!-- Modal Overlay (initially hidden) -->
+    <FrameLayout
+        android:id="@+id/modalOverlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#80000000"
+        android:visibility="gone"
+        android:clickable="true">
+
+        <!-- Modal Content -->
+        <LinearLayout
+            android:id="@+id/modalContent"
+            android:layout_width="800dp"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:background="@drawable/modal_background"
+            android:orientation="vertical"
+            android:padding="60dp"
+            android:gravity="center">
+
+            <!-- Modal Title -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Why is this free?"
+                android:textSize="42sp"
+                android:textColor="@android:color/white"
+                android:fontFamily="sans-serif-medium"
+                android:gravity="center"
+                android:layout_marginBottom="30dp"/>
+
+            <!-- Modal Message -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Our spring water is completely free. Nature doesn't charge, so neither do we. Instead, we partner with local businesses who cover the cost to keep you hydrated.\n\nGet one every single day with your phone number"
+                android:textSize="32sp"
+                android:textColor="#E0FFFFFF"
+                android:fontFamily="sans-serif-light"
+                android:gravity="center"
+                android:lineSpacingExtra="8dp"
+                android:layout_marginBottom="40dp"/>
+
+            <!-- Close Button -->
+            <TextView
+                android:id="@+id/closeModalButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Got it!"
+                android:textSize="36sp"
+                android:textColor="@android:color/white"
+                android:fontFamily="sans-serif-medium"
+                android:background="@drawable/button_background"
+                android:paddingHorizontal="40dp"
+                android:paddingVertical="16dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center"/>
+
+        </LinearLayout>
+
+    </FrameLayout>
+
+</FrameLayout>

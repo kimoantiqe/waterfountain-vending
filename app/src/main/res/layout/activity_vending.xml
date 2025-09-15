@@ -1,0 +1,478 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/gradient_background_main">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:padding="80dp"
+        android:gravity="center">
+
+        <!-- Header with Back Button and Centered Logo/Wordmark -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="140dp"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="80dp">
+
+            <!-- Back Button - positioned absolutely to not affect centering -->
+            <FrameLayout
+                android:layout_width="140dp"
+                android:layout_height="match_parent"
+                android:gravity="center_vertical">
+
+                <ImageButton
+                    android:id="@+id/backButton"
+                    android:layout_width="120dp"
+                    android:layout_height="120dp"
+                    android:background="?android:attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="@string/back_button"
+                    android:src="@drawable/ic_arrow_back"
+                    android:alpha="0.9"
+                    android:padding="20dp"
+                    android:scaleType="fitCenter"
+                    app:tint="@android:color/white" />
+
+            </FrameLayout>
+
+            <!-- Centered Logo and Wordmark - this will be truly centered now -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:orientation="horizontal">
+
+                <ImageView
+                    android:layout_width="140dp"
+                    android:layout_height="140dp"
+                    android:layout_marginEnd="30dp"
+                    android:src="@drawable/logo"
+                    android:contentDescription="@string/waterfountain_logo"
+                    android:scaleType="fitCenter" />
+
+                <ImageView
+                    android:layout_width="400dp"
+                    android:layout_height="80dp"
+                    android:src="@drawable/white_word_mark"
+                    android:contentDescription="@string/waterfountain_wordmark"
+                    android:scaleType="fitCenter"
+                    android:adjustViewBounds="true"/>
+
+            </LinearLayout>
+
+            <!-- Empty space to balance the back button -->
+            <View
+                android:layout_width="140dp"
+                android:layout_height="match_parent" />
+
+        </LinearLayout>
+
+        <!-- Main Content Area -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center">
+
+            <!-- Title -->
+            <TextView
+                android:id="@+id/titleText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Choose Your\nVerification Method"
+                android:textSize="72sp"
+                android:textColor="@android:color/white"
+                android:fontFamily="sans-serif-medium"
+                android:gravity="center"
+                android:lineSpacingExtra="8dp"
+                android:layout_marginBottom="60dp"/>
+
+            <!-- Subtitle -->
+            <TextView
+                android:id="@+id/subtitleText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Both methods are free and secure"
+                android:textSize="48sp"
+                android:textColor="#B3FFFFFF"
+                android:fontFamily="sans-serif-light"
+                android:gravity="center"
+                android:layout_marginBottom="120dp"/>
+
+            <!-- Option Cards -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center"
+                android:layout_marginHorizontal="40dp">
+
+                <!-- SMS Option - Active (left) -->
+                <LinearLayout
+                    android:id="@+id/smsCard"
+                    android:layout_width="0dp"
+                    android:layout_height="580dp"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:gravity="center"
+                    android:background="@drawable/card_gradient_background"
+                    android:layout_marginEnd="20dp"
+                    android:padding="40dp"
+                    android:clickable="true"
+                    android:focusable="true">
+
+                    <ImageView
+                        android:layout_width="140dp"
+                        android:layout_height="140dp"
+                        android:src="@drawable/ic_phone_elegant"
+                        app:tint="#2196F3"
+                        android:contentDescription="Phone icon"
+                        android:layout_marginBottom="30dp"/>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Phone Number"
+                        android:textSize="36sp"
+                        android:textColor="#333333"
+                        android:fontFamily="sans-serif-black"
+                        android:gravity="center"
+                        android:layout_marginBottom="12dp"/>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="No app needed"
+                        android:textSize="24sp"
+                        android:textColor="#666666"
+                        android:fontFamily="sans-serif-medium"
+                        android:gravity="center"
+                        android:layout_marginBottom="12dp"/>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="• Works offline\n• Privacy focused\n• ~45 seconds"
+                        android:textSize="20sp"
+                        android:textColor="#666666"
+                        android:fontFamily="sans-serif-medium"
+                        android:gravity="center"
+                        android:lineSpacingExtra="4dp"/>
+
+                </LinearLayout>
+
+                <!-- PIN Code Option - Disabled/Coming Soon (center) -->
+                <FrameLayout
+                    android:id="@+id/pinCodeCard"
+                    android:layout_width="0dp"
+                    android:layout_height="580dp"
+                    android:layout_weight="1"
+                    android:layout_marginHorizontal="20dp"
+                    android:background="@drawable/card_gradient_background"
+                    android:clickable="false"
+                    android:focusable="false"
+                    android:alpha="0.6">
+
+                    <!-- Base card content -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:orientation="vertical"
+                        android:gravity="center"
+                        android:padding="40dp">
+
+                        <ImageView
+                            android:layout_width="140dp"
+                            android:layout_height="140dp"
+                            android:src="@drawable/ic_pin_code"
+                            app:tint="#2196F3"
+                            android:contentDescription="PIN Code icon"
+                            android:layout_marginBottom="30dp"
+                            android:alpha="0.5"/>
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="PIN Code"
+                            android:textSize="36sp"
+                            android:textColor="#333333"
+                            android:fontFamily="sans-serif-black"
+                            android:gravity="center"
+                            android:layout_marginBottom="12dp"
+                            android:alpha="0.5"/>
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="From mobile app"
+                            android:textSize="24sp"
+                            android:textColor="#666666"
+                            android:fontFamily="sans-serif-medium"
+                            android:gravity="center"
+                            android:layout_marginBottom="12dp"
+                            android:alpha="0.5"/>
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="• Account required\n• Most secure\n• ~30 seconds"
+                            android:textSize="20sp"
+                            android:textColor="#666666"
+                            android:fontFamily="sans-serif-medium"
+                            android:gravity="center"
+                            android:lineSpacingExtra="4dp"
+                            android:alpha="0.5"/>
+
+                    </LinearLayout>
+
+                    <!-- Rounded overlay with proper corners -->
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:background="@drawable/overlay_rounded_background" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:gravity="center"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="COMING SOON"
+                            android:textSize="32sp"
+                            android:textColor="@android:color/white"
+                            android:fontFamily="sans-serif-black"
+                            android:gravity="center"
+                            android:background="@drawable/coming_soon_rounded_background"
+                            android:paddingHorizontal="32dp"
+                            android:paddingVertical="16dp"
+                            android:textStyle="bold"
+                            android:letterSpacing="0.1"/>
+
+                    </LinearLayout>
+
+                </FrameLayout>
+
+                <!-- QR Code Option - Disabled/Coming Soon (right) -->
+                <FrameLayout
+                    android:id="@+id/qrCodeCard"
+                    android:layout_width="0dp"
+                    android:layout_height="580dp"
+                    android:layout_weight="1"
+                    android:layout_marginStart="20dp"
+                    android:background="@drawable/card_gradient_background"
+                    android:clickable="false"
+                    android:focusable="false"
+                    android:alpha="0.6">
+
+                    <!-- Base card content -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:orientation="vertical"
+                        android:gravity="center"
+                        android:padding="40dp">
+
+                        <ImageView
+                            android:layout_width="140dp"
+                            android:layout_height="140dp"
+                            android:src="@drawable/ic_qr_code"
+                            app:tint="#2196F3"
+                            android:contentDescription="QR Code icon"
+                            android:layout_marginBottom="30dp"
+                            android:alpha="0.5"/>
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Scan QR Code"
+                            android:textSize="36sp"
+                            android:textColor="#333333"
+                            android:fontFamily="sans-serif-black"
+                            android:gravity="center"
+                            android:layout_marginBottom="12dp"
+                            android:alpha="0.5"/>
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Instant • No typing"
+                            android:textSize="24sp"
+                            android:textColor="#666666"
+                            android:fontFamily="sans-serif-medium"
+                            android:gravity="center"
+                            android:layout_marginBottom="12dp"
+                            android:alpha="0.5"/>
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="• Works everywhere\n• No account needed\n• ~15 seconds"
+                            android:textSize="20sp"
+                            android:textColor="#666666"
+                            android:fontFamily="sans-serif-medium"
+                            android:gravity="center"
+                            android:lineSpacingExtra="4dp"
+                            android:alpha="0.5"/>
+
+                    </LinearLayout>
+
+                    <!-- Rounded overlay with proper corners -->
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:background="@drawable/overlay_rounded_background" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:gravity="center"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="COMING SOON"
+                            android:textSize="32sp"
+                            android:textColor="@android:color/white"
+                            android:fontFamily="sans-serif-black"
+                            android:gravity="center"
+                            android:background="@drawable/coming_soon_rounded_background"
+                            android:paddingHorizontal="32dp"
+                            android:paddingVertical="16dp"
+                            android:textStyle="bold"
+                            android:letterSpacing="0.1"/>
+
+                    </LinearLayout>
+
+                </FrameLayout>
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+        <!-- Footer Instruction -->
+        <!-- Bottom Info Section with Question Mark -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|center_horizontal"
+            android:layout_marginTop="40dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:padding="20dp">
+
+            <!-- Question Mark Icon in Circle with extra space to prevent clipping -->
+            <FrameLayout
+                android:id="@+id/questionMarkButton"
+                android:layout_width="120dp"
+                android:layout_height="120dp"
+                android:layout_marginEnd="20dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:elevation="6dp">
+
+                <!-- Circular background centered within the larger frame -->
+                <View
+                    android:layout_width="80dp"
+                    android:layout_height="80dp"
+                    android:layout_gravity="center"
+                    android:background="@drawable/circle_background"/>
+
+                <TextView
+                    android:id="@+id/questionMarkIcon"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:text="?"
+                    android:textSize="44sp"
+                    android:textColor="@android:color/white"
+                    android:fontFamily="sans-serif-medium"/>
+
+            </FrameLayout>
+
+            <!-- "Powered by local businesses" text -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Powered by local businesses"
+                android:textSize="44sp"
+                android:textColor="#B3FFFFFF"
+                android:fontFamily="sans-serif-light"/>
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+    <!-- Modal Overlay (initially hidden) -->
+    <FrameLayout
+        android:id="@+id/modalOverlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#80000000"
+        android:visibility="gone"
+        android:clickable="true">
+
+        <!-- Modal Content -->
+        <LinearLayout
+            android:id="@+id/modalContent"
+            android:layout_width="800dp"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:background="@drawable/modal_background"
+            android:orientation="vertical"
+            android:padding="60dp"
+            android:gravity="center">
+
+            <!-- Modal Title -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Why is this free?"
+                android:textSize="42sp"
+                android:textColor="@android:color/white"
+                android:fontFamily="sans-serif-medium"
+                android:gravity="center"
+                android:layout_marginBottom="30dp"/>
+
+            <!-- Modal Message -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Our spring water is completely free. Nature doesn't charge, so neither do we. Instead, we partner with local businesses who cover the cost to keep you hydrated.\n\nGet one every single day with your phone number"
+                android:textSize="32sp"
+                android:textColor="#E0FFFFFF"
+                android:fontFamily="sans-serif-light"
+                android:gravity="center"
+                android:lineSpacingExtra="8dp"
+                android:layout_marginBottom="40dp"/>
+
+            <!-- Close Button -->
+            <TextView
+                android:id="@+id/closeModalButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Got it!"
+                android:textSize="36sp"
+                android:textColor="@android:color/white"
+                android:fontFamily="sans-serif-medium"
+                android:background="@drawable/button_background"
+                android:paddingHorizontal="40dp"
+                android:paddingVertical="16dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center"/>
+
+        </LinearLayout>
+
+    </FrameLayout>
+
+</FrameLayout>

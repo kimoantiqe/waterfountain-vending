@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/gradient_background_main">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:padding="80dp"
+        android:gravity="center">
+
+        <!-- Header with Back Button and Centered Logo/Wordmark -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="100dp"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="60dp">
+
+            <ImageButton
+                android:id="@+id/backButton"
+                android:layout_width="80dp"
+                android:layout_height="80dp"
+                android:background="?android:attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/back_button"
+                android:src="@drawable/ic_arrow_back"
+                android:alpha="0.9"
+                app:tint="@android:color/white" />
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="1" />
+
+            <!-- Centered Logo and Wordmark -->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <ImageView
+                    android:layout_width="100dp"
+                    android:layout_height="100dp"
+                    android:layout_marginEnd="20dp"
+                    android:src="@drawable/logo"
+                    android:contentDescription="@string/waterfountain_logo"
+                    android:scaleType="fitCenter" />
+
+                <ImageView
+                    android:layout_width="280dp"
+                    android:layout_height="56dp"
+                    android:src="@drawable/white_word_mark"
+                    android:contentDescription="@string/waterfountain_wordmark"
+                    android:scaleType="fitCenter"
+                    android:adjustViewBounds="true"/>
+
+            </LinearLayout>
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="1" />
+
+        </LinearLayout>
+
+        <!-- Main Content Area -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center">
+
+            <!-- QR Code Icon -->
+            <ImageView
+                android:layout_width="200dp"
+                android:layout_height="200dp"
+                android:src="@drawable/ic_qr_code"
+                app:tint="@android:color/white"
+                android:contentDescription="@string/qr_icon"
+                android:layout_marginBottom="60dp"
+                android:alpha="0.9"/>
+
+            <!-- Title -->
+            <TextView
+                android:id="@+id/titleText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/scan_qr_code"
+                android:textSize="56sp"
+                android:textColor="@android:color/white"
+                android:fontFamily="sans-serif-medium"
+                android:gravity="center"
+                android:layout_marginBottom="30dp"/>
+
+            <!-- Subtitle -->
+            <TextView
+                android:id="@+id/subtitleText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/qr_instructions"
+                android:textSize="36sp"
+                android:textColor="#B3FFFFFF"
+                android:fontFamily="sans-serif-light"
+                android:gravity="center"
+                android:layout_marginBottom="80dp"/>
+
+            <!-- QR Code Display Area -->
+            <FrameLayout
+                android:layout_width="600dp"
+                android:layout_height="600dp"
+                android:background="@drawable/qr_display_background"
+                android:layout_marginBottom="60dp">
+
+                <!-- QR Code will be generated here (initially hidden) -->
+                <ImageView
+                    android:id="@+id/qrCodeImage"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_margin="40dp"
+                    android:scaleType="fitCenter"
+                    android:contentDescription="@string/generated_qr_code"
+                    android:visibility="gone"/>
+
+                <!-- Loading indicator (initially visible) -->
+                <ProgressBar
+                    android:id="@+id/loadingIndicator"
+                    android:layout_width="120dp"
+                    android:layout_height="120dp"
+                    android:layout_gravity="center"
+                    android:indeterminateTint="@android:color/white"
+                    android:visibility="visible"/>
+
+            </FrameLayout>
+
+            <!-- Status Message -->
+            <TextView
+                android:id="@+id/statusText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/generating_qr"
+                android:textSize="32sp"
+                android:textColor="#B3FFFFFF"
+                android:fontFamily="sans-serif-light"
+                android:gravity="center"
+                android:layout_marginBottom="40dp"/>
+
+            <!-- Refresh Button -->
+            <Button
+                android:id="@+id/refreshButton"
+                android:layout_width="400dp"
+                android:layout_height="80dp"
+                android:text="@string/refresh_code"
+                android:textSize="28sp"
+                android:textColor="@android:color/white"
+                android:background="@drawable/button_rounded"
+                android:fontFamily="sans-serif-medium"
+                android:visibility="gone"/>
+
+        </LinearLayout>
+
+        <!-- Footer Instruction -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:layout_marginTop="40dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/qr_footer_instruction"
+                android:textSize="28sp"
+                android:textColor="#80FFFFFF"
+                android:fontFamily="sans-serif-light"
+                android:gravity="center"/>
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</FrameLayout>

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Default screen margins, per the Android Design guidelines. -->
+    <dimen name="activity_horizontal_margin">16dp</dimen>
+    <dimen name="activity_vertical_margin">16dp</dimen>
+
+    <!-- Common spacing values -->
+    <dimen name="margin_small">8dp</dimen>
+    <dimen name="margin_medium">16dp</dimen>
+    <dimen name="margin_large">24dp</dimen>
+    <dimen name="margin_xlarge">32dp</dimen>
+
+    <!-- Text sizes for 55" kiosk -->
+    <dimen name="text_size_small">18sp</dimen>
+    <dimen name="text_size_medium">24sp</dimen>
+    <dimen name="text_size_large">32sp</dimen>
+    <dimen name="text_size_xlarge">40sp</dimen>
+    <dimen name="text_size_title">48sp</dimen>
+
+    <!-- Kiosk specific dimensions -->
+    <dimen name="keypad_button_size">120dp</dimen>
+    <dimen name="keypad_button_margin">12dp</dimen>
+    <dimen name="phone_display_height">80dp</dimen>
+    <dimen name="phone_display_text_size">36sp</dimen>
+    <dimen name="header_height">120dp</dimen>
+    <dimen name="content_padding">60dp</dimen>
+</resources>
+

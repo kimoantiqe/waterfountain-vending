@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="160dp"
+    android:height="160dp"
+    android:viewportWidth="160"
+    android:viewportHeight="160">
+
+    <!-- Bottle Body -->
+    <path
+        android:fillColor="#E0E0E0"
+        android:pathData="M50,40 L110,40 L110,140 Q110,150 100,150 L60,150 Q50,150 50,140 Z"/>
+
+    <!-- Bottle Neck -->
+    <path
+        android:fillColor="#E0E0E0"
+        android:pathData="M70,20 L90,20 L90,40 L70,40 Z"/>
+
+    <!-- Bottle Cap -->
+    <path
+        android:fillColor="#D0D0D0"
+        android:pathData="M65,15 L95,15 Q100,15 100,20 L100,25 Q100,30 95,30 L65,30 Q60,30 60,25 L60,20 Q60,15 65,15"/>
+
+    <!-- Bottle Bottom -->
+    <path
+        android:fillColor="#C0C0C0"
+        android:pathData="M50,140 L110,140 Q110,150 100,150 L60,150 Q50,150 50,140"/>
+
+</vector>
+

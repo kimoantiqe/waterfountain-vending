@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">WaterFountain Machine</string>
+
+    <!-- SMS Activity strings -->
+    <string name="back_button">Back button</string>
+    <string name="waterfountain_logo">WaterFountain logo</string>
+    <string name="waterfountain_wordmark">WaterFountain wordmark</string>
+    <string name="sms_icon">SMS icon</string>
+    <string name="enter_phone_number">Enter your phone number</string>
+    <string name="verification_code_message">We\'ll send you a verification code</string>
+    <string name="phone_number">Phone number</string>
+    <string name="send_code">Send Code</string>
+    <string name="success_icon">Success icon</string>
+    <string name="verification_successful">Verification Successful!</string>
+
+    <!-- Keypad strings -->
+    <string name="clear">CLEAR</string>
+    <string name="backspace">Backspace</string>
+    <string name="phone_format_placeholder">(___) ___-____</string>
+
+    <!-- Vending Animation strings -->
+    <string name="preparing_water">🎉 Your order is confirmed!</string>
+    <string name="please_wait">Get ready for something amazing...</string>
+    <string name="activating_system">⚡ Activating premium system...</string>
+    <string name="crafting_perfection">✨ Crafting the perfect refreshment...</string>
+    <string name="finalizing_order">🚀 Finalizing your experience...</string>
+    <string name="order_complete">🏆 Enjoy your premium water!</string>
+    <string name="thank_you_message">You deserve the best - come back soon!</string>
+
+    <!-- QR Activity strings -->
+    <string name="qr_icon">QR Code icon</string>
+    <string name="scan_qr_code">Scan QR Code</string>
+    <string name="qr_instructions">Use your phone to scan the code below</string>
+    <string name="generated_qr_code">Generated QR Code</string>
+    <string name="generating_qr">Generating your QR code...</string>
+    <string name="refresh_code">Generate New Code</string>
+    <string name="qr_footer_instruction">Scan with your phone camera or QR app</string>
+</resources>

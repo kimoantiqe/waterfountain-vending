@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="40dp"
+    android:height="40dp"
+    android:viewportWidth="40"
+    android:viewportHeight="40">
+
+    <!-- Dots pattern -->
+    <group>
+        <path android:fillColor="#0D2A5C"
+            android:pathData="M8,8 A2,2 0 1,1 8,12 A2,2 0 1,1 8,8"/>
+        <path android:fillColor="#0D2A5C"
+            android:pathData="M24,8 A2,2 0 1,1 24,12 A2,2 0 1,1 24,8"/>
+        <path android:fillColor="#0D2A5C"
+            android:pathData="M8,24 A2,2 0 1,1 8,28 A2,2 0 1,1 8,24"/>
+        <path android:fillColor="#0D2A5C"
+            android:pathData="M24,24 A2,2 0 1,1 24,28 A2,2 0 1,1 24,24"/>
+        <path android:fillColor="#16356B"
+            android:pathData="M16,16 A1.5,1.5 0 1,1 16,19 A1.5,1.5 0 1,1 16,16"/>
+        <path android:fillColor="#16356B"
+            android:pathData="M32,16 A1.5,1.5 0 1,1 32,19 A1.5,1.5 0 1,1 32,16"/>
+        <path android:fillColor="#16356B"
+            android:pathData="M16,32 A1.5,1.5 0 1,1 16,35 A1.5,1.5 0 1,1 16,32"/>
+    </group>
+</vector>
+
