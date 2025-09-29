@@ -12,13 +12,17 @@ import android.view.animation.AccelerateDecelerateInterpolator
 import android.widget.Button
 import android.widget.ImageButton
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityOptionsCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import androidx.lifecycle.lifecycleScope
 import com.google.android.material.transition.platform.MaterialContainerTransformSharedElementCallback
 import com.waterfountainmachine.app.databinding.ActivitySmsBinding
+import com.waterfountainmachine.app.hardware.WaterFountainManager
+import kotlinx.coroutines.launch
 
 class SMSActivity : AppCompatActivity() {
 
@@ -34,6 +38,9 @@ class SMSActivity : AppCompatActivity() {
     private val inactivityTimeout = 60000L // 60 seconds
     private var questionMarkAnimator: AnimatorSet? = null
 
+    // Water fountain hardware manager
+    private lateinit var waterFountainManager: WaterFountainManager
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivitySmsBinding.inflate(layoutInflater)
@@ -46,6 +53,9 @@ class SMSActivity : AppCompatActivity() {
         setupQuestionMarkAnimation()
         setupModalFunctionality()
         setupInactivityTimer()
+        
+        // Initialize water fountain hardware
+        setupHardware()
     }
 
     private fun setupFullScreen() {
@@ -220,27 +230,69 @@ class SMSActivity : AppCompatActivity() {
         // For demo, we'll accept any 6-digit code
 
         if (otpCode.length == maxOtpLength) {
-            // Create Material Design transition intent
-            val intent = Intent(this, VendingAnimationActivity::class.java)
-            intent.putExtra("phoneNumber", phoneNumber)
-
-            // Get screen center for zoom animation
-            val centerX = binding.root.width / 2
-            val centerY = binding.root.height / 2
-
-            // Create zoom from center transition - perfect for explosion theme!
-            val options = ActivityOptionsCompat.makeScaleUpAnimation(
-                binding.root,      // View to animate from
-                centerX,           // X coordinate of center
-                centerY,           // Y coordinate of center
-                0,                 // Initial width (starts from point)
-                0                  // Initial height (starts from point)
-            )
-
-            // Start activity with zoom transition
-            startActivity(intent, options.toBundle())
-            finish()
+            // SMS verification successful - now dispense water
+            dispenseWaterAfterVerification()
         }
+    }
+    
+    private fun setupHardware() {
+        waterFountainManager = WaterFountainManager.getInstance(this)
+        
+        lifecycleScope.launch {
+            try {
+                if (waterFountainManager.initialize()) {
+                    // Hardware initialized successfully
+                } else {
+                    Toast.makeText(this@SMSActivity, "Hardware initialization failed", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                Toast.makeText(this@SMSActivity, "Hardware error: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+    
+    private fun dispenseWaterAfterVerification() {
+        lifecycleScope.launch {
+            try {
+                Toast.makeText(this@SMSActivity, "Verification successful! Dispensing water...", Toast.LENGTH_SHORT).show()
+                
+                val result = waterFountainManager.dispenseWater()
+                
+                if (result.success) {
+                    Toast.makeText(this@SMSActivity, "Water dispensed successfully!", Toast.LENGTH_SHORT).show()
+                    navigateToAnimation(result.dispensingTimeMs)
+                } else {
+                    Toast.makeText(this@SMSActivity, "Water dispensing failed", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                Toast.makeText(this@SMSActivity, "Dispensing error: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+    
+    private fun navigateToAnimation(dispensingTime: Long) {
+        // Create Material Design transition intent
+        val intent = Intent(this, VendingAnimationActivity::class.java)
+        intent.putExtra("phoneNumber", phoneNumber)
+        intent.putExtra("dispensingTime", dispensingTime)
+        intent.putExtra("slot", waterFountainManager.getCurrentSlot())
+
+        // Get screen center for zoom animation
+        val centerX = binding.root.width / 2
+        val centerY = binding.root.height / 2
+
+        // Create zoom from center transition - perfect for explosion theme!
+        val options = ActivityOptionsCompat.makeScaleUpAnimation(
+            binding.root,      // View to animate from
+            centerX,           // X coordinate of center
+            centerY,           // Y coordinate of center
+            0,                 // Initial width (starts from point)
+            0                  // Initial height (starts from point)
+        )
+
+        // Start activity with zoom transition
+        startActivity(intent, options.toBundle())
+        finish()
     }
 
     private fun setupInactivityTimer() {
@@ -489,6 +541,13 @@ class SMSActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         inactivityRunnable?.let { inactivityHandler.removeCallbacks(it) }
+        
+        // Clean up hardware resources
+        if (::waterFountainManager.isInitialized) {
+            lifecycleScope.launch {
+                waterFountainManager.shutdown()
+            }
+        }
     }
 
     override fun onResume() {

@@ -1,17 +1,16 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
-    // Remove compose plugin - we're using XML layouts
 }
 
 android {
     namespace = "com.waterfountainmachine.app"
-    compileSdk = 36
+    compileSdk = 34
 
     defaultConfig {
         applicationId = "com.waterfountainmachine.app"
         minSdk = 26
-        targetSdk = 36
+        targetSdk = 34
         versionCode = 1
         versionName = "1.0"
 
@@ -29,17 +28,33 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
     }
 
     kotlinOptions {
-        jvmTarget = "11"
+        jvmTarget = "1.8"
     }
 
     buildFeatures {
-        viewBinding = true  // Enable ViewBinding for XML layouts
-        // Remove compose = true
+        viewBinding = true
+    }
+
+    // Test configuration following Android best practices
+    testOptions {
+        unitTests {
+            isIncludeAndroidResources = true
+            isReturnDefaultValues = true
+        }
+        animationsDisabled = true
+    }
+
+    // Packaging options to avoid conflicts
+    packaging {
+        resources {
+            excludes += "/META-INF/{AL2.0,LGPL2.1}"
+            excludes += "/META-INF/LICENSE*"
+        }
     }
 }
 
@@ -60,11 +75,17 @@ dependencies {
     // Confetti library for celebration animation
     implementation("nl.dionsegijn:konfetti-xml:2.0.4")
 
-    // Testing dependencies
+    // Unit Testing dependencies
     testImplementation(libs.junit)
-    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.0")
-    testImplementation("org.mockito:mockito-core:5.8.0")
-    testImplementation("org.mockito.kotlin:mockito-kotlin:5.2.1")
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.mockito.core)
+    testImplementation(libs.mockito.kotlin)
+    testImplementation("androidx.test:core:1.5.0")
+    testImplementation("androidx.test.ext:junit:1.1.5")
+    testImplementation("org.robolectric:robolectric:4.10.3")
+
+    // Android Instrumented Testing
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+    androidTestImplementation(libs.kotlinx.coroutines.test)
 }

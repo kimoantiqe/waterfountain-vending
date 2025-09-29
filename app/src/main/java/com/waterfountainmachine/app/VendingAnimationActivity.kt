@@ -39,6 +39,8 @@ class VendingAnimationActivity : AppCompatActivity() {
     private lateinit var explosionParticle5: View
 
     private var phoneNumber: String? = null
+    private var dispensingTime: Long = 0
+    private var slot: Int = 1
     private var shakeAnimatorSet: AnimatorSet? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -46,6 +48,8 @@ class VendingAnimationActivity : AppCompatActivity() {
         setContentView(R.layout.activity_vending_animation)
 
         phoneNumber = intent.getStringExtra("phoneNumber")
+        dispensingTime = intent.getLongExtra("dispensingTime", 0)
+        slot = intent.getIntExtra("slot", 1)
 
         initializeViews()
         setupFullscreen()
@@ -77,7 +81,8 @@ class VendingAnimationActivity : AppCompatActivity() {
     private fun startCanAnimation() {
         // Phase 1: Initial message (0-2s)
         statusText.text = "Preparing your refreshing water..."
-        subtitleText.text = "Get ready for something amazing!"
+        val timeMsg = if (dispensingTime > 0) " (${dispensingTime}ms)" else ""
+        subtitleText.text = "Dispensing from slot $slot$timeMsg"
 
         Handler(Looper.getMainLooper()).postDelayed({
             // Phase 2: Start intense shaking (2-6s)

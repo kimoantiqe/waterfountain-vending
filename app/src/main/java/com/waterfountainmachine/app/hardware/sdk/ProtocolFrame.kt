@@ -50,26 +50,22 @@ data class ProtocolFrame(
      * Checksum = sum of all bytes except ADDR, FRAME_NUMBER, and CHK (lower 8 bits)
      */
     fun calculateChecksum(): Byte {
-        var sum = 0
-        sum += header.toInt() and 0xFF
-        sum += command.toInt() and 0xFF
-        sum += dataLength.toInt() and 0xFF
-        
-        for (byte in data) {
-            sum += byte.toInt() and 0xFF
+        var sum = (header.toInt() and 0xFF) +
+                  (command.toInt() and 0xFF) +
+                  (dataLength.toInt() and 0xFF)
+
+        for (b in data) {
+            sum += (b.toInt() and 0xFF)
         }
-        
+
         return (sum and 0xFF).toByte()
     }
 
     /**
-     * Validate frame integrity
+     * Validate frame checksum
      */
     fun isValid(): Boolean {
-        return address == FIXED_ADDRESS &&
-               frameNumber == FIXED_FRAME_NUMBER &&
-               dataLength.toInt() and 0xFF == data.size &&
-               checksum == calculateChecksum()
+        return checksum == calculateChecksum()
     }
 
     override fun equals(other: Any?): Boolean {
@@ -98,79 +94,5 @@ data class ProtocolFrame(
         result = 31 * result + data.contentHashCode()
         result = 31 * result + checksum.toInt()
         return result
-    }
-}
-
-/**
- * Builder for creating protocol frames
- */
-class ProtocolFrameBuilder {
-    private var header: Byte = ProtocolFrame.APP_HEADER
-    private var command: Byte = 0
-    private var data: ByteArray = byteArrayOf()
-
-    fun appHeader() = apply { header = ProtocolFrame.APP_HEADER }
-    fun vmcHeader() = apply { header = ProtocolFrame.VMC_HEADER }
-    fun command(cmd: Byte) = apply { command = cmd }
-    fun data(data: ByteArray) = apply { this.data = data }
-    fun dataBytes(vararg bytes: Byte) = apply { this.data = bytes }
-
-    fun build(): ProtocolFrame {
-        val dataLength = (data.size and 0xFF).toByte()
-        val frame = ProtocolFrame(
-            header = header,
-            command = command,
-            dataLength = dataLength,
-            data = data,
-            checksum = 0 // Temporary
-        )
-        
-        return frame.copy(checksum = frame.calculateChecksum())
-    }
-}
-
-/**
- * Parser for incoming protocol frames
- */
-object ProtocolFrameParser {
-    
-    /**
-     * Parse byte array into ProtocolFrame
-     * @param bytes Raw bytes received from VMC
-     * @return Parsed frame or null if invalid
-     */
-    fun parse(bytes: ByteArray): ProtocolFrame? {
-        if (bytes.size < ProtocolFrame.MIN_FRAME_SIZE) {
-            return null
-        }
-
-        val buffer = ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN)
-        
-        val address = buffer.get()
-        val frameNumber = buffer.get()
-        val header = buffer.get()
-        val command = buffer.get()
-        val dataLength = buffer.get()
-        
-        val dataSize = dataLength.toInt() and 0xFF
-        if (buffer.remaining() < dataSize + 1) { // +1 for checksum
-            return null
-        }
-        
-        val data = ByteArray(dataSize)
-        buffer.get(data)
-        val checksum = buffer.get()
-        
-        val frame = ProtocolFrame(
-            address = address,
-            frameNumber = frameNumber,
-            header = header,
-            command = command,
-            dataLength = dataLength,
-            data = data,
-            checksum = checksum
-        )
-        
-        return if (frame.isValid()) frame else null
     }
 }

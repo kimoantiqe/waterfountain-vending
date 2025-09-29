@@ -140,7 +140,7 @@ class MockSerialCommunicatorTest {
         originalData[0] = 99 // Modify original
         
         val storedCommand = mockSerial.getSentCommands()[0]
-        assertEquals(1, storedCommand[0]) // Should still be original value
+        assertEquals(1.toByte(), storedCommand[0]) // Should still be original value
     }
 }
 

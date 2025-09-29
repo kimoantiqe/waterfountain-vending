@@ -6,20 +6,30 @@ import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import android.view.KeyEvent
 import android.view.View
 import android.view.animation.AccelerateDecelerateInterpolator
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import androidx.lifecycle.lifecycleScope
 import com.waterfountainmachine.app.databinding.ActivityVendingBinding
+import com.waterfountainmachine.app.hardware.WaterFountainManager
+import com.waterfountainmachine.app.debug.WaterFountainDebug
+import kotlinx.coroutines.launch
 
 class VendingActivity : AppCompatActivity() {
     private lateinit var binding: ActivityVendingBinding
     private val inactivityHandler = Handler(Looper.getMainLooper())
     private val inactivityTimeout = 30000L // 30 seconds
     private var questionMarkAnimator: AnimatorSet? = null
+    
+    // Water Fountain Hardware Integration
+    private lateinit var waterFountainManager: WaterFountainManager
+    private var isHardwareInitialized = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -27,6 +37,7 @@ class VendingActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         setupFullScreen()
+        setupHardware()
         setupClickListeners()
         setupQuestionMarkAnimation()
         setupModalFunctionality()
@@ -59,8 +70,23 @@ class VendingActivity : AppCompatActivity() {
             }
         }
 
-        // PIN Code card is now disabled - no click listener
-        // QR Code card is now properly disabled - no click listener
+        // PIN Code card - now enables direct water dispensing for testing
+        binding.pinCodeCard.setOnClickListener {
+            resetInactivityTimer()
+            performCardClickAnimation(binding.pinCodeCard) {
+                // Direct water dispensing (for testing/demo)
+                dispenseWaterDirect()
+            }
+        }
+
+        // QR Code card - now used for system diagnostics
+        binding.qrCodeCard.setOnClickListener {
+            resetInactivityTimer()
+            performCardClickAnimation(binding.qrCodeCard) {
+                // Run system diagnostics
+                runSystemDiagnostics()
+            }
+        }
 
         binding.backButton.setOnClickListener {
             returnToMainScreen()
@@ -113,10 +139,7 @@ class VendingActivity : AppCompatActivity() {
         }
     }
 
-    override fun onDestroy() {
-        super.onDestroy()
-        inactivityHandler.removeCallbacksAndMessages(null)
-    }
+
 
     private fun setupQuestionMarkAnimation() {
         // Create a more frequent and engaging shake animation
@@ -250,5 +273,157 @@ class VendingActivity : AppCompatActivity() {
         })
 
         fullAnimation.start()
+    }
+
+    /**
+     * Initialize hardware connection
+     */
+    private fun setupHardware() {
+        try {
+            waterFountainManager = WaterFountainManager.getInstance(this)
+            
+            // Initialize hardware in background
+            lifecycleScope.launch {
+                try {
+                    Log.d("VendingActivity", "Initializing water fountain hardware...")
+                    isHardwareInitialized = waterFountainManager.initialize()
+                    
+                    if (isHardwareInitialized) {
+                        Log.i("VendingActivity", "Water fountain hardware initialized successfully")
+                        
+                        // Perform health check
+                        val healthCheck = waterFountainManager.performHealthCheck()
+                        Log.d("VendingActivity", "Health check: ${healthCheck.message}")
+                        for (detail in healthCheck.details) {
+                            Log.d("VendingActivity", "  $detail")
+                        }
+                        
+                        // Show success toast on UI thread
+                        runOnUiThread {
+                            Toast.makeText(this@VendingActivity, "Water fountain ready", Toast.LENGTH_SHORT).show()
+                        }
+                    } else {
+                        Log.e("VendingActivity", "Failed to initialize water fountain hardware")
+                        runOnUiThread {
+                            Toast.makeText(this@VendingActivity, "Hardware initialization failed", Toast.LENGTH_LONG).show()
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.e("VendingActivity", "Exception during hardware initialization", e)
+                    runOnUiThread {
+                        Toast.makeText(this@VendingActivity, "Hardware error: ${e.message}", Toast.LENGTH_LONG).show()
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("VendingActivity", "Failed to setup hardware", e)
+        }
+    }
+
+    /**
+     * Dispense water directly (for testing and demo)
+     */
+    private fun dispenseWaterDirect() {
+        if (!isHardwareInitialized) {
+            Toast.makeText(this, "Hardware not ready. Please wait...", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        lifecycleScope.launch {
+            try {
+                Log.i("VendingActivity", "Starting water dispensing...")
+                
+                // Show loading state
+                runOnUiThread {
+                    Toast.makeText(this@VendingActivity, "Dispensing water...", Toast.LENGTH_SHORT).show()
+                }
+                
+                // Dispense water
+                val result = waterFountainManager.dispenseWater()
+                
+                // Handle result on UI thread
+                runOnUiThread {
+                    if (result.success) {
+                        Log.i("VendingActivity", "Water dispensed successfully in ${result.dispensingTimeMs}ms")
+                        
+                        // Navigate to animation activity to show success
+                        val intent = Intent(this@VendingActivity, VendingAnimationActivity::class.java)
+                        intent.putExtra("dispensingTime", result.dispensingTimeMs)
+                        intent.putExtra("slot", result.slot)
+                        startActivity(intent)
+                        overridePendingTransition(R.anim.zoom_in_fade, R.anim.zoom_out_fade)
+                        
+                    } else {
+                        Log.e("VendingActivity", "Water dispensing failed: ${result.errorMessage}")
+                        val errorMsg = result.errorMessage ?: "Unknown error occurred"
+                        Toast.makeText(this@VendingActivity, "Dispensing failed: $errorMsg", Toast.LENGTH_LONG).show()
+                        
+                        // Try to clear faults for next attempt
+                        lifecycleScope.launch {
+                            waterFountainManager.clearFaults()
+                        }
+                    }
+                }
+                
+            } catch (e: Exception) {
+                Log.e("VendingActivity", "Exception during water dispensing", e)
+                runOnUiThread {
+                    Toast.makeText(this@VendingActivity, "Dispensing error: ${e.message}", Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+    }
+
+    /**
+     * Run comprehensive system diagnostics
+     */
+    private fun runSystemDiagnostics() {
+        lifecycleScope.launch {
+            try {
+                Log.i("VendingActivity", "Starting system diagnostics...")
+                
+                runOnUiThread {
+                    Toast.makeText(this@VendingActivity, "Running system diagnostics...", Toast.LENGTH_SHORT).show()
+                }
+                
+                // Run comprehensive system test
+                val testResult = WaterFountainDebug.runSystemTest(this@VendingActivity)
+                
+                // Print all results to log
+                testResult.printToLog()
+                
+                // Show summary to user
+                runOnUiThread {
+                    val message = if (testResult.success) {
+                        "✓ All system tests passed! Check logs for details."
+                    } else {
+                        "✗ Some tests failed. Check logs for details."
+                    }
+                    Toast.makeText(this@VendingActivity, message, Toast.LENGTH_LONG).show()
+                }
+                
+            } catch (e: Exception) {
+                Log.e("VendingActivity", "Exception during system diagnostics", e)
+                runOnUiThread {
+                    Toast.makeText(this@VendingActivity, "Diagnostics error: ${e.message}", Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        inactivityHandler.removeCallbacksAndMessages(null)
+        
+        // Cleanup hardware connection
+        if (isHardwareInitialized) {
+            lifecycleScope.launch {
+                try {
+                    waterFountainManager.shutdown()
+                } catch (e: Exception) {
+                    Log.e("VendingActivity", "Error during hardware shutdown", e)
+                }
+            }
+        }
     }
 }

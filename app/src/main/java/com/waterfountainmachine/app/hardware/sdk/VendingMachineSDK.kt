@@ -4,8 +4,8 @@ import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.withTimeout
 
 /**
- * Main SDK interface for VMC communication
- * This is the primary interface that applications should use
+ * Main SDK interface for VMC communication - Water Fountain Edition
+ * This interface only includes functions needed for water dispensing operations
  */
 interface VendingMachineSDK {
     
@@ -27,85 +27,32 @@ interface VendingMachineSDK {
     fun isConnected(): Boolean
     
     /**
-     * Get VMC device ID
-     * @return Device ID string (15 characters) or null if failed
+     * Get VMC device ID (15-byte string from API)
+     * @return Device ID string or error
      */
     suspend fun getDeviceId(): Result<String>
     
     /**
      * Send delivery command to dispense water
-     * @param slot Slot number (1-255)
+     * @param slot Slot number (1-255) - cargo lane
      * @param quantity Quantity to dispense (typically 1)
      * @return Delivery response with slot and quantity confirmation
      */
     suspend fun sendDeliveryCommand(slot: Int, quantity: Int = 1): Result<VmcResponse.DeliveryResponse>
     
     /**
-     * Query delivery status
+     * Query delivery status after sending delivery command
      * @param slot Slot number that was used for delivery
      * @param quantity Expected quantity
-     * @return Status response indicating success/failure
+     * @return Status response indicating success/failure with error codes
      */
     suspend fun queryDeliveryStatus(slot: Int, quantity: Int = 1): Result<VmcResponse.StatusResponse>
     
     /**
-     * Clear any faults in the VMC
+     * Clear any faults in the VMC using remove fault command
      * @return true if fault clearing successful
      */
     suspend fun clearFaults(): Result<Boolean>
-    
-    /**
-     * Query VMC balance (for coin-operated machines)
-     * @return Balance in cents (amount * 100)
-     */
-    suspend fun queryBalance(): Result<Int>
-    
-    /**
-     * Send payment instruction to VMC
-     * @param amount Payment amount in cents (will be sent as amount * 100)
-     * @param paymentMethod Payment method (see PaymentMethods)
-     * @param slot Slot number for delivery
-     * @return Payment response indicating success/failure
-     */
-    suspend fun sendPaymentInstruction(amount: Int, paymentMethod: Byte, slot: Int): Result<Boolean>
-    
-    /**
-     * Request coin change from VMC
-     * @return true if coin change successful
-     */
-    suspend fun requestCoinChange(): Result<Boolean>
-    
-    /**
-     * Cancel cashless payment transaction
-     * @return true if cancellation successful
-     */
-    suspend fun cancelCashlessPayment(): Result<Boolean>
-    
-    /**
-     * Send debit instruction to VMC payment panel
-     * @param amount Amount to debit in cents
-     * @return true if debit successful
-     */
-    suspend fun sendDebitInstruction(amount: Int): Result<Boolean>
-    
-    /**
-     * Start age recognition process
-     * @param requiredAge Minimum age requirement (1-99)
-     * @return true if age recognition started successfully
-     */
-    suspend fun startAgeRecognition(requiredAge: Int): Result<Boolean>
-    
-    /**
-     * Query coin change capability status
-     * @return true if coins can be refunded, false if insufficient coins
-     */
-    suspend fun queryCoinChangeStatus(): Result<Boolean>
-    
-    /**
-     * Query age verification status
-     * @return true if age verification was successful
-     */
-    suspend fun queryAgeVerificationStatus(): Result<Boolean>
     
     /**
      * Perform complete water dispensing operation
@@ -131,15 +78,7 @@ data class WaterDispenseResult(
     val dispensingTimeMs: Long = 0
 )
 
-/**
- * SDK Exception types
- */
-sealed class VmcException(message: String, cause: Throwable? = null) : Exception(message, cause) {
-    class ConnectionException(message: String) : VmcException(message)
-    class ProtocolException(message: String) : VmcException(message)
-    class TimeoutException(message: String) : VmcException(message)
-    class HardwareException(message: String, val errorCode: Byte) : VmcException(message)
-}
+
 
 /**
  * Implementation of the VMC SDK
@@ -218,123 +157,15 @@ class VendingMachineSDKImpl(
             expectedResponseCommand = VmcCommands.REMOVE_FAULT
         ) { response ->
             when (response) {
-                is VmcResponse.SimpleResponse -> response.success
+                is VmcResponse.SuccessResponse -> response.success
                 is VmcResponse.ErrorResponse -> throw VmcException.ProtocolException(response.message)
                 else -> throw VmcException.ProtocolException("Unexpected response type")
             }
         }
     }
 
-    override suspend fun queryBalance(): Result<Int> {
-        return executeCommand(
-            command = VmcCommandBuilder.queryBalance(),
-            expectedResponseCommand = VmcCommands.QUERY_BALANCE
-        ) { response ->
-            when (response) {
-                is VmcResponse.BalanceResponse -> response.balance
-                is VmcResponse.ErrorResponse -> throw VmcException.ProtocolException(response.message)
-                else -> throw VmcException.ProtocolException("Unexpected response type")
-            }
-        }
-    }
 
-    override suspend fun sendPaymentInstruction(amount: Int, paymentMethod: Byte, slot: Int): Result<Boolean> {
-        require(slot in 1..255) { "Slot must be between 1 and 255" }
-        require(amount >= 0) { "Amount must be non-negative" }
-        
-        return executeCommand(
-            command = VmcCommandBuilder.paymentInstruction(amount, paymentMethod, slot.toByte()),
-            expectedResponseCommand = VmcCommands.PAYMENT_INSTRUCTION
-        ) { response ->
-            when (response) {
-                is VmcResponse.PaymentResponse -> response.success
-                is VmcResponse.ErrorResponse -> throw VmcException.ProtocolException(response.message)
-                else -> throw VmcException.ProtocolException("Unexpected response type")
-            }
-        }
-    }
 
-    override suspend fun requestCoinChange(): Result<Boolean> {
-        return executeCommand(
-            command = VmcCommandBuilder.coinChange(),
-            expectedResponseCommand = VmcCommands.COIN_CHANGE
-        ) { response ->
-            when (response) {
-                is VmcResponse.SimpleResponse -> response.success
-                is VmcResponse.ErrorResponse -> throw VmcException.ProtocolException(response.message)
-                else -> throw VmcException.ProtocolException("Unexpected response type")
-            }
-        }
-    }
-
-    override suspend fun cancelCashlessPayment(): Result<Boolean> {
-        return executeCommand(
-            command = VmcCommandBuilder.cashlessCancel(),
-            expectedResponseCommand = VmcCommands.CASHLESS_CANCEL
-        ) { response ->
-            when (response) {
-                is VmcResponse.SimpleResponse -> response.success
-                is VmcResponse.ErrorResponse -> throw VmcException.ProtocolException(response.message)
-                else -> throw VmcException.ProtocolException("Unexpected response type")
-            }
-        }
-    }
-
-    override suspend fun sendDebitInstruction(amount: Int): Result<Boolean> {
-        require(amount >= 0) { "Amount must be non-negative" }
-        
-        return executeCommand(
-            command = VmcCommandBuilder.debitInstruction(amount),
-            expectedResponseCommand = VmcCommands.DEBIT_INSTRUCTION
-        ) { response ->
-            when (response) {
-                is VmcResponse.SimpleResponse -> response.success
-                is VmcResponse.ErrorResponse -> throw VmcException.ProtocolException(response.message)
-                else -> throw VmcException.ProtocolException("Unexpected response type")
-            }
-        }
-    }
-
-    override suspend fun startAgeRecognition(requiredAge: Int): Result<Boolean> {
-        require(requiredAge in 1..99) { "Required age must be between 1 and 99" }
-        
-        return executeCommand(
-            command = VmcCommandBuilder.ageRecognition(requiredAge.toByte()),
-            expectedResponseCommand = VmcCommands.AGE_RECOGNITION
-        ) { response ->
-            when (response) {
-                is VmcResponse.SimpleResponse -> response.success
-                is VmcResponse.ErrorResponse -> throw VmcException.ProtocolException(response.message)
-                else -> throw VmcException.ProtocolException("Unexpected response type")
-            }
-        }
-    }
-
-    override suspend fun queryCoinChangeStatus(): Result<Boolean> {
-        return executeCommand(
-            command = VmcCommandBuilder.queryCoinChangeStatus(),
-            expectedResponseCommand = VmcCommands.QUERY_COIN_CHANGE_STATUS
-        ) { response ->
-            when (response) {
-                is VmcResponse.CoinChangeStatusResponse -> response.canRefund
-                is VmcResponse.ErrorResponse -> throw VmcException.ProtocolException(response.message)
-                else -> throw VmcException.ProtocolException("Unexpected response type")
-            }
-        }
-    }
-
-    override suspend fun queryAgeVerificationStatus(): Result<Boolean> {
-        return executeCommand(
-            command = VmcCommandBuilder.queryAgeVerificationStatus(),
-            expectedResponseCommand = VmcCommands.QUERY_AGE_VERIFICATION
-        ) { response ->
-            when (response) {
-                is VmcResponse.AgeVerificationResponse -> response.verified
-                is VmcResponse.ErrorResponse -> throw VmcException.ProtocolException(response.message)
-                else -> throw VmcException.ProtocolException("Unexpected response type")
-            }
-        }
-    }
 
     override suspend fun dispenseWater(slot: Int): Result<WaterDispenseResult> {
         val startTime = System.currentTimeMillis()
