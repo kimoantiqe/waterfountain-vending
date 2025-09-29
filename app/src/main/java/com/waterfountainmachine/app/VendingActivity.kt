@@ -116,6 +116,7 @@ class VendingActivity : AppCompatActivity() {
 
     // Prevent back button from exiting app - return to main screen instead
     override fun onBackPressed() {
+        super.onBackPressed()
         returnToMainScreen()
     }
 

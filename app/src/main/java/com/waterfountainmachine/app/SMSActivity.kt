@@ -214,7 +214,7 @@ class SMSActivity : AppCompatActivity() {
     private fun simulateSendSMS() {
         // In a real implementation, integrate with SMS service like Twilio
         // For demo purposes, we'll just show a simulated code
-        val demoCode = "123456"
+        // val demoCode = "123456" // Commented out to avoid unused variable warning
 
         // Auto-fill for demo (remove in production)
         Handler(Looper.getMainLooper()).postDelayed({
@@ -391,7 +391,7 @@ class SMSActivity : AppCompatActivity() {
     }
 
     private fun formatOtpCode(code: String): String {
-        val placeholder = "_ _ _ _ _ _"
+        // val placeholder = "_ _ _ _ _ _" // Commented out to avoid unused variable warning
         val digits = code.toCharArray()
         val formatted = StringBuilder()
 

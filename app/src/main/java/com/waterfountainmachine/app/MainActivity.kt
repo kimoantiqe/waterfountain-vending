@@ -311,6 +311,7 @@ class MainActivity : AppCompatActivity() {
 
     // Prevent back button from exiting app
     override fun onBackPressed() {
+        super.onBackPressed()
         // Do nothing - disable back button
     }
 

@@ -76,6 +76,7 @@ class PINActivity : AppCompatActivity() {
 
     // Prevent back button from exiting app
     override fun onBackPressed() {
+        super.onBackPressed()
         returnToVendingScreen()
     }
 

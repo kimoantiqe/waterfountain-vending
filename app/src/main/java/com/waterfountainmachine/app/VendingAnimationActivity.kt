@@ -115,7 +115,7 @@ class VendingAnimationActivity : AppCompatActivity() {
         shakeAnimatorSet?.cancel()
 
         // Create multiple random shake animations
-        val shakeAnimations = mutableListOf<ObjectAnimator>()
+        // val shakeAnimations = mutableListOf<ObjectAnimator>() // Commented out to avoid unused variable warning
 
         // Random X translations
         val shakeX = ObjectAnimator.ofFloat(
@@ -254,7 +254,8 @@ class VendingAnimationActivity : AppCompatActivity() {
             val scale = ObjectAnimator.ofFloat(particle, "scaleX", 0f, 2f, 1f, 0f)
             val scaleY = ObjectAnimator.ofFloat(particle, "scaleY", 0f, 2f, 1f, 0f)
 
-            val particleSet = AnimatorSet().apply {
+            // Create particle animator set and start immediately
+            AnimatorSet().apply {
                 playTogether(moveX, moveY, rotate, appear, scale, scaleY)
                 duration = 2000 + (index * 200L) // Stagger the particles
                 interpolator = DecelerateInterpolator()
