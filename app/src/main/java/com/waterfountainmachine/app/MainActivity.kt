@@ -22,6 +22,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private var questionMarkAnimator: AnimatorSet? = null
     private lateinit var adminGestureDetector: AdminGestureDetector
+    private var isNavigating = false // Prevent multiple launches
 
     companion object {
         private const val TAG = "MainActivity"
@@ -76,13 +77,22 @@ class MainActivity : AppCompatActivity() {
 
     private fun setupClickListener() {
         binding.root.setOnClickListener {
-            // Only navigate if modal is not visible
-            if (binding.modalOverlay.visibility == View.GONE) {
+            // Check if we're in the admin corner area
+            // This will be handled by dispatchTouchEvent and AdminGestureDetector
+            // Only navigate if modal is not visible and not already navigating
+            if (binding.modalOverlay.visibility == View.GONE && !isNavigating) {
+                AppLog.d(TAG, "Screen tapped, launching VendingActivity")
+                isNavigating = true
                 performPressAnimation {
                     val intent = Intent(this, VendingActivity::class.java)
+                    intent.flags = Intent.FLAG_ACTIVITY_SINGLE_TOP // Prevent multiple instances
                     startActivity(intent)
-                    // Use Material Design's shared axis Z transition
                     overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
+                    
+                    // Reset flag after delay
+                    binding.root.postDelayed({
+                        isNavigating = false
+                    }, 1000)
                 }
             }
         }
@@ -351,7 +361,13 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun dispatchTouchEvent(ev: MotionEvent?): Boolean {
-        ev?.let { adminGestureDetector.onTouchEvent(it) }
+        // Let admin gesture detector handle corner touches first
+        ev?.let { 
+            if (adminGestureDetector.onTouchEvent(it)) {
+                // Admin gesture handled the event, don't pass it to other views
+                return true
+            }
+        }
         return super.dispatchTouchEvent(ev)
     }
 }

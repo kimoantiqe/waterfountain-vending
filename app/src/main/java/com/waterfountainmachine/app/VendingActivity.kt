@@ -26,6 +26,7 @@ class VendingActivity : AppCompatActivity() {
     private val inactivityHandler = Handler(Looper.getMainLooper())
     private val inactivityTimeout = 30000L // 30 seconds
     private var questionMarkAnimator: AnimatorSet? = null
+    private var isNavigating = false // Prevent multiple activity launches
     
     // Water Fountain Hardware Integration
     private lateinit var waterFountainManager: WaterFountainManager
@@ -61,35 +62,62 @@ class VendingActivity : AppCompatActivity() {
 
     private fun setupClickListeners() {
         binding.smsCard.setOnClickListener {
+            if (isNavigating) return@setOnClickListener // Prevent multiple clicks
+            
             resetInactivityTimer()
             performCardClickAnimation(binding.smsCard) {
-                val intent = Intent(this, SMSActivity::class.java)
-                startActivity(intent)
-                // Use zoom transition for a modern, engaging feel
-                overridePendingTransition(R.anim.zoom_in_fade, R.anim.zoom_out_fade)
+                if (!isNavigating) {
+                    isNavigating = true
+                    val intent = Intent(this, SMSActivity::class.java)
+                    intent.flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
+                    startActivity(intent)
+                    // Use zoom transition for a modern, engaging feel
+                    overridePendingTransition(R.anim.zoom_in_fade, R.anim.zoom_out_fade)
+                    
+                    // Reset flag after delay
+                    binding.root.postDelayed({ isNavigating = false }, 1000)
+                }
             }
         }
 
         // PIN Code card - now enables direct water dispensing for testing
         binding.pinCodeCard.setOnClickListener {
+            if (isNavigating) return@setOnClickListener // Prevent multiple clicks
+            
             resetInactivityTimer()
             performCardClickAnimation(binding.pinCodeCard) {
-                // Direct water dispensing (for testing/demo)
-                dispenseWaterDirect()
+                if (!isNavigating) {
+                    isNavigating = true
+                    // Direct water dispensing (for testing/demo)
+                    dispenseWaterDirect()
+                    
+                    // Reset flag after delay
+                    binding.root.postDelayed({ isNavigating = false }, 1000)
+                }
             }
         }
 
         // QR Code card - now used for system diagnostics
         binding.qrCodeCard.setOnClickListener {
+            if (isNavigating) return@setOnClickListener // Prevent multiple clicks
+            
             resetInactivityTimer()
             performCardClickAnimation(binding.qrCodeCard) {
-                // Run system diagnostics
-                runSystemDiagnostics()
+                if (!isNavigating) {
+                    isNavigating = true
+                    // Run system diagnostics
+                    runSystemDiagnostics()
+                    
+                    // Reset flag after delay
+                    binding.root.postDelayed({ isNavigating = false }, 2000) // Longer for diagnostics
+                }
             }
         }
 
         binding.backButton.setOnClickListener {
-            returnToMainScreen()
+            if (!isNavigating) {
+                returnToMainScreen()
+            }
         }
     }
 
