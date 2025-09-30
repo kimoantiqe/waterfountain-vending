@@ -75,6 +75,9 @@ dependencies {
     // Confetti library for celebration animation
     implementation("nl.dionsegijn:konfetti-xml:2.0.4")
 
+    // USB Serial library for real hardware communication
+    implementation("com.github.mik3y:usb-serial-for-android:3.7.3")
+
     // Unit Testing dependencies
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)

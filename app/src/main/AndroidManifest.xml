@@ -13,6 +13,9 @@
     <!-- Camera permission for QR code -->
     <uses-permission android:name="android.permission.CAMERA" />
 
+    <!-- USB Host permissions for hardware communication -->
+    <uses-feature android:name="android.hardware.usb.host" android:required="false" />
+
     <!-- Hardware features for Chrome OS compatibility -->
     <uses-feature android:name="android.hardware.telephony" android:required="false" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />

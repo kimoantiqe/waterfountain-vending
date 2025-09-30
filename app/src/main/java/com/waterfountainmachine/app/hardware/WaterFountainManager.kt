@@ -47,109 +47,22 @@ class WaterFountainManager private constructor(
             AppLog.d(TAG, "Initializing Water Fountain Manager...")
             AppLog.d(TAG, config.getConfigSummary())
             
-            // Create SDK instance with current configuration
-            // For now, we'll create a mock implementation directly here
-            // TODO: Replace with real USB/Serial communicator when hardware is available
-            val serialCommunicator = object : SerialCommunicator {
-                private var connected = false
-                private var lastCommand: Byte? = null
-                
-                /**
-                 * Helper function to create properly formatted VMC protocol response
-                 */
-                private fun createVmcResponse(command: Byte, data: ByteArray): ByteArray {
-                    val frame = ProtocolFrame(
-                        header = ProtocolFrame.VMC_HEADER,
-                        command = command,
-                        dataLength = data.size.toByte(),
-                        data = data,
-                        checksum = 0x00 // Placeholder
-                    )
-                    
-                    // Calculate proper checksum and create final frame
-                    val properChecksum = frame.calculateChecksum()
-                    val finalFrame = ProtocolFrame(
-                        header = frame.header,
-                        command = frame.command,
-                        dataLength = frame.dataLength,
-                        data = frame.data,
-                        checksum = properChecksum
-                    )
-                    
-                    return finalFrame.toByteArray()
-                }
-                
-                override suspend fun connect(config: SerialConfig): Boolean {
-                    AppLog.d(TAG, "Mock SerialCommunicator: connect() called with baud rate ${config.baudRate}")
-                    connected = true
-                    return true
-                }
-                
-                override suspend fun disconnect() {
-                    AppLog.d(TAG, "Mock SerialCommunicator: disconnect() called")
-                    connected = false
-                }
-                
-                override fun isConnected(): Boolean = connected
-                
-                override suspend fun sendData(data: ByteArray): Boolean {
-                    AppLog.d(TAG, "Mock SerialCommunicator: sendData() called with ${data.size} bytes")
-                    AppLog.d(TAG, "Data: ${data.joinToString(" ") { "0x%02X".format(it) }}")
-                    
-                    // Extract command from the data to return appropriate response
-                    if (data.size >= 4) {
-                        lastCommand = data[3] // Command is at position 3 in VMC protocol
-                        AppLog.d(TAG, "Extracted command: 0x%02X".format(lastCommand))
-                    }
-                    return true
-                }
-                
-                override suspend fun readData(timeoutMs: Long): ByteArray? {
-                    AppLog.d(TAG, "Mock SerialCommunicator: readData() called for command 0x%02X".format(lastCommand ?: 0))
-                    
-                    return when (lastCommand) {
-                        0x31.toByte() -> { // GET_DEVICE_ID
-                            val deviceIdString = "WaterFountain001"
-                            val deviceIdBytes = ByteArray(15) { 0x00 }
-                            val sourceBytes = deviceIdString.toByteArray()
-                            // Copy up to 15 bytes, pad with zeros if needed
-                            System.arraycopy(sourceBytes, 0, deviceIdBytes, 0, minOf(sourceBytes.size, 15))
-                            
-                            val response = createVmcResponse(0x31, deviceIdBytes)
-                            AppLog.d(TAG, "Returning GET_DEVICE_ID response: ${response.joinToString(" ") { "0x%02X".format(it) }}")
-                            response
-                        }
-                        0x41.toByte() -> { // DELIVERY_COMMAND
-                            val response = createVmcResponse(0x41, byteArrayOf(0x01, 0x01)) // slot 1, quantity 1
-                            AppLog.d(TAG, "Returning DELIVERY_COMMAND response: ${response.joinToString(" ") { "0x%02X".format(it) }}")
-                            response
-                        }
-                        0xE1.toByte() -> { // QUERY_STATUS
-                            val response = createVmcResponse(0xE1.toByte(), byteArrayOf(0x01)) // success
-                            AppLog.d(TAG, "Returning QUERY_STATUS response: ${response.joinToString(" ") { "0x%02X".format(it) }}")
-                            response
-                        }
-                        0xA2.toByte() -> { // REMOVE_FAULT
-                            val response = createVmcResponse(0xA2.toByte(), byteArrayOf(0x01)) // success
-                            AppLog.d(TAG, "Returning REMOVE_FAULT response: ${response.joinToString(" ") { "0x%02X".format(it) }}")
-                            response
-                        }
-                        else -> {
-                            AppLog.w(TAG, "Unknown command, returning generic success response")
-                            createVmcResponse(lastCommand ?: 0x00, byteArrayOf(0x01))
-                        }
-                    }
-                }
-                
-                override fun getDataFlow(): kotlinx.coroutines.flow.Flow<ByteArray> {
-                    return kotlinx.coroutines.flow.emptyFlow()
-                }
-                
-                override suspend fun clearBuffers() {
-                    AppLog.d(TAG, "Mock SerialCommunicator: clearBuffers() called")
-                }
+            // Check if we should use real or mock serial communicator
+            val prefs = context.getSharedPreferences("system_settings", Context.MODE_PRIVATE)
+            val useRealSerial = prefs.getBoolean("use_real_serial", false)
+            
+            AppLog.i(TAG, "Serial Communicator Mode: ${if (useRealSerial) "REAL HARDWARE" else "MOCK"}")
+            
+            // Create appropriate serial communicator
+            val serialCommunicator: SerialCommunicator = if (useRealSerial) {
+                AppLog.i(TAG, "Creating USB Serial Communicator for real hardware")
+                UsbSerialCommunicator(context)
+            } else {
+                AppLog.i(TAG, "Creating Mock Serial Communicator for testing")
+                createMockSerialCommunicator()
             }
             
+            // Continue with SDK initialization
             sdk = VendingMachineSDKImpl(
                 serialCommunicator = serialCommunicator,
                 commandTimeoutMs = config.commandTimeoutMs,
@@ -192,12 +105,115 @@ class WaterFountainManager private constructor(
                 clearFaults()
             }
             
-            AppLog.i(TAG, "Water Fountain Manager initialized successfully")
             true
-            
         } catch (e: Exception) {
             AppLog.e(TAG, "Failed to initialize Water Fountain Manager", e)
             false
+        }
+    }
+    
+    /**
+     * Create mock serial communicator for testing
+     */
+    private fun createMockSerialCommunicator(): SerialCommunicator {
+        return object : SerialCommunicator {
+            private var connected = false
+            private var lastCommand: Byte? = null
+            
+            /**
+             * Helper function to create properly formatted VMC protocol response
+             */
+            private fun createVmcResponse(command: Byte, data: ByteArray): ByteArray {
+                val frame = ProtocolFrame(
+                    header = ProtocolFrame.VMC_HEADER,
+                    command = command,
+                    dataLength = data.size.toByte(),
+                    data = data,
+                    checksum = 0x00 // Placeholder
+                )
+                
+                // Calculate proper checksum and create final frame
+                val properChecksum = frame.calculateChecksum()
+                val finalFrame = ProtocolFrame(
+                    header = frame.header,
+                    command = frame.command,
+                    dataLength = frame.dataLength,
+                    data = frame.data,
+                    checksum = properChecksum
+                )
+                
+                return finalFrame.toByteArray()
+            }
+            
+            override suspend fun connect(config: SerialConfig): Boolean {
+                AppLog.d(TAG, "Mock SerialCommunicator: connect() called with baud rate ${config.baudRate}")
+                connected = true
+                return true
+            }
+            
+            override suspend fun disconnect() {
+                AppLog.d(TAG, "Mock SerialCommunicator: disconnect() called")
+                connected = false
+            }
+            
+            override fun isConnected(): Boolean = connected
+            
+            override suspend fun sendData(data: ByteArray): Boolean {
+                AppLog.d(TAG, "Mock SerialCommunicator: sendData() called with ${data.size} bytes")
+                AppLog.d(TAG, "Data: ${data.joinToString(" ") { "0x%02X".format(it) }}")
+                
+                // Extract command from the data to return appropriate response
+                if (data.size >= 4) {
+                    lastCommand = data[3] // Command is at position 3 in VMC protocol
+                    AppLog.d(TAG, "Extracted command: 0x%02X".format(lastCommand))
+                }
+                return true
+            }
+            
+            override suspend fun readData(timeoutMs: Long): ByteArray? {
+                AppLog.d(TAG, "Mock SerialCommunicator: readData() called for command 0x%02X".format(lastCommand ?: 0))
+                
+                return when (lastCommand) {
+                    0x31.toByte() -> { // GET_DEVICE_ID
+                        val deviceIdString = "WaterFountain001"
+                        val deviceIdBytes = ByteArray(15) { 0x00 }
+                        val sourceBytes = deviceIdString.toByteArray()
+                        // Copy up to 15 bytes, pad with zeros if needed
+                        System.arraycopy(sourceBytes, 0, deviceIdBytes, 0, minOf(sourceBytes.size, 15))
+                        
+                        val response = createVmcResponse(0x31, deviceIdBytes)
+                        AppLog.d(TAG, "Returning GET_DEVICE_ID response: ${response.joinToString(" ") { "0x%02X".format(it) }}")
+                        response
+                    }
+                    0x41.toByte() -> { // DELIVERY_COMMAND
+                        val response = createVmcResponse(0x41, byteArrayOf(0x01, 0x01)) // slot 1, quantity 1
+                        AppLog.d(TAG, "Returning DELIVERY_COMMAND response: ${response.joinToString(" ") { "0x%02X".format(it) }}")
+                        response
+                    }
+                    0xE1.toByte() -> { // QUERY_STATUS
+                        val response = createVmcResponse(0xE1.toByte(), byteArrayOf(0x01)) // success
+                        AppLog.d(TAG, "Returning QUERY_STATUS response: ${response.joinToString(" ") { "0x%02X".format(it) }}")
+                        response
+                    }
+                    0xA2.toByte() -> { // REMOVE_FAULT
+                        val response = createVmcResponse(0xA2.toByte(), byteArrayOf(0x01)) // success
+                        AppLog.d(TAG, "Returning REMOVE_FAULT response: ${response.joinToString(" ") { "0x%02X".format(it) }}")
+                        response
+                    }
+                    else -> {
+                        AppLog.w(TAG, "Unknown command, returning generic success response")
+                        createVmcResponse(lastCommand ?: 0x00, byteArrayOf(0x01))
+                    }
+                }
+            }
+            
+            override fun getDataFlow(): kotlinx.coroutines.flow.Flow<ByteArray> {
+                return kotlinx.coroutines.flow.emptyFlow()
+            }
+            
+            override suspend fun clearBuffers() {
+                AppLog.d(TAG, "Mock SerialCommunicator: clearBuffers() called")
+            }
         }
     }
     

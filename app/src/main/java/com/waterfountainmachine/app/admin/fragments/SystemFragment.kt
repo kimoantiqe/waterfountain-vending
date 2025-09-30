@@ -114,6 +114,11 @@ class SystemFragment : Fragment() {
             toggleMaintenanceMode(isChecked)
         }
         
+        // Hardware communicator mode toggle
+        binding.hardwareModeToggle.setOnCheckedChangeListener { _, isChecked ->
+            updateHardwareMode(isChecked)
+        }
+        
         binding.updateFirmwareButton.setOnClickListener {
             checkFirmwareUpdate()
         }
@@ -139,6 +144,7 @@ class SystemFragment : Fragment() {
         binding.demoModeToggle.isChecked = prefs.getBoolean("demo_mode", false)
         binding.debugModeToggle.isChecked = prefs.getBoolean("debug_mode", false)
         binding.maintenanceModeToggle.isChecked = prefs.getBoolean("maintenance_mode", false)
+        binding.hardwareModeToggle.isChecked = prefs.getBoolean("use_real_serial", false)
         
         // Load system info
         updateSystemInfo()
@@ -240,6 +246,31 @@ class SystemFragment : Fragment() {
             } catch (e: Exception) {
                 AppLog.e(TAG, "Error updating debug mode", e)
                 binding.systemStatusText.text = "Error updating debug mode: ${e.message}"
+            }
+        }
+    }
+    
+    private fun updateHardwareMode(enabled: Boolean) {
+        lifecycleScope.launch {
+            try {
+                requireContext().getSharedPreferences("system_settings", 0)
+                    .edit()
+                    .putBoolean("use_real_serial", enabled)
+                    .apply()
+                
+                val modeName = if (enabled) "Real Hardware" else "Mock Hardware"
+                binding.systemStatusText.text = "Serial Communicator: $modeName"
+                AppLog.i(TAG, "Serial communicator mode changed to: $modeName")
+                
+                Toast.makeText(
+                    context, 
+                    "⚠️ $modeName Mode Enabled\nRestart app to apply changes", 
+                    Toast.LENGTH_LONG
+                ).show()
+                
+            } catch (e: Exception) {
+                AppLog.e(TAG, "Error updating hardware mode", e)
+                binding.systemStatusText.text = "Error updating hardware mode: ${e.message}"
             }
         }
     }
