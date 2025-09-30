@@ -71,8 +71,8 @@ class VendingActivity : AppCompatActivity() {
                     val intent = Intent(this, SMSActivity::class.java)
                     intent.flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
                     startActivity(intent)
-                    // Use zoom transition for a modern, engaging feel
-                    overridePendingTransition(R.anim.zoom_in_fade, R.anim.zoom_out_fade)
+                    // Use fade transition for smooth screen transition
+                    overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
                     
                     // Reset flag after delay
                     binding.root.postDelayed({ isNavigating = false }, 1000)

@@ -72,294 +72,314 @@
 
         </LinearLayout>
 
-        <!-- Main Content Area -->
-        <LinearLayout
+        <!-- Main Content Area - Properly centered with upward adjustment -->
+        <FrameLayout
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_weight="1"
-            android:orientation="vertical"
-            android:gravity="center">
-
-            <!-- Title -->
-            <TextView
-                android:id="@+id/titleText"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Choose Your\nVerification Method"
-                android:textSize="72sp"
-                android:textColor="@android:color/white"
-                android:fontFamily="sans-serif-medium"
-                android:gravity="center"
-                android:lineSpacingExtra="8dp"
-                android:layout_marginBottom="60dp"/>
-
-            <!-- Subtitle -->
-            <TextView
-                android:id="@+id/subtitleText"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Both methods are free and secure"
-                android:textSize="48sp"
-                android:textColor="#B3FFFFFF"
-                android:fontFamily="sans-serif-light"
-                android:gravity="center"
-                android:layout_marginBottom="120dp"/>
-
-            <!-- Option Cards -->
+            android:layout_weight="1">
+            
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center"
-                android:layout_marginHorizontal="40dp">
+                android:layout_gravity="center"
+                android:layout_marginBottom="100dp"
+                android:orientation="vertical"
+                android:gravity="center">
 
-                <!-- SMS Option - Active (left) -->
-                <LinearLayout
-                    android:id="@+id/smsCard"
-                    android:layout_width="0dp"
-                    android:layout_height="580dp"
-                    android:layout_weight="1"
-                    android:orientation="vertical"
+                <!-- Title with improved hierarchy -->
+                <TextView
+                    android:id="@+id/titleText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Choose Your Verification"
+                    android:textSize="68sp"
+                    android:textColor="@android:color/white"
+                    android:fontFamily="sans-serif-medium"
                     android:gravity="center"
-                    android:background="@drawable/card_gradient_background"
-                    android:layout_marginEnd="20dp"
-                    android:padding="40dp"
-                    android:clickable="true"
-                    android:focusable="true">
+                    android:letterSpacing="0.01"
+                    android:layout_marginBottom="16dp"/>
 
-                    <ImageView
-                        android:layout_width="140dp"
-                        android:layout_height="140dp"
-                        android:src="@drawable/ic_phone_elegant"
-                        app:tint="#2196F3"
-                        android:contentDescription="Phone icon"
-                        android:layout_marginBottom="30dp"/>
+                <!-- Subtitle with better contrast -->
+                <TextView
+                    android:id="@+id/subtitleText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Fast, free, and secure"
+                    android:textSize="42sp"
+                    android:textColor="#CCFFFFFF"
+                    android:fontFamily="sans-serif-light"
+                    android:gravity="center"
+                    android:letterSpacing="0.02"
+                    android:layout_marginBottom="80dp"/>
 
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Phone Number"
-                        android:textSize="36sp"
-                        android:textColor="#333333"
-                        android:fontFamily="sans-serif-black"
+                <!-- Option Cards with improved design -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center"
+                    android:layout_marginHorizontal="40dp">
+
+                    <!-- SMS Option - Active (left) - Redesigned -->
+                    <LinearLayout
+                        android:id="@+id/smsCard"
+                        android:layout_width="0dp"
+                        android:layout_height="540dp"
+                        android:layout_weight="1"
+                        android:orientation="vertical"
                         android:gravity="center"
-                        android:layout_marginBottom="12dp"/>
+                        android:background="@drawable/glass_card_background"
+                        android:layout_marginEnd="20dp"
+                        android:padding="50dp"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:elevation="8dp">
 
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="No app needed"
-                        android:textSize="24sp"
-                        android:textColor="#666666"
-                        android:fontFamily="sans-serif-medium"
-                        android:gravity="center"
-                        android:layout_marginBottom="12dp"/>
+                        <!-- Icon with better visual weight -->
+                        <ImageView
+                            android:layout_width="160dp"
+                            android:layout_height="160dp"
+                            android:src="@drawable/ic_phone_elegant"
+                            app:tint="#2c3e50"
+                            android:contentDescription="Phone icon"
+                            android:layout_marginBottom="40dp"/>
 
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="• Works offline\n• Privacy focused\n• ~45 seconds"
-                        android:textSize="20sp"
-                        android:textColor="#666666"
-                        android:fontFamily="sans-serif-medium"
-                        android:gravity="center"
-                        android:lineSpacingExtra="4dp"/>
+                        <!-- Card title with better hierarchy -->
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Phone Number"
+                            android:textSize="44sp"
+                            android:textColor="#2c3e50"
+                            android:fontFamily="sans-serif-medium"
+                            android:gravity="center"
+                            android:letterSpacing="-0.01"
+                            android:layout_marginBottom="16dp"/>
+
+                        <!-- Tagline -->
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="No app needed"
+                            android:textSize="28sp"
+                            android:textColor="#546e7a"
+                            android:fontFamily="sans-serif"
+                            android:gravity="center"
+                            android:layout_marginBottom="24dp"/>
+
+                        <!-- Feature list with better spacing -->
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Works offline\nPrivacy focused\nQuick verification"
+                            android:textSize="24sp"
+                            android:textColor="#607d8b"
+                            android:fontFamily="sans-serif-light"
+                            android:gravity="center"
+                            android:lineSpacingExtra="8dp"
+                            android:lineSpacingMultiplier="1.3"/>
+
+                    </LinearLayout>
+
+                    <!-- PIN Code Option - Disabled/Coming Soon (center) -->
+                    <FrameLayout
+                        android:id="@+id/pinCodeCard"
+                        android:layout_width="0dp"
+                        android:layout_height="540dp"
+                        android:layout_weight="1"
+                        android:layout_marginHorizontal="20dp"
+                        android:background="@drawable/glass_card_background"
+                        android:clickable="false"
+                        android:focusable="false"
+                        android:alpha="0.5"
+                        android:elevation="4dp">
+
+                        <!-- Base card content -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:orientation="vertical"
+                            android:gravity="center"
+                            android:padding="50dp">
+
+                            <ImageView
+                                android:layout_width="160dp"
+                                android:layout_height="160dp"
+                                android:src="@drawable/ic_pin_code"
+                                app:tint="#2c3e50"
+                                android:contentDescription="PIN Code icon"
+                                android:layout_marginBottom="40dp"
+                                android:alpha="0.4"/>
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="PIN Code"
+                                android:textSize="44sp"
+                                android:textColor="#2c3e50"
+                                android:fontFamily="sans-serif-medium"
+                                android:gravity="center"
+                                android:letterSpacing="-0.01"
+                                android:layout_marginBottom="16dp"
+                                android:alpha="0.4"/>
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="From mobile app"
+                                android:textSize="28sp"
+                                android:textColor="#546e7a"
+                                android:fontFamily="sans-serif"
+                                android:gravity="center"
+                                android:layout_marginBottom="24dp"
+                                android:alpha="0.4"/>
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Account required\nMost secure\nFast verification"
+                                android:textSize="24sp"
+                                android:textColor="#607d8b"
+                                android:fontFamily="sans-serif-light"
+                                android:gravity="center"
+                                android:lineSpacingExtra="8dp"
+                                android:lineSpacingMultiplier="1.3"
+                                android:alpha="0.4"/>
+
+                        </LinearLayout>
+
+                        <!-- Rounded overlay with proper corners -->
+                        <View
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:background="@drawable/overlay_rounded_background" />
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:gravity="center"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="COMING SOON"
+                                android:textSize="36sp"
+                                android:textColor="@android:color/white"
+                                android:fontFamily="sans-serif-medium"
+                                android:gravity="center"
+                                android:background="@drawable/coming_soon_rounded_background"
+                                android:paddingHorizontal="36dp"
+                                android:paddingVertical="18dp"
+                                android:letterSpacing="0.08"
+                                android:elevation="4dp"/>
+
+                        </LinearLayout>
+
+                    </FrameLayout>
+
+                    <!-- QR Code Option - Disabled/Coming Soon (right) -->
+                    <FrameLayout
+                        android:id="@+id/qrCodeCard"
+                        android:layout_width="0dp"
+                        android:layout_height="540dp"
+                        android:layout_weight="1"
+                        android:layout_marginStart="20dp"
+                        android:background="@drawable/glass_card_background"
+                        android:clickable="false"
+                        android:focusable="false"
+                        android:alpha="0.5"
+                        android:elevation="4dp">
+
+                        <!-- Base card content -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:orientation="vertical"
+                            android:gravity="center"
+                            android:padding="50dp">
+
+                            <ImageView
+                                android:layout_width="160dp"
+                                android:layout_height="160dp"
+                                android:src="@drawable/ic_qr_code"
+                                app:tint="#2c3e50"
+                                android:contentDescription="QR Code icon"
+                                android:layout_marginBottom="40dp"
+                                android:alpha="0.4"/>
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Scan QR Code"
+                                android:textSize="44sp"
+                                android:textColor="#2c3e50"
+                                android:fontFamily="sans-serif-medium"
+                                android:gravity="center"
+                                android:letterSpacing="-0.01"
+                                android:layout_marginBottom="16dp"
+                                android:alpha="0.4"/>
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Instant verification"
+                                android:textSize="28sp"
+                                android:textColor="#546e7a"
+                                android:fontFamily="sans-serif"
+                                android:gravity="center"
+                                android:layout_marginBottom="24dp"
+                                android:alpha="0.4"/>
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Works everywhere\nNo account needed\nSuper fast"
+                                android:textSize="24sp"
+                                android:textColor="#607d8b"
+                                android:fontFamily="sans-serif-light"
+                                android:gravity="center"
+                                android:lineSpacingExtra="8dp"
+                                android:lineSpacingMultiplier="1.3"
+                                android:alpha="0.4"/>
+
+                        </LinearLayout>
+
+                        <!-- Rounded overlay with proper corners -->
+                        <View
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:background="@drawable/overlay_rounded_background" />
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:gravity="center"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="COMING SOON"
+                                android:textSize="36sp"
+                                android:textColor="@android:color/white"
+                                android:fontFamily="sans-serif-medium"
+                                android:gravity="center"
+                                android:background="@drawable/coming_soon_rounded_background"
+                                android:paddingHorizontal="36dp"
+                                android:paddingVertical="18dp"
+                                android:letterSpacing="0.08"
+                                android:elevation="4dp"/>
+
+                        </LinearLayout>
+
+                    </FrameLayout>
 
                 </LinearLayout>
 
-                <!-- PIN Code Option - Disabled/Coming Soon (center) -->
-                <FrameLayout
-                    android:id="@+id/pinCodeCard"
-                    android:layout_width="0dp"
-                    android:layout_height="580dp"
-                    android:layout_weight="1"
-                    android:layout_marginHorizontal="20dp"
-                    android:background="@drawable/card_gradient_background"
-                    android:clickable="false"
-                    android:focusable="false"
-                    android:alpha="0.6">
-
-                    <!-- Base card content -->
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:orientation="vertical"
-                        android:gravity="center"
-                        android:padding="40dp">
-
-                        <ImageView
-                            android:layout_width="140dp"
-                            android:layout_height="140dp"
-                            android:src="@drawable/ic_pin_code"
-                            app:tint="#2196F3"
-                            android:contentDescription="PIN Code icon"
-                            android:layout_marginBottom="30dp"
-                            android:alpha="0.5"/>
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="PIN Code"
-                            android:textSize="36sp"
-                            android:textColor="#333333"
-                            android:fontFamily="sans-serif-black"
-                            android:gravity="center"
-                            android:layout_marginBottom="12dp"
-                            android:alpha="0.5"/>
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="From mobile app"
-                            android:textSize="24sp"
-                            android:textColor="#666666"
-                            android:fontFamily="sans-serif-medium"
-                            android:gravity="center"
-                            android:layout_marginBottom="12dp"
-                            android:alpha="0.5"/>
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="• Account required\n• Most secure\n• ~30 seconds"
-                            android:textSize="20sp"
-                            android:textColor="#666666"
-                            android:fontFamily="sans-serif-medium"
-                            android:gravity="center"
-                            android:lineSpacingExtra="4dp"
-                            android:alpha="0.5"/>
-
-                    </LinearLayout>
-
-                    <!-- Rounded overlay with proper corners -->
-                    <View
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:background="@drawable/overlay_rounded_background" />
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:gravity="center"
-                        android:orientation="vertical">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="COMING SOON"
-                            android:textSize="32sp"
-                            android:textColor="@android:color/white"
-                            android:fontFamily="sans-serif-black"
-                            android:gravity="center"
-                            android:background="@drawable/coming_soon_rounded_background"
-                            android:paddingHorizontal="32dp"
-                            android:paddingVertical="16dp"
-                            android:textStyle="bold"
-                            android:letterSpacing="0.1"/>
-
-                    </LinearLayout>
-
-                </FrameLayout>
-
-                <!-- QR Code Option - Disabled/Coming Soon (right) -->
-                <FrameLayout
-                    android:id="@+id/qrCodeCard"
-                    android:layout_width="0dp"
-                    android:layout_height="580dp"
-                    android:layout_weight="1"
-                    android:layout_marginStart="20dp"
-                    android:background="@drawable/card_gradient_background"
-                    android:clickable="false"
-                    android:focusable="false"
-                    android:alpha="0.6">
-
-                    <!-- Base card content -->
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:orientation="vertical"
-                        android:gravity="center"
-                        android:padding="40dp">
-
-                        <ImageView
-                            android:layout_width="140dp"
-                            android:layout_height="140dp"
-                            android:src="@drawable/ic_qr_code"
-                            app:tint="#2196F3"
-                            android:contentDescription="QR Code icon"
-                            android:layout_marginBottom="30dp"
-                            android:alpha="0.5"/>
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Scan QR Code"
-                            android:textSize="36sp"
-                            android:textColor="#333333"
-                            android:fontFamily="sans-serif-black"
-                            android:gravity="center"
-                            android:layout_marginBottom="12dp"
-                            android:alpha="0.5"/>
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Instant • No typing"
-                            android:textSize="24sp"
-                            android:textColor="#666666"
-                            android:fontFamily="sans-serif-medium"
-                            android:gravity="center"
-                            android:layout_marginBottom="12dp"
-                            android:alpha="0.5"/>
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="• Works everywhere\n• No account needed\n• ~15 seconds"
-                            android:textSize="20sp"
-                            android:textColor="#666666"
-                            android:fontFamily="sans-serif-medium"
-                            android:gravity="center"
-                            android:lineSpacingExtra="4dp"
-                            android:alpha="0.5"/>
-
-                    </LinearLayout>
-
-                    <!-- Rounded overlay with proper corners -->
-                    <View
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:background="@drawable/overlay_rounded_background" />
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:gravity="center"
-                        android:orientation="vertical">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="COMING SOON"
-                            android:textSize="32sp"
-                            android:textColor="@android:color/white"
-                            android:fontFamily="sans-serif-black"
-                            android:gravity="center"
-                            android:background="@drawable/coming_soon_rounded_background"
-                            android:paddingHorizontal="32dp"
-                            android:paddingVertical="16dp"
-                            android:textStyle="bold"
-                            android:letterSpacing="0.1"/>
-
-                    </LinearLayout>
-
-                </FrameLayout>
-
             </LinearLayout>
-
-        </LinearLayout>
-
-        <!-- Footer Instruction -->
+            
+        </FrameLayout>
 
     </LinearLayout>
 

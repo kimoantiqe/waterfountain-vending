@@ -1,83 +1,72 @@
 <?xml version="1.0" encoding="utf-8"?>
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    
-    <!-- Outer shadow layer 1 (most diffused) - extends beyond bounds -->
+
+    <!-- 1) Ambient outer glow (soft white halo) -->
     <item
-        android:left="2dp"
-        android:top="6dp"
-        android:right="-2dp"
-        android:bottom="-6dp">
-        <shape android:shape="oval">
-            <solid android:color="#50000000"/>
-        </shape>
-    </item>
-    
-    <!-- Outer shadow layer 2 -->
-    <item
-        android:left="3dp"
-        android:top="7dp"
-        android:right="-1dp"
-        android:bottom="-4dp">
-        <shape android:shape="oval">
-            <solid android:color="#40000000"/>
-        </shape>
-    </item>
-    
-    <!-- Outer shadow layer 3 (closest to button) -->
-    <item
-        android:left="4dp"
-        android:top="8dp"
-        android:right="0dp"
-        android:bottom="-2dp">
-        <shape android:shape="oval">
-            <solid android:color="#30000000"/>
-        </shape>
-    </item>
-    
-    <!-- Main glass circle with frosted background -->
-    <item>
-        <shape android:shape="oval">
-            <!-- Lighter glass effect with more transparency -->
-            <gradient
-                android:type="linear"
-                android:angle="135"
-                android:startColor="#70FFFFFF"
-                android:centerColor="#60FFFFFF"
-                android:endColor="#50FFFFFF"/>
-            
-            <!-- Subtle glass border -->
-            <stroke
-                android:width="1dp"
-                android:color="#60FFFFFF"/>
-        </shape>
-    </item>
-    
-    <!-- Top-left shine (glass reflection) -->
-    <item
-        android:left="20dp"
-        android:top="15dp"
-        android:right="80dp"
-        android:bottom="100dp">
+        android:left="-14dp"
+        android:top="-14dp"
+        android:right="-14dp"
+        android:bottom="-14dp">
         <shape android:shape="oval">
             <gradient
                 android:type="radial"
-                android:gradientRadius="50dp"
-                android:startColor="#90FFFFFF"
-                android:endColor="#00FFFFFF"/>
+                android:gradientRadius="96dp"
+                android:startColor="#26FFFFFF"
+                android:endColor="#00FFFFFF" />
         </shape>
     </item>
-    
-    <!-- Inner glow for depth -->
-    <item
-        android:left="10dp"
-        android:top="10dp"
-        android:right="10dp"
-        android:bottom="10dp">
+
+    <!-- 2) Base glass sphere (radial frost; no centerColor) -->
+    <item>
         <shape android:shape="oval">
+            <gradient
+                android:type="radial"
+                android:gradientRadius="56dp"
+                android:startColor="#66FFFFFF"
+                android:endColor="#0DFFFFFF" />   <!-- faint edge -->
             <stroke
                 android:width="1dp"
-                android:color="#40FFFFFF"/>
+                android:color="#40FFFFFF" />
         </shape>
     </item>
-    
+
+    <!-- 3) Specular highlight (small bright spot, top-left) -->
+    <item
+        android:left="14dp"
+        android:top="12dp"
+        android:right="64dp"
+        android:bottom="64dp">
+        <shape android:shape="oval">
+            <gradient
+                android:type="radial"
+                android:gradientRadius="24dp"
+                android:startColor="#BFFFFFFF"
+                android:endColor="#00FFFFFF" />
+        </shape>
+    </item>
+
+    <!-- 4) Inner shadow (subtle depth, bottom-right) -->
+    <item
+        android:left="8dp"
+        android:top="8dp"
+        android:right="8dp"
+        android:bottom="8dp">
+        <shape android:shape="oval">
+            <gradient
+                android:type="linear"
+                android:angle="315"
+                android:startColor="#00000000"
+                android:endColor="#14000000" />
+        </shape>
+    </item>
+
+    <!-- 5) Hairline top rim sheen -->
+    <item
+        android:top="2dp"
+        android:bottom="999dp">
+        <shape android:shape="oval">
+            <stroke android:width="1dp" android:color="#1FFFFFFF" />
+        </shape>
+    </item>
+
 </layer-list>
