@@ -7,4 +7,13 @@
     <color name="teal_700">#FF018786</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+    
+    <!-- Admin Panel Colors -->
+    <color name="white_70">#B3FFFFFF</color>
+    <color name="black_80">#CC000000</color>
+    <color name="black_60">#99000000</color>
+    <color name="admin_primary">#FF2196F3</color>
+    <color name="admin_accent">#FF4CAF50</color>
+    <color name="admin_error">#FFF44336</color>
+    <color name="admin_warning">#FFFF9800</color>
 </resources>

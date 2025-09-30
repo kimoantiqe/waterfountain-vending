@@ -5,6 +5,7 @@ import android.animation.ObjectAnimator
 import android.content.Intent
 import android.os.Bundle
 import android.view.KeyEvent
+import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
 import android.view.animation.AccelerateDecelerateInterpolator
@@ -13,16 +14,28 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import com.waterfountainmachine.app.admin.AdminGestureDetector
 import com.waterfountainmachine.app.databinding.ActivityMainBinding
+import com.waterfountainmachine.app.utils.AppLog
 
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private var questionMarkAnimator: AnimatorSet? = null
+    private lateinit var adminGestureDetector: AdminGestureDetector
+
+    companion object {
+        private const val TAG = "MainActivity"
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        AppLog.i(TAG, "Water Fountain Vending Machine starting...")
+        
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        
+        AppLog.i(TAG, "MainActivity created successfully")
 
         setupKioskMode()
         setupFullScreen()
@@ -30,6 +43,7 @@ class MainActivity : AppCompatActivity() {
         setupQuestionMarkAnimation()
         setupModalFunctionality()
         setupPressAnimation()
+        setupAdminGesture()
     }
 
     private fun setupKioskMode() {
@@ -330,5 +344,14 @@ class MainActivity : AppCompatActivity() {
         if (hasFocus) {
             setupFullScreen()
         }
+    }
+
+    private fun setupAdminGesture() {
+        adminGestureDetector = AdminGestureDetector(this, binding.root)
+    }
+
+    override fun dispatchTouchEvent(ev: MotionEvent?): Boolean {
+        ev?.let { adminGestureDetector.onTouchEvent(it) }
+        return super.dispatchTouchEvent(ev)
     }
 }
