@@ -7,215 +7,113 @@
     android:clipChildren="false"
     android:clipToPadding="false">
 
-    <!-- Confetti View - Full screen, no clipping -->
-    <nl.dionsegijn.konfetti.xml.KonfettiView
-        android:id="@+id/konfettiView"
+    <!-- Header with Logo -->
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:clipChildren="false"
-        android:clipToPadding="false" />
+        android:layout_height="wrap_content"
+        android:layout_gravity="top"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:padding="80dp">
 
-    <!-- Main Container - No clipping -->
+        <ImageView
+            android:layout_width="140dp"
+            android:layout_height="140dp"
+            android:layout_marginEnd="30dp"
+            android:src="@drawable/logo"
+            android:contentDescription="@string/waterfountain_logo"
+            android:scaleType="fitCenter" />
+
+        <ImageView
+            android:layout_width="400dp"
+            android:layout_height="80dp"
+            android:src="@drawable/white_word_mark"
+            android:contentDescription="@string/waterfountain_wordmark"
+            android:scaleType="fitCenter"
+            android:adjustViewBounds="true"/>
+
+    </LinearLayout>
+
+    <!-- Center Content -->
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:layout_gravity="center"
         android:clipChildren="false"
         android:clipToPadding="false">
 
-        <!-- Header with Logo -->
-        <LinearLayout
-            android:layout_width="match_parent"
+        <!-- Magic Text -->
+        <TextView
+            android:id="@+id/statusText"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_gravity="top"
-            android:orientation="horizontal"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="420dp"
+            android:text="Magic is happening..."
+            android:textSize="72sp"
+            android:textColor="@android:color/white"
+            android:fontFamily="sans-serif-light"
             android:gravity="center"
-            android:padding="80dp">
+            android:alpha="0"
+            android:shadowColor="#4064A9FF"
+            android:shadowDx="0"
+            android:shadowDy="0"
+            android:shadowRadius="20"/>
 
-            <ImageView
-                android:layout_width="140dp"
-                android:layout_height="140dp"
-                android:layout_marginEnd="30dp"
-                android:src="@drawable/logo"
-                android:contentDescription="@string/waterfountain_logo"
-                android:scaleType="fitCenter" />
-
-            <ImageView
-                android:layout_width="400dp"
-                android:layout_height="80dp"
-                android:src="@drawable/white_word_mark"
-                android:contentDescription="@string/waterfountain_wordmark"
-                android:scaleType="fitCenter"
-                android:adjustViewBounds="true"/>
-
-        </LinearLayout>
-
-        <!-- Can Animation Area - Center of screen, no clipping -->
+        <!-- Progress Ring Container - Centered on screen -->
         <FrameLayout
-            android:id="@+id/canAnimationContainer"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
+            android:id="@+id/ringContainer"
+            android:layout_width="900dp"
+            android:layout_height="900dp"
             android:layout_gravity="center"
+            android:alpha="0"
             android:clipChildren="false"
             android:clipToPadding="false">
 
-            <!-- Simple Cylindrical Can with White Gradient -->
-            <LinearLayout
-                android:id="@+id/sodaCan"
-                android:layout_width="200dp"
-                android:layout_height="350dp"
-                android:layout_gravity="center"
-                android:orientation="vertical"
-                android:background="@drawable/button_rounded"
-                android:backgroundTint="#FFFFFF"
-                android:clipChildren="false"
-                android:clipToPadding="false">
-
-                <!-- Can Top -->
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="20dp"
-                    android:background="@drawable/button_rounded"
-                    android:backgroundTint="#E0E0E0"
-                    android:layout_marginBottom="4dp"/>
-
-                <!-- Can Label Area with gradient effect -->
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="0dp"
-                    android:layout_weight="1"
-                    android:orientation="vertical"
-                    android:gravity="center"
-                    android:background="@drawable/button_rounded"
-                    android:backgroundTint="#F5F5F5"
-                    android:padding="20dp">
-
-                    <!-- Brand Text -->
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="WATER"
-                        android:textSize="32sp"
-                        android:textColor="#333333"
-                        android:fontFamily="sans-serif-black"
-                        android:gravity="center"
-                        android:layout_marginBottom="8dp"/>
-
-                    <!-- Subtitle -->
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="PURE"
-                        android:textSize="18sp"
-                        android:textColor="#666666"
-                        android:fontFamily="sans-serif-medium"
-                        android:gravity="center"/>
-
-                </LinearLayout>
-
-                <!-- Can Bottom -->
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="20dp"
-                    android:background="@drawable/button_rounded"
-                    android:backgroundTint="#E0E0E0"
-                    android:layout_marginTop="4dp"/>
-
-            </LinearLayout>
-
-            <!-- Explosion Effects Container -->
-            <FrameLayout
-                android:id="@+id/explosionContainer"
+            <!-- Custom Progress Ring -->
+            <com.waterfountainmachine.app.views.ProgressRingView
+                android:id="@+id/progressRing"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
+                android:layout_gravity="center"/>
+
+            <!-- Logo - SAME SIZE as container for perfect transition -->
+            <ImageView
+                android:id="@+id/logoImage"
+                android:layout_width="450dp"
+                android:layout_height="450dp"
                 android:layout_gravity="center"
-                android:clipChildren="false"
-                android:clipToPadding="false"
-                android:visibility="gone">
-
-                <!-- Multiple explosion particle views -->
-                <View
-                    android:id="@+id/explosionParticle1"
-                    android:layout_width="40dp"
-                    android:layout_height="40dp"
-                    android:background="@drawable/button_rounded"
-                    android:backgroundTint="#FFD700"
-                    android:layout_gravity="center"
-                    android:alpha="0"/>
-
-                <View
-                    android:id="@+id/explosionParticle2"
-                    android:layout_width="30dp"
-                    android:layout_height="30dp"
-                    android:background="@drawable/button_rounded"
-                    android:backgroundTint="#FF6B35"
-                    android:layout_gravity="center"
-                    android:alpha="0"/>
-
-                <View
-                    android:id="@+id/explosionParticle3"
-                    android:layout_width="35dp"
-                    android:layout_height="35dp"
-                    android:background="@drawable/button_rounded"
-                    android:backgroundTint="#F7931E"
-                    android:layout_gravity="center"
-                    android:alpha="0"/>
-
-                <View
-                    android:id="@+id/explosionParticle4"
-                    android:layout_width="25dp"
-                    android:layout_height="25dp"
-                    android:background="@drawable/button_rounded"
-                    android:backgroundTint="#FFE135"
-                    android:layout_gravity="center"
-                    android:alpha="0"/>
-
-                <View
-                    android:id="@+id/explosionParticle5"
-                    android:layout_width="45dp"
-                    android:layout_height="45dp"
-                    android:background="@drawable/button_rounded"
-                    android:backgroundTint="#FF4757"
-                    android:layout_gravity="center"
-                    android:alpha="0"/>
-
-            </FrameLayout>
+                android:src="@drawable/logo"
+                android:contentDescription="@string/waterfountain_logo"
+                android:scaleType="fitCenter"
+                android:alpha="0"/>
 
         </FrameLayout>
 
-        <!-- Status Text at Bottom -->
-        <LinearLayout
-            android:layout_width="match_parent"
+        <!-- Completion Text -->
+        <TextView
+            android:id="@+id/completionText"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_gravity="bottom"
-            android:orientation="vertical"
+            android:layout_gravity="center_horizontal|bottom"
+            android:layout_marginBottom="350dp"
+            android:text="Your water is ready!"
+            android:textSize="68sp"
+            android:textColor="@android:color/white"
+            android:fontFamily="sans-serif-medium"
             android:gravity="center"
-            android:padding="80dp">
-
-            <!-- Main Status Text -->
-            <TextView
-                android:id="@+id/statusText"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/preparing_water"
-                android:textSize="64sp"
-                android:textColor="@android:color/white"
-                android:fontFamily="sans-serif-medium"
-                android:gravity="center"
-                android:layout_marginBottom="20dp"/>
-
-            <!-- Subtitle Text -->
-            <TextView
-                android:id="@+id/subtitleText"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/please_wait"
-                android:textSize="36sp"
-                android:textColor="#B3FFFFFF"
-                android:fontFamily="sans-serif-light"
-                android:gravity="center"/>
-
-        </LinearLayout>
+            android:alpha="0"
+            android:shadowColor="#4064A9FF"
+            android:shadowDx="0"
+            android:shadowDy="0"
+            android:shadowRadius="25"/>
 
     </FrameLayout>
+
+    <!-- Konfetti for celebration -->
+    <nl.dionsegijn.konfetti.xml.KonfettiView
+        android:id="@+id/konfettiView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"/>
 
 </FrameLayout>

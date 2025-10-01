@@ -2,73 +2,79 @@ package com.waterfountainmachine.app
 
 import android.animation.AnimatorSet
 import android.animation.ObjectAnimator
-import android.animation.ValueAnimator
 import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import android.view.View
-import android.view.animation.*
-import android.widget.LinearLayout
+import android.view.animation.DecelerateInterpolator
+import android.view.animation.OvershootInterpolator
+import android.widget.FrameLayout
+import android.widget.ImageView
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.animation.doOnEnd
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import com.waterfountainmachine.app.views.ProgressRingView
 import nl.dionsegijn.konfetti.core.Party
 import nl.dionsegijn.konfetti.core.Position
 import nl.dionsegijn.konfetti.core.emitter.Emitter
 import nl.dionsegijn.konfetti.xml.KonfettiView
 import java.util.concurrent.TimeUnit
-import kotlin.random.Random
 
 class VendingAnimationActivity : AppCompatActivity() {
 
     private lateinit var statusText: TextView
-    private lateinit var subtitleText: TextView
-    private lateinit var sodaCan: LinearLayout
-    private lateinit var explosionContainer: View
+    private lateinit var completionText: TextView
+    private lateinit var progressRing: ProgressRingView
+    private lateinit var logoImage: ImageView
+    private lateinit var ringContainer: FrameLayout
     private lateinit var konfettiView: KonfettiView
-
-    // Explosion particles
-    private lateinit var explosionParticle1: View
-    private lateinit var explosionParticle2: View
-    private lateinit var explosionParticle3: View
-    private lateinit var explosionParticle4: View
-    private lateinit var explosionParticle5: View
 
     private var phoneNumber: String? = null
     private var dispensingTime: Long = 0
     private var slot: Int = 1
-    private var shakeAnimatorSet: AnimatorSet? = null
+
+    private val magicMessages = listOf(
+        "Magic is happening...",
+        "Crafting your moment...",
+        "Hydration incoming...",
+        "Good things take time...",
+        "Almost there..."
+    )
+
+    private val completionMessages = listOf(
+        "Your water is ready!",
+        "Grab your refreshment!",
+        "Enjoy! On the house.",
+        "Stay hydrated!",
+        "Freshly dispensed!"
+    )
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_vending_animation)
 
         phoneNumber = intent.getStringExtra("phoneNumber")
-        dispensingTime = intent.getLongExtra("dispensingTime", 0)
+        dispensingTime = intent.getLongExtra("dispensingTime", 8000)
         slot = intent.getIntExtra("slot", 1)
 
         initializeViews()
         setupFullscreen()
-        startCanAnimation()
+        startRingAnimation()
     }
 
     private fun initializeViews() {
         statusText = findViewById(R.id.statusText)
-        subtitleText = findViewById(R.id.subtitleText)
-        sodaCan = findViewById(R.id.sodaCan)
-        explosionContainer = findViewById(R.id.explosionContainer)
+        completionText = findViewById(R.id.completionText)
+        progressRing = findViewById(R.id.progressRing)
+        logoImage = findViewById(R.id.logoImage)
+        ringContainer = findViewById(R.id.ringContainer)
         konfettiView = findViewById(R.id.konfettiView)
 
-        // Explosion particles
-        explosionParticle1 = findViewById(R.id.explosionParticle1)
-        explosionParticle2 = findViewById(R.id.explosionParticle2)
-        explosionParticle3 = findViewById(R.id.explosionParticle3)
-        explosionParticle4 = findViewById(R.id.explosionParticle4)
-        explosionParticle5 = findViewById(R.id.explosionParticle5)
+        // Set random messages
+        statusText.text = magicMessages.random()
+        completionText.text = completionMessages.random()
     }
 
     private fun setupFullscreen() {
@@ -78,244 +84,149 @@ class VendingAnimationActivity : AppCompatActivity() {
         controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
     }
 
-    private fun startCanAnimation() {
-        // Phase 1: Initial message (0-2s)
-        statusText.text = "Preparing your refreshing water..."
-        val timeMsg = if (dispensingTime > 0) " (${dispensingTime}ms)" else ""
-        subtitleText.text = "Dispensing from slot $slot$timeMsg"
-
+    private fun startRingAnimation() {
+        // Phase 1: Fade in text and ring (0-1s)
         Handler(Looper.getMainLooper()).postDelayed({
-            // Phase 2: Start intense shaking (2-6s)
-            statusText.text = "Activating the magic..."
-            subtitleText.text = "Building up the energy!"
-            startIntenseCanShaking()
-        }, 2000)
+            fadeInElements()
+        }, 200)
 
+        // Phase 2: Start ring progress (1-7s)
         Handler(Looper.getMainLooper()).postDelayed({
-            // Phase 3: Build up to explosion (6-8s)
-            statusText.text = "Almost ready..."
-            subtitleText.text = "3... 2... 1..."
-            intensifyShaking()
-        }, 6000)
+            progressRing.animateProgress(6000)
+        }, 1000)
 
+        // Phase 3: Ring completion snap (7s)
         Handler(Looper.getMainLooper()).postDelayed({
-            // Phase 4: EXPLOSION! (8-10s)
-            statusText.text = "🎉 ENJOY! 🎉"
-            subtitleText.text = "Your water is ready!"
-            explodeCan()
-        }, 8000)
+            ringCompletionSnap()
+        }, 7000)
 
+        // Phase 4: Morph to logo (7.5-8.5s)
         Handler(Looper.getMainLooper()).postDelayed({
-            // Return to main screen
+            morphToLogo()
+        }, 7500)
+
+        // Phase 5: Show completion text + confetti (8.5-9.5s)
+        Handler(Looper.getMainLooper()).postDelayed({
+            showCompletion()
+        }, 8500)
+
+        // Phase 6: Return to main screen (12s)
+        Handler(Looper.getMainLooper()).postDelayed({
             returnToMainScreen()
         }, 12000)
     }
 
-    private fun startIntenseCanShaking() {
-        shakeAnimatorSet?.cancel()
+    private fun fadeInElements() {
+        // Fade in status text with elegant rise
+        statusText.translationY = 30f
+        statusText.animate()
+            .alpha(1f)
+            .translationY(0f)
+            .setDuration(1000)
+            .setInterpolator(DecelerateInterpolator(2f))
+            .start()
 
-        // Create multiple random shake animations
-        // val shakeAnimations = mutableListOf<ObjectAnimator>() // Commented out to avoid unused variable warning
+        // Fade in ring container with slight scale and rotation hint
+        ringContainer.scaleX = 0.7f
+        ringContainer.scaleY = 0.7f
+        ringContainer.alpha = 0f
+        ringContainer.animate()
+            .alpha(1f)
+            .scaleX(1f)
+            .scaleY(1f)
+            .setDuration(1000)
+            .setInterpolator(DecelerateInterpolator(2f))
+            .start()
+    }
 
-        // Random X translations
-        val shakeX = ObjectAnimator.ofFloat(
-            sodaCan, "translationX",
-            0f, getRandomShake(), getRandomShake(), getRandomShake(),
-            getRandomShake(), getRandomShake(), getRandomShake(), 0f
-        ).apply {
-            duration = 800
-            repeatCount = ObjectAnimator.INFINITE
-            repeatMode = ObjectAnimator.RESTART
-        }
+    private fun ringCompletionSnap() {
+        // Glow effect
+        progressRing.animateGlow()
 
-        // Random Y translations
-        val shakeY = ObjectAnimator.ofFloat(
-            sodaCan, "translationY",
-            0f, getRandomShake(), getRandomShake(), getRandomShake(),
-            getRandomShake(), getRandomShake(), getRandomShake(), 0f
-        ).apply {
+        // More dramatic "snap" animation with rotation pulse
+        val scaleX = ObjectAnimator.ofFloat(ringContainer, "scaleX", 1f, 1.12f, 0.98f, 1.02f, 1f)
+        val scaleY = ObjectAnimator.ofFloat(ringContainer, "scaleY", 1f, 1.12f, 0.98f, 1.02f, 1f)
+        val rotation = ObjectAnimator.ofFloat(ringContainer, "rotation", 0f, 5f, -3f, 0f)
+
+        AnimatorSet().apply {
+            playTogether(scaleX, scaleY, rotation)
             duration = 600
-            repeatCount = ObjectAnimator.INFINITE
-            repeatMode = ObjectAnimator.RESTART
+            interpolator = OvershootInterpolator(2f)
+            start()
         }
+    }
 
-        // Random rotation
-        val rotation = ObjectAnimator.ofFloat(
-            sodaCan, "rotation",
-            0f, getRandomRotation(), getRandomRotation(), getRandomRotation(),
-            getRandomRotation(), 0f
-        ).apply {
-            duration = 500
-            repeatCount = ObjectAnimator.INFINITE
-            repeatMode = ObjectAnimator.RESTART
-        }
+    private fun morphToLogo() {
+        // Fade out status text with elegant fall
+        statusText.animate()
+            .alpha(0f)
+            .translationY(-30f)
+            .setDuration(500)
+            .start()
 
-        // Random scale effects
-        val scaleX = ObjectAnimator.ofFloat(
-            sodaCan, "scaleX",
-            1f, 1.1f, 0.9f, 1.05f, 0.95f, 1f
-        ).apply {
+        // Fade out ring with rotation
+        progressRing.animate()
+            .alpha(0f)
+            .scaleX(0.7f)
+            .scaleY(0.7f)
+            .rotation(180f)
+            .setDuration(700)
+            .setInterpolator(DecelerateInterpolator(2f))
+            .start()
+
+        // Fade in logo with dramatic entrance
+        logoImage.scaleX = 0.3f
+        logoImage.scaleY = 0.3f
+        logoImage.rotation = -180f
+        logoImage.animate()
+            .alpha(1f)
+            .scaleX(1f)
+            .scaleY(1f)
+            .rotation(0f)
+            .setDuration(800)
+            .setInterpolator(OvershootInterpolator(1.5f))
+            .start()
+    }
+
+    private fun showCompletion() {
+        // Dramatic logo pulse with glow effect
+        val scaleX = ObjectAnimator.ofFloat(logoImage, "scaleX", 1f, 1.15f, 1.05f, 1f)
+        val scaleY = ObjectAnimator.ofFloat(logoImage, "scaleY", 1f, 1.15f, 1.05f, 1f)
+        val rotation = ObjectAnimator.ofFloat(logoImage, "rotation", 0f, -5f, 5f, 0f)
+
+        AnimatorSet().apply {
+            playTogether(scaleX, scaleY, rotation)
             duration = 700
-            repeatCount = ObjectAnimator.INFINITE
-            repeatMode = ObjectAnimator.RESTART
-        }
-
-        val scaleY = ObjectAnimator.ofFloat(
-            sodaCan, "scaleY",
-            1f, 0.9f, 1.1f, 0.95f, 1.05f, 1f
-        ).apply {
-            duration = 650
-            repeatCount = ObjectAnimator.INFINITE
-            repeatMode = ObjectAnimator.RESTART
-        }
-
-        shakeAnimatorSet = AnimatorSet().apply {
-            playTogether(shakeX, shakeY, rotation, scaleX, scaleY)
-            interpolator = DecelerateInterpolator()
+            interpolator = OvershootInterpolator(1.5f)
             start()
         }
+
+        // Fade in completion text with elegant rise
+        completionText.translationY = 40f
+        completionText.animate()
+            .alpha(1f)
+            .translationY(0f)
+            .setDuration(800)
+            .setInterpolator(DecelerateInterpolator(2f))
+            .start()
+
+        // Trigger konfetti
+        launchConfetti()
     }
 
-    private fun intensifyShaking() {
-        shakeAnimatorSet?.cancel()
-
-        // Much more intense shaking before explosion
-        val megaShakeX = ObjectAnimator.ofFloat(
-            sodaCan, "translationX",
-            0f, getRandomShake() * 2, getRandomShake() * 2, getRandomShake() * 2,
-            getRandomShake() * 2, getRandomShake() * 2, 0f
-        ).apply {
-            duration = 200
-            repeatCount = ObjectAnimator.INFINITE
-            repeatMode = ObjectAnimator.RESTART
-        }
-
-        val megaShakeY = ObjectAnimator.ofFloat(
-            sodaCan, "translationY",
-            0f, getRandomShake() * 2, getRandomShake() * 2, getRandomShake() * 2,
-            getRandomShake() * 2, getRandomShake() * 2, 0f
-        ).apply {
-            duration = 150
-            repeatCount = ObjectAnimator.INFINITE
-            repeatMode = ObjectAnimator.RESTART
-        }
-
-        val megaRotation = ObjectAnimator.ofFloat(
-            sodaCan, "rotation",
-            0f, getRandomRotation() * 2, getRandomRotation() * 2,
-            getRandomRotation() * 2, 0f
-        ).apply {
-            duration = 100
-            repeatCount = ObjectAnimator.INFINITE
-            repeatMode = ObjectAnimator.RESTART
-        }
-
-        shakeAnimatorSet = AnimatorSet().apply {
-            playTogether(megaShakeX, megaShakeY, megaRotation)
-            interpolator = AccelerateInterpolator()
-            start()
-        }
-    }
-
-    private fun explodeCan() {
-        // Stop shaking
-        shakeAnimatorSet?.cancel()
-
-        // Hide the can with explosion effect
-        val canDisappear = ObjectAnimator.ofFloat(sodaCan, "alpha", 1f, 0f).apply {
-            duration = 300
-        }
-
-        // Show explosion container
-        explosionContainer.visibility = View.VISIBLE
-
-        // Animate explosion particles in all directions
-        animateExplosionParticles()
-
-        // Massive confetti explosion
-        launchMassiveConfetti()
-
-        canDisappear.start()
-    }
-
-    private fun animateExplosionParticles() {
-        val particles = listOf(explosionParticle1, explosionParticle2, explosionParticle3, explosionParticle4, explosionParticle5)
-
-        particles.forEachIndexed { index, particle ->
-            // Random direction and distance for each particle
-            val randomX = Random.nextFloat() * 800 - 400 // -400 to 400
-            val randomY = Random.nextFloat() * 800 - 400
-            val randomRotation = Random.nextFloat() * 720 - 360 // Full spins
-
-            val moveX = ObjectAnimator.ofFloat(particle, "translationX", 0f, randomX)
-            val moveY = ObjectAnimator.ofFloat(particle, "translationY", 0f, randomY)
-            val rotate = ObjectAnimator.ofFloat(particle, "rotation", 0f, randomRotation)
-            val appear = ObjectAnimator.ofFloat(particle, "alpha", 0f, 1f, 0.8f, 0f)
-            val scale = ObjectAnimator.ofFloat(particle, "scaleX", 0f, 2f, 1f, 0f)
-            val scaleY = ObjectAnimator.ofFloat(particle, "scaleY", 0f, 2f, 1f, 0f)
-
-            // Create particle animator set and start immediately
-            AnimatorSet().apply {
-                playTogether(moveX, moveY, rotate, appear, scale, scaleY)
-                duration = 2000 + (index * 200L) // Stagger the particles
-                interpolator = DecelerateInterpolator()
-                start()
-            }
-        }
-    }
-
-    private fun launchMassiveConfetti() {
-        // Center-explosion confetti that starts from center and spreads outward
-        val centerExplosionParty = Party(
+    private fun launchConfetti() {
+        val party = Party(
             speed = 30f,
-            maxSpeed = 100f,
-            damping = 0.75f,
-            spread = 360, // Full circle explosion from center
-            angle = 270, // Start going upward
-            colors = listOf(0xfce18a, 0xff726d, 0xf4306d, 0xb48def, 0x00d4aa, 0xff9ff3, 0x54a0ff),
-            emitter = Emitter(duration = 1, TimeUnit.SECONDS).max(180),
-            position = Position.Relative(0.5, 0.5) // Center explosion
+            maxSpeed = 50f,
+            damping = 0.9f,
+            angle = 270,
+            spread = 45,
+            colors = listOf(0xB0E7FF, 0x64C9FF, 0xFFFFFF, 0xC9F0FF).map { it.toInt() },
+            emitter = Emitter(duration = 3, TimeUnit.SECONDS).perSecond(30),
+            position = Position.Relative(0.5, 0.0)
         )
 
-        // First massive center explosion
-        konfettiView.start(centerExplosionParty)
-
-        // Second wave from center with different timing
-        Handler(Looper.getMainLooper()).postDelayed({
-            konfettiView.start(centerExplosionParty.copy(
-                emitter = Emitter(duration = 1200, TimeUnit.MILLISECONDS).max(150),
-                speed = 25f,
-                maxSpeed = 85f
-            ))
-        }, 400)
-
-        // Third wave - slightly higher speed for wider spread
-        Handler(Looper.getMainLooper()).postDelayed({
-            konfettiView.start(centerExplosionParty.copy(
-                emitter = Emitter(duration = 1500, TimeUnit.MILLISECONDS).max(200),
-                speed = 35f,
-                maxSpeed = 110f,
-                damping = 0.7f // Less damping for wider spread
-            ))
-        }, 800)
-
-        // Final burst - maximum spread from center
-        Handler(Looper.getMainLooper()).postDelayed({
-            konfettiView.start(centerExplosionParty.copy(
-                emitter = Emitter(duration = 2000, TimeUnit.MILLISECONDS).max(250),
-                speed = 40f,
-                maxSpeed = 120f,
-                damping = 0.65f // Even less damping for maximum spread
-            ))
-        }, 1200)
-    }
-
-    private fun getRandomShake(): Float {
-        return Random.nextFloat() * 60f - 30f // -30 to 30 pixels
-    }
-
-    private fun getRandomRotation(): Float {
-        return Random.nextFloat() * 30f - 15f // -15 to 15 degrees
+        konfettiView.start(party)
     }
 
     private fun returnToMainScreen() {
@@ -326,8 +237,7 @@ class VendingAnimationActivity : AppCompatActivity() {
         overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
     }
 
-    override fun onDestroy() {
-        super.onDestroy()
-        shakeAnimatorSet?.cancel()
+    override fun onBackPressed() {
+        // Disable back button during animation
     }
 }
