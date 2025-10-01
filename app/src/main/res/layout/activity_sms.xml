@@ -9,7 +9,7 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"
-        android:padding="80dp"
+        android:padding="60dp"
         android:gravity="center">
 
         <!-- Header with Back Button and Centered Logo/Wordmark -->
@@ -78,7 +78,9 @@
             android:layout_height="0dp"
             android:layout_weight="1"
             android:orientation="vertical"
-            android:gravity="center">
+            android:gravity="center"
+            android:clipChildren="false"
+            android:clipToPadding="false">
 
             <!-- Title -->
             <TextView
@@ -90,27 +92,81 @@
                 android:textColor="@android:color/white"
                 android:fontFamily="sans-serif-medium"
                 android:gravity="center"
-                android:layout_marginBottom="40dp"/>
+                android:layout_marginBottom="20dp"/>
 
-            <!-- Phone Display in a Box -->
+            <!-- Timer Display (initially hidden, shows during OTP step) -->
             <LinearLayout
-                android:layout_width="600dp"
-                android:layout_height="120dp"
-                android:background="@drawable/card_gradient_background"
+                android:id="@+id/timerLayout"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/glass_phone_display_background"
                 android:gravity="center"
+                android:paddingHorizontal="40dp"
+                android:paddingVertical="20dp"
+                android:layout_marginBottom="30dp"
+                android:elevation="8dp"
+                android:visibility="gone"
+                android:orientation="horizontal">
+
+                <ImageView
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:src="@android:drawable/ic_lock_idle_alarm"
+                    app:tint="@android:color/white"
+                    android:alpha="0.9"
+                    android:layout_marginEnd="16dp"/>
+
+                <TextView
+                    android:id="@+id/timerText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="2:00"
+                    android:textSize="48sp"
+                    android:textColor="@android:color/white"
+                    android:fontFamily="sans-serif-medium"
+                    android:letterSpacing="0.1"/>
+
+            </LinearLayout>
+
+            <!-- Resend Button in Timer Position (initially hidden, replaces timer) -->
+            <Button
+                android:id="@+id/resendCodeButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Resend Code"
+                android:textSize="36sp"
+                android:textColor="@android:color/white"
+                android:fontFamily="sans-serif-medium"
+                android:background="@drawable/glass_keypad_button_selector"
+                android:paddingHorizontal="40dp"
+                android:paddingVertical="20dp"
+                android:layout_marginBottom="30dp"
+                android:visibility="gone"
+                android:elevation="8dp"/>
+
+            <!-- Phone Display in a Glass Box - Bigger size -->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:minWidth="600dp"
+                android:background="@drawable/glass_phone_display_background"
+                android:gravity="center"
+                android:paddingHorizontal="50dp"
+                android:paddingVertical="35dp"
                 android:layout_marginBottom="40dp"
-                android:elevation="4dp">
+                android:elevation="8dp">
 
                 <TextView
                     android:id="@+id/phoneDisplay"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="(___) ___-____"
+                    android:text=""
                     android:textSize="60sp"
-                    android:textColor="#333333"
+                    android:textColor="@android:color/white"
                     android:fontFamily="sans-serif-light"
                     android:gravity="center"
-                    android:letterSpacing="0.1"/>
+                    android:letterSpacing="0.08"
+                    android:minWidth="480dp"/>
 
             </LinearLayout>
 
@@ -120,26 +176,26 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="We'll send you a verification code"
-                android:textSize="36sp"
-                android:textColor="#B3FFFFFF"
+                android:textSize="32sp"
+                android:textColor="#CCFFFFFF"
                 android:fontFamily="sans-serif-light"
                 android:gravity="center"
-                android:layout_marginBottom="60dp"/>
+                android:layout_marginBottom="50dp"/>
 
-            <!-- Bigger On-Screen Keypad -->
+            <!-- Bigger On-Screen Keypad with Glass Effect -->
             <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
                 android:gravity="center"
-                android:layout_marginBottom="40dp">
+                android:layout_marginBottom="30dp">
 
                 <!-- Row 1: 1, 2, 3 -->
                 <LinearLayout
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
-                    android:layout_marginBottom="30dp">
+                    android:layout_marginBottom="24dp">
 
                     <Button
                         android:id="@+id/btn1"
@@ -149,8 +205,8 @@
                         android:textSize="48sp"
                         android:textColor="@android:color/white"
                         android:fontFamily="sans-serif-medium"
-                        android:background="@drawable/keypad_button_background"
-                        android:layout_marginEnd="30dp"/>
+                        android:background="@drawable/glass_keypad_button_selector"
+                        android:layout_marginEnd="24dp"/>
 
                     <Button
                         android:id="@+id/btn2"
@@ -160,8 +216,8 @@
                         android:textSize="48sp"
                         android:textColor="@android:color/white"
                         android:fontFamily="sans-serif-medium"
-                        android:background="@drawable/keypad_button_background"
-                        android:layout_marginEnd="30dp"/>
+                        android:background="@drawable/glass_keypad_button_selector"
+                        android:layout_marginEnd="24dp"/>
 
                     <Button
                         android:id="@+id/btn3"
@@ -171,7 +227,7 @@
                         android:textSize="48sp"
                         android:textColor="@android:color/white"
                         android:fontFamily="sans-serif-medium"
-                        android:background="@drawable/keypad_button_background"/>
+                        android:background="@drawable/glass_keypad_button_selector"/>
 
                 </LinearLayout>
 
@@ -180,7 +236,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
-                    android:layout_marginBottom="30dp">
+                    android:layout_marginBottom="24dp">
 
                     <Button
                         android:id="@+id/btn4"
@@ -190,8 +246,8 @@
                         android:textSize="48sp"
                         android:textColor="@android:color/white"
                         android:fontFamily="sans-serif-medium"
-                        android:background="@drawable/keypad_button_background"
-                        android:layout_marginEnd="30dp"/>
+                        android:background="@drawable/glass_keypad_button_selector"
+                        android:layout_marginEnd="24dp"/>
 
                     <Button
                         android:id="@+id/btn5"
@@ -201,8 +257,8 @@
                         android:textSize="48sp"
                         android:textColor="@android:color/white"
                         android:fontFamily="sans-serif-medium"
-                        android:background="@drawable/keypad_button_background"
-                        android:layout_marginEnd="30dp"/>
+                        android:background="@drawable/glass_keypad_button_selector"
+                        android:layout_marginEnd="24dp"/>
 
                     <Button
                         android:id="@+id/btn6"
@@ -212,7 +268,7 @@
                         android:textSize="48sp"
                         android:textColor="@android:color/white"
                         android:fontFamily="sans-serif-medium"
-                        android:background="@drawable/keypad_button_background"/>
+                        android:background="@drawable/glass_keypad_button_selector"/>
 
                 </LinearLayout>
 
@@ -221,7 +277,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
-                    android:layout_marginBottom="30dp">
+                    android:layout_marginBottom="24dp">
 
                     <Button
                         android:id="@+id/btn7"
@@ -231,8 +287,8 @@
                         android:textSize="48sp"
                         android:textColor="@android:color/white"
                         android:fontFamily="sans-serif-medium"
-                        android:background="@drawable/keypad_button_background"
-                        android:layout_marginEnd="30dp"/>
+                        android:background="@drawable/glass_keypad_button_selector"
+                        android:layout_marginEnd="24dp"/>
 
                     <Button
                         android:id="@+id/btn8"
@@ -242,8 +298,8 @@
                         android:textSize="48sp"
                         android:textColor="@android:color/white"
                         android:fontFamily="sans-serif-medium"
-                        android:background="@drawable/keypad_button_background"
-                        android:layout_marginEnd="30dp"/>
+                        android:background="@drawable/glass_keypad_button_selector"
+                        android:layout_marginEnd="24dp"/>
 
                     <Button
                         android:id="@+id/btn9"
@@ -253,7 +309,7 @@
                         android:textSize="48sp"
                         android:textColor="@android:color/white"
                         android:fontFamily="sans-serif-medium"
-                        android:background="@drawable/keypad_button_background"/>
+                        android:background="@drawable/glass_keypad_button_selector"/>
 
                 </LinearLayout>
 
@@ -271,8 +327,8 @@
                         android:textSize="48sp"
                         android:textColor="@android:color/white"
                         android:fontFamily="sans-serif-medium"
-                        android:background="@drawable/keypad_button_background"
-                        android:layout_marginEnd="30dp"/>
+                        android:background="@drawable/glass_keypad_button_selector"
+                        android:layout_marginEnd="24dp"/>
 
                     <Button
                         android:id="@+id/btn0"
@@ -282,8 +338,8 @@
                         android:textSize="48sp"
                         android:textColor="@android:color/white"
                         android:fontFamily="sans-serif-medium"
-                        android:background="@drawable/keypad_button_background"
-                        android:layout_marginEnd="30dp"/>
+                        android:background="@drawable/glass_keypad_button_selector"
+                        android:layout_marginEnd="24dp"/>
 
                     <Button
                         android:id="@+id/btnBackspace"
@@ -293,7 +349,7 @@
                         android:textSize="48sp"
                         android:textColor="@android:color/white"
                         android:fontFamily="sans-serif-medium"
-                        android:background="@drawable/keypad_button_background"/>
+                        android:background="@drawable/glass_keypad_button_selector"/>
 
                 </LinearLayout>
 
@@ -303,13 +359,13 @@
             <!-- Send Code Button (Step 1) -->
             <Button
                 android:id="@+id/verifyButton"
-                android:layout_width="240dp"
-                android:layout_height="120dp"
+                android:layout_width="260dp"
+                android:layout_height="110dp"
                 android:text="Send Code"
-                android:textSize="38sp"
+                android:textSize="36sp"
                 android:textColor="@android:color/white"
                 android:fontFamily="sans-serif-medium"
-                android:background="@drawable/button_background"
+                android:background="@drawable/glass_action_button_selector"
                 android:enabled="false"
                 android:layout_marginTop="20dp"/>
 
@@ -318,33 +374,24 @@
                 android:id="@+id/otpButtonsLayout"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
+                android:orientation="vertical"
                 android:gravity="center"
                 android:layout_marginTop="20dp"
-                android:visibility="gone">
+                android:visibility="gone"
+                android:clipChildren="false"
+                android:clipToPadding="false">
 
+                <!-- Verify Button -->
                 <Button
                     android:id="@+id/verifyOtpButton"
-                    android:layout_width="240dp"
-                    android:layout_height="120dp"
+                    android:layout_width="260dp"
+                    android:layout_height="110dp"
                     android:text="Verify"
-                    android:textSize="38sp"
+                    android:textSize="36sp"
                     android:textColor="@android:color/white"
                     android:fontFamily="sans-serif-medium"
-                    android:background="@drawable/button_background"
-                    android:layout_marginEnd="30dp"
+                    android:background="@drawable/glass_action_button_selector"
                     android:enabled="false"/>
-
-                <Button
-                    android:id="@+id/resendCodeButton"
-                    android:layout_width="240dp"
-                    android:layout_height="120dp"
-                    android:text="Resend"
-                    android:textSize="38sp"
-                    android:textColor="@android:color/white"
-                    android:fontFamily="sans-serif-light"
-                    android:background="@drawable/keypad_button_background"
-                    android:alpha="0.8"/>
 
             </LinearLayout>
 

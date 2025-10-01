@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    
+    <!-- Disabled state - darker and more subdued -->
+    <item android:state_enabled="false">
+        <layer-list>
+            <item>
+                <shape android:shape="rectangle">
+                    <corners android:radius="20dp"/>
+                    <solid android:color="#1A000000"/>
+                    <stroke android:width="1dp" android:color="#26FFFFFF"/>
+                </shape>
+            </item>
+            <item android:top="1dp" android:bottom="999dp">
+                <shape android:shape="rectangle">
+                    <corners android:topLeftRadius="20dp" android:topRightRadius="20dp"/>
+                    <solid android:color="#0DFFFFFF"/>
+                </shape>
+            </item>
+        </layer-list>
+    </item>
+
+    <!-- Pressed state - brighter glow with cyan accent (no radial) -->
+    <item android:state_pressed="true">
+        <layer-list>
+            <!-- Outer glow with cyan tint -->
+            <item android:left="-4dp" android:top="-4dp" android:right="-4dp" android:bottom="-4dp">
+                <shape android:shape="rectangle">
+                    <corners android:radius="24dp"/>
+                    <solid android:color="#26A0E7FF"/>
+                </shape>
+            </item>
+            <item android:left="-2dp" android:top="-2dp" android:right="-2dp" android:bottom="-2dp">
+                <shape android:shape="rectangle">
+                    <corners android:radius="22dp"/>
+                    <solid android:color="#33B3EBFF"/>
+                </shape>
+            </item>
+            <!-- Base glass with cyan tint -->
+            <item>
+                <shape android:shape="rectangle">
+                    <corners android:radius="20dp"/>
+                    <solid android:color="#73FFFFFF"/>
+                    <stroke android:width="2dp" android:color="#99C9F0FF"/>
+                </shape>
+            </item>
+            <!-- Top highlight -->
+            <item android:top="1dp" android:bottom="999dp">
+                <shape android:shape="rectangle">
+                    <corners android:topLeftRadius="20dp" android:topRightRadius="20dp"/>
+                    <solid android:color="#33FFFFFF"/>
+                </shape>
+            </item>
+        </layer-list>
+    </item>
+
+    <!-- Enabled state - clean glass with subtle cyan accent (no outer glow) -->
+    <item android:state_enabled="true">
+        <layer-list>
+            <!-- Base glass with subtle cyan -->
+            <item>
+                <shape android:shape="rectangle">
+                    <corners android:radius="20dp"/>
+                    <solid android:color="#59FFFFFF"/>
+                    <stroke android:width="1.5dp" android:color="#8CC9F0FF"/>
+                </shape>
+            </item>
+            <!-- Top highlight -->
+            <item android:top="1dp" android:bottom="999dp">
+                <shape android:shape="rectangle">
+                    <corners android:topLeftRadius="20dp" android:topRightRadius="20dp"/>
+                    <solid android:color="#33FFFFFF"/>
+                </shape>
+            </item>
+        </layer-list>
+    </item>
+
+</selector>
