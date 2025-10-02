@@ -3,14 +3,18 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/gradient_background_main">
+    android:background="@drawable/gradient_background_main"
+    android:clipChildren="false"
+    android:clipToPadding="false">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"
         android:padding="80dp"
-        android:gravity="center">
+        android:gravity="center"
+        android:clipChildren="false"
+        android:clipToPadding="false">
 
         <!-- Header with Back Button and Centered Logo/Wordmark -->
         <LinearLayout
@@ -76,7 +80,9 @@
         <FrameLayout
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_weight="1">
+            android:layout_weight="1"
+            android:clipChildren="false"
+            android:clipToPadding="false">
             
             <LinearLayout
                 android:layout_width="match_parent"
@@ -84,7 +90,9 @@
                 android:layout_gravity="center"
                 android:layout_marginBottom="100dp"
                 android:orientation="vertical"
-                android:gravity="center">
+                android:gravity="center"
+                android:clipChildren="false"
+                android:clipToPadding="false">
 
                 <!-- Title with improved hierarchy -->
                 <TextView
@@ -118,7 +126,9 @@
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
                     android:gravity="center"
-                    android:layout_marginHorizontal="40dp">
+                    android:layout_marginHorizontal="40dp"
+                    android:clipChildren="false"
+                    android:clipToPadding="false">
 
                     <!-- SMS Option - Active (left) - Redesigned -->
                     <LinearLayout

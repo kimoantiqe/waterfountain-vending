@@ -19,6 +19,7 @@ import com.waterfountainmachine.app.views.ProgressRingView
 import nl.dionsegijn.konfetti.core.Party
 import nl.dionsegijn.konfetti.core.Position
 import nl.dionsegijn.konfetti.core.emitter.Emitter
+import nl.dionsegijn.konfetti.core.models.Size
 import nl.dionsegijn.konfetti.xml.KonfettiView
 import java.util.concurrent.TimeUnit
 
@@ -215,18 +216,108 @@ class VendingAnimationActivity : AppCompatActivity() {
     }
 
     private fun launchConfetti() {
-        val party = Party(
-            speed = 30f,
-            maxSpeed = 50f,
-            damping = 0.9f,
-            angle = 270,
-            spread = 45,
-            colors = listOf(0xB0E7FF, 0x64C9FF, 0xFFFFFF, 0xC9F0FF).map { it.toInt() },
-            emitter = Emitter(duration = 3, TimeUnit.SECONDS).perSecond(30),
-            position = Position.Relative(0.5, 0.0)
+        // Create multiple konfetti parties across the entire screen with BIGGER particles
+        val parties = listOf(
+            // Top left
+            Party(
+                speed = 20f,
+                maxSpeed = 40f,
+                damping = 0.9f,
+                angle = 270,
+                spread = 90,
+                colors = listOf(0xFFFFFF, 0xF5F3EB, 0xE6E6E6, 0xBDC3C7).map { it.toInt() },
+                size = listOf(Size.LARGE, Size.LARGE, Size.LARGE), // Make particles bigger
+                emitter = Emitter(duration = 2500, TimeUnit.MILLISECONDS).perSecond(25),
+                position = Position.Relative(0.0, 0.0)
+            ),
+            // Top center
+            Party(
+                speed = 20f,
+                maxSpeed = 40f,
+                damping = 0.9f,
+                angle = 270,
+                spread = 90,
+                colors = listOf(0xFFFFFF, 0xF5F3EB, 0xE6E6E6, 0xBDC3C7).map { it.toInt() },
+                size = listOf(Size.LARGE, Size.LARGE, Size.LARGE),
+                emitter = Emitter(duration = 2500, TimeUnit.MILLISECONDS).perSecond(25),
+                position = Position.Relative(0.5, 0.0)
+            ),
+            // Top right
+            Party(
+                speed = 20f,
+                maxSpeed = 40f,
+                damping = 0.9f,
+                angle = 270,
+                spread = 90,
+                colors = listOf(0xFFFFFF, 0xF5F3EB, 0xE6E6E6, 0xBDC3C7).map { it.toInt() },
+                size = listOf(Size.LARGE, Size.LARGE, Size.LARGE),
+                emitter = Emitter(duration = 2500, TimeUnit.MILLISECONDS).perSecond(25),
+                position = Position.Relative(1.0, 0.0)
+            ),
+            // Center left
+            Party(
+                speed = 15f,
+                maxSpeed = 35f,
+                damping = 0.9f,
+                angle = 0,
+                spread = 180,
+                colors = listOf(0xFFFFFF, 0xF5F3EB, 0xE6E6E6, 0xBDC3C7).map { it.toInt() },
+                size = listOf(Size.LARGE, Size.LARGE, Size.LARGE),
+                emitter = Emitter(duration = 2500, TimeUnit.MILLISECONDS).perSecond(20),
+                position = Position.Relative(0.0, 0.5)
+            ),
+            // Center right
+            Party(
+                speed = 15f,
+                maxSpeed = 35f,
+                damping = 0.9f,
+                angle = 180,
+                spread = 180,
+                colors = listOf(0xFFFFFF, 0xF5F3EB, 0xE6E6E6, 0xBDC3C7).map { it.toInt() },
+                size = listOf(Size.LARGE, Size.LARGE, Size.LARGE),
+                emitter = Emitter(duration = 2500, TimeUnit.MILLISECONDS).perSecond(20),
+                position = Position.Relative(1.0, 0.5)
+            ),
+            // Bottom left
+            Party(
+                speed = 20f,
+                maxSpeed = 40f,
+                damping = 0.9f,
+                angle = 90,
+                spread = 90,
+                colors = listOf(0xFFFFFF, 0xF5F3EB, 0xE6E6E6, 0xBDC3C7).map { it.toInt() },
+                size = listOf(Size.LARGE, Size.LARGE, Size.LARGE),
+                emitter = Emitter(duration = 2500, TimeUnit.MILLISECONDS).perSecond(25),
+                position = Position.Relative(0.0, 1.0)
+            ),
+            // Bottom center
+            Party(
+                speed = 20f,
+                maxSpeed = 40f,
+                damping = 0.9f,
+                angle = 90,
+                spread = 90,
+                colors = listOf(0xFFFFFF, 0xF5F3EB, 0xE6E6E6, 0xBDC3C7).map { it.toInt() },
+                size = listOf(Size.LARGE, Size.LARGE, Size.LARGE),
+                emitter = Emitter(duration = 2500, TimeUnit.MILLISECONDS).perSecond(25),
+                position = Position.Relative(0.5, 1.0)
+            ),
+            // Bottom right
+            Party(
+                speed = 20f,
+                maxSpeed = 40f,
+                damping = 0.9f,
+                angle = 90,
+                spread = 90,
+                colors = listOf(0xFFFFFF, 0xF5F3EB, 0xE6E6E6, 0xBDC3C7).map { it.toInt() },
+                size = listOf(Size.LARGE, Size.LARGE, Size.LARGE),
+                emitter = Emitter(duration = 2500, TimeUnit.MILLISECONDS).perSecond(25),
+                position = Position.Relative(1.0, 1.0)
+            )
         )
 
-        konfettiView.start(party)
+        // Start all parties simultaneously for full-screen effect
+        konfettiView.start(parties)
     }
 
     private fun returnToMainScreen() {
