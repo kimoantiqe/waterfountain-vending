@@ -18,7 +18,7 @@ class ProgressRingView @JvmOverloads constructor(
     // Background ring - subtle and elegant
     private val ringPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
-        strokeWidth = 45f
+        strokeWidth = 50f
         strokeCap = Paint.Cap.ROUND
         color = Color.WHITE
         alpha = 30
@@ -27,24 +27,32 @@ class ProgressRingView @JvmOverloads constructor(
     // Progress ring - bold and beautiful with cream/white colors
     private val progressPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
-        strokeWidth = 45f
+        strokeWidth = 50f
         strokeCap = Paint.Cap.ROUND
     }
 
     // Inner glow layer
     private val innerGlowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
-        strokeWidth = 65f
+        strokeWidth = 70f
         strokeCap = Paint.Cap.ROUND
-        maskFilter = BlurMaskFilter(30f, BlurMaskFilter.Blur.NORMAL)
+        maskFilter = BlurMaskFilter(35f, BlurMaskFilter.Blur.NORMAL)
     }
 
     // Outer glow layer
     private val outerGlowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
-        strokeWidth = 90f
+        strokeWidth = 100f
         strokeCap = Paint.Cap.ROUND
-        maskFilter = BlurMaskFilter(50f, BlurMaskFilter.Blur.NORMAL)
+        maskFilter = BlurMaskFilter(60f, BlurMaskFilter.Blur.NORMAL)
+    }
+    
+    // Soft edge paint for smooth transitions at start/end
+    private val softEdgePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE
+        strokeWidth = 60f
+        strokeCap = Paint.Cap.ROUND
+        maskFilter = BlurMaskFilter(20f, BlurMaskFilter.Blur.NORMAL)
     }
 
     // Completion burst glow
@@ -178,27 +186,67 @@ class ProgressRingView @JvmOverloads constructor(
             progressPaint.alpha = 255
             canvas.drawArc(rect, -90f, sweepAngle, false, progressPaint)
             
-            // Add shimmering white highlight at the leading edge
-            if (progress < 99.5f) {
+            // Smooth out the START point (top of ring) with extra fade - BUTTER SMOOTH
+            if (progress > 0.5f && progress < 20f) {
+                // Create a very smooth fade-in over first 20% of animation
+                val fadeProgress = (progress / 20f).coerceIn(0f, 1f)
+                // Use easeOut curve for extra smoothness
+                val smoothAlpha = (Math.pow(fadeProgress.toDouble(), 0.5) * 255).toInt().coerceIn(0, 255)
+                
+                softEdgePaint.shader = gradient
+                softEdgePaint.alpha = smoothAlpha
+                canvas.drawArc(rect, -90f, 10f, false, softEdgePaint)
+            }
+            
+            // Smooth out the END point (leading edge) with multi-layer fade - NO HARD LINES
+            if (progress > 5f && progress < 99.5f) {
+                val endEdgeSweep = 15f.coerceAtMost(sweepAngle)
+                
+                // Layer 1: Soft outer fade
+                softEdgePaint.shader = gradient
+                softEdgePaint.alpha = 60
+                softEdgePaint.strokeWidth = 80f
+                canvas.drawArc(rect, -90f + sweepAngle - endEdgeSweep, endEdgeSweep, false, softEdgePaint)
+                
+                // Layer 2: Medium fade
+                softEdgePaint.alpha = 120
+                softEdgePaint.strokeWidth = 65f
+                canvas.drawArc(rect, -90f + sweepAngle - (endEdgeSweep * 0.6f), endEdgeSweep * 0.6f, false, softEdgePaint)
+                
+                // Layer 3: Inner fade
+                softEdgePaint.alpha = 200
+                softEdgePaint.strokeWidth = 50f
+                canvas.drawArc(rect, -90f + sweepAngle - (endEdgeSweep * 0.3f), endEdgeSweep * 0.3f, false, softEdgePaint)
+            }
+            
+            // Add shimmering white highlight at the leading edge - ULTRA SMOOTH
+            if (progress < 99.5f && progress > 10f) {
                 val highlightAngle = -90f + sweepAngle
                 val highlightRad = Math.toRadians(highlightAngle.toDouble())
                 val highlightX = centerX + (radius * cos(highlightRad)).toFloat()
                 val highlightY = centerY + (radius * sin(highlightRad)).toFloat()
                 
+                // Pulsing effect - subtle breathing animation
+                val pulseAlpha = (0.85f + 0.15f * Math.sin(System.currentTimeMillis() / 400.0)).toFloat()
+                
                 val highlightPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                     style = Paint.Style.FILL
                     shader = RadialGradient(
-                        highlightX, highlightY, 70f,
+                        highlightX, highlightY, 90f,
                         intArrayOf(
-                            Color.argb(220, 255, 255, 255),  // Bright white
-                            Color.argb(120, 255, 253, 245),  // Cream glow
+                            Color.argb((240 * pulseAlpha).toInt(), 255, 255, 255),  // Bright white
+                            Color.argb((160 * pulseAlpha).toInt(), 255, 253, 245),  // Cream glow
+                            Color.argb((60 * pulseAlpha).toInt(), 245, 243, 235),   // Soft cream
                             Color.argb(0, 255, 255, 255)
                         ),
-                        floatArrayOf(0f, 0.5f, 1f),
+                        floatArrayOf(0f, 0.3f, 0.6f, 1f),
                         Shader.TileMode.CLAMP
                     )
                 }
-                canvas.drawCircle(highlightX, highlightY, 70f, highlightPaint)
+                canvas.drawCircle(highlightX, highlightY, 90f, highlightPaint)
+                
+                // Trigger continuous redraw for pulsing effect
+                postInvalidateOnAnimation()
             }
         }
     }

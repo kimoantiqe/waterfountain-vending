@@ -2,6 +2,7 @@ package com.waterfountainmachine.app
 
 import android.animation.AnimatorSet
 import android.animation.ObjectAnimator
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
@@ -54,6 +55,10 @@ class VendingAnimationActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // Set window background to match gradient BEFORE setContentView to prevent black flash
+        window.setBackgroundDrawableResource(R.drawable.gradient_background_main)
+        
         setContentView(R.layout.activity_vending_animation)
 
         phoneNumber = intent.getStringExtra("phoneNumber")
@@ -165,6 +170,14 @@ class VendingAnimationActivity : AppCompatActivity() {
             .setDuration(500)
             .start()
 
+        // Shrink the entire ring container dramatically as ring fades
+        ringContainer.animate()
+            .scaleX(0.65f)
+            .scaleY(0.65f)
+            .setDuration(700)
+            .setInterpolator(DecelerateInterpolator(2f))
+            .start()
+
         // Fade out ring with rotation
         progressRing.animate()
             .alpha(0f)
@@ -175,9 +188,9 @@ class VendingAnimationActivity : AppCompatActivity() {
             .setInterpolator(DecelerateInterpolator(2f))
             .start()
 
-        // Fade in logo with dramatic entrance
-        logoImage.scaleX = 0.3f
-        logoImage.scaleY = 0.3f
+        // Fade in logo with dramatic entrance from tiny scale
+        logoImage.scaleX = 0.2f
+        logoImage.scaleY = 0.2f
         logoImage.rotation = -180f
         logoImage.animate()
             .alpha(1f)
@@ -190,15 +203,15 @@ class VendingAnimationActivity : AppCompatActivity() {
     }
 
     private fun showCompletion() {
-        // Dramatic logo pulse with glow effect
-        val scaleX = ObjectAnimator.ofFloat(logoImage, "scaleX", 1f, 1.15f, 1.05f, 1f)
-        val scaleY = ObjectAnimator.ofFloat(logoImage, "scaleY", 1f, 1.15f, 1.05f, 1f)
-        val rotation = ObjectAnimator.ofFloat(logoImage, "rotation", 0f, -5f, 5f, 0f)
+        // Dramatic logo pulse with glow effect, then shrink significantly
+        val scaleX = ObjectAnimator.ofFloat(logoImage, "scaleX", 1f, 1.15f, 1.05f, 1f, 0.85f, 0.7f)
+        val scaleY = ObjectAnimator.ofFloat(logoImage, "scaleY", 1f, 1.15f, 1.05f, 1f, 0.85f, 0.7f)
+        val rotation = ObjectAnimator.ofFloat(logoImage, "rotation", 0f, -5f, 5f, 0f, 0f, 0f)
 
         AnimatorSet().apply {
             playTogether(scaleX, scaleY, rotation)
-            duration = 700
-            interpolator = OvershootInterpolator(1.5f)
+            duration = 1400 // Extended duration for more dramatic shrink
+            interpolator = DecelerateInterpolator(1.8f)
             start()
         }
 
@@ -325,10 +338,14 @@ class VendingAnimationActivity : AppCompatActivity() {
         intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK
         startActivity(intent)
         finish()
+        @Suppress("DEPRECATION")
         overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
     }
 
+    @Suppress("DEPRECATION")
+    @SuppressLint("MissingSuperCall")
     override fun onBackPressed() {
-        // Disable back button during animation
+        // Disable back button during animation - do nothing
+        // Intentionally not calling super.onBackPressed() to prevent user from interrupting animation
     }
 }

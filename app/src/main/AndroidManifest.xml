@@ -102,4 +102,11 @@
 
     </application>
 
+    <!-- USB Device Attachment Intent Filter -->
+    <queries>
+        <intent>
+            <action android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED" />
+        </intent>
+    </queries>
+
 </manifest>

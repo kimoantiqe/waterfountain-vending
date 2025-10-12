@@ -24,7 +24,7 @@ class WaterFountainConfig private constructor(context: Context) {
         
         // Default values
         private const val DEFAULT_WATER_SLOT = 1
-        private const val DEFAULT_BAUD_RATE = 115200
+        private const val DEFAULT_BAUD_RATE = 9600  // VMC uses 9600 baud (CORRECTED from 115200)
         private const val DEFAULT_COMMAND_TIMEOUT = 5000L
         private const val DEFAULT_STATUS_POLLING_INTERVAL = 500L
         private const val DEFAULT_MAX_POLLING_ATTEMPTS = 20

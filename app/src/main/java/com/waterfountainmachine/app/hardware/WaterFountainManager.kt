@@ -44,70 +44,111 @@ class WaterFountainManager private constructor(
      */
     suspend fun initialize(): Boolean {
         return try {
-            AppLog.d(TAG, "Initializing Water Fountain Manager...")
+            
+            AppLog.i(TAG, "========================================")
+            AppLog.i(TAG, "Water Fountain Manager Initialization")
+            AppLog.i(TAG, "========================================")
             AppLog.d(TAG, config.getConfigSummary())
             
             // Check if we should use real or mock serial communicator
             val prefs = context.getSharedPreferences("system_settings", Context.MODE_PRIVATE)
             val useRealSerial = prefs.getBoolean("use_real_serial", false)
             
-            AppLog.i(TAG, "Serial Communicator Mode: ${if (useRealSerial) "REAL HARDWARE" else "MOCK"}")
+            
+            AppLog.i(TAG, "Serial Communicator Configuration:")
+            AppLog.i(TAG, "  Mode: ${if (useRealSerial) "REAL HARDWARE (USB)" else "MOCK (Testing)"}")
+            AppLog.i(TAG, "  Setting Key: use_real_serial = $useRealSerial")
+            
+            
+            if (useRealSerial) {
+                AppLog.i(TAG, "Initializing USB Serial Communicator...")
+                AppLog.i(TAG, "This will attempt to connect to physical USB device")
+            } else {
+                AppLog.i(TAG, "Initializing Mock Serial Communicator...")
+                AppLog.i(TAG, "This will simulate hardware responses for testing")
+            }
             
             // Create appropriate serial communicator
             val serialCommunicator: SerialCommunicator = if (useRealSerial) {
-                AppLog.i(TAG, "Creating USB Serial Communicator for real hardware")
+                AppLog.i(TAG, "Creating USB Serial Communicator instance...")
                 UsbSerialCommunicator(context)
             } else {
-                AppLog.i(TAG, "Creating Mock Serial Communicator for testing")
+                AppLog.i(TAG, "Creating Mock Serial Communicator instance...")
                 createMockSerialCommunicator()
             }
             
             // Continue with SDK initialization
+            
+            AppLog.i(TAG, "Initializing Vending Machine SDK...")
             sdk = VendingMachineSDKImpl(
                 serialCommunicator = serialCommunicator,
                 commandTimeoutMs = config.commandTimeoutMs,
                 statusPollingIntervalMs = config.statusPollingIntervalMs,
                 maxStatusPollingAttempts = config.maxPollingAttempts
             )
+            AppLog.d(TAG, "✓ SDK instance created")
             
             // Connect to hardware
             val serialConfig = SerialConfig(baudRate = config.serialBaudRate)
-            AppLog.d(TAG, "Attempting to connect to hardware with config: baud rate ${serialConfig.baudRate}")
+            
+            AppLog.i(TAG, "Attempting hardware connection...")
+            AppLog.d(TAG, "Serial Config: baudRate=${serialConfig.baudRate}, dataBits=${serialConfig.dataBits}, stopBits=${serialConfig.stopBits}")
+            AppLog.d(TAG, "Timeout: ${config.commandTimeoutMs}ms")
+            
             val connected = sdk?.connect(serialConfig) ?: false
             
-            AppLog.d(TAG, "Hardware connection result: $connected")
+            
             if (connected) {
-                AppLog.d(TAG, "Connection successful, attempting to get device ID...")
-                // Test connection by getting device ID
-                val deviceIdResult = sdk?.getDeviceId()
-                AppLog.d(TAG, "Device ID result: success=${deviceIdResult?.isSuccess}, exception=${deviceIdResult?.exceptionOrNull()?.message}")
-                
-                if (deviceIdResult?.isSuccess == true) {
-                    val deviceId = deviceIdResult.getOrNull()
-                    AppLog.i(TAG, "Connected to Water Fountain Device: $deviceId")
-                    isInitialized = true
-                } else {
-                    val exception = deviceIdResult?.exceptionOrNull()
-                    AppLog.e(TAG, "Failed to get device ID: ${exception?.message}")
-                    AppLog.e(TAG, "Exception type: ${exception?.javaClass?.simpleName}")
-                    if (exception != null) {
-                        AppLog.e(TAG, "Full exception:", exception)
-                    }
-                    return false
-                }
+                AppLog.i(TAG, "✅ Hardware connection SUCCESSFUL")
             } else {
-                AppLog.e(TAG, "Failed to connect to hardware - SDK connection returned false")
+                AppLog.e(TAG, "❌ Hardware connection FAILED - SDK returned false")
+                return false
+            }
+            
+            
+            AppLog.i(TAG, "Testing connection by retrieving device ID...")
+            // Test connection by getting device ID
+            val deviceIdResult = sdk?.getDeviceId()
+            
+            if (deviceIdResult?.isSuccess == true) {
+                val deviceId = deviceIdResult.getOrNull()
+                AppLog.i(TAG, "✅ Device ID retrieved successfully")
+                AppLog.i(TAG, "Connected to VMC Device: '$deviceId'")
+                isInitialized = true
+            } else {
+                val exception = deviceIdResult?.exceptionOrNull()
+                AppLog.e(TAG, "Failed to get device ID from VMC")
+                AppLog.e(TAG, "Exception Type: ${exception?.javaClass?.simpleName ?: "Unknown"}")
+                AppLog.e(TAG, "Error Message: ${exception?.message ?: "No message"}")
+                
+                if (exception != null) {
+                    AppLog.e(TAG, "Full exception details:", exception)
+                }
                 return false
             }
             
             // Auto-clear faults if configured
             if (config.autoClearFaults) {
+                AppLog.d(TAG, "Auto-clearing faults (configured in settings)...")
                 clearFaults()
             }
             
+            AppLog.i(TAG, "========================================")
+            AppLog.i(TAG, "✅ INITIALIZATION COMPLETE")
+            AppLog.i(TAG, "========================================")
+            AppLog.i(TAG, "Status: Ready for water dispensing")
+            AppLog.i(TAG, "Device: Connected and operational")
+            AppLog.i(TAG, "========================================")
+            
             true
         } catch (e: Exception) {
+            AppLog.e(TAG, "========================================")
+            AppLog.e(TAG, "❌ INITIALIZATION FAILED - EXCEPTION")
+            AppLog.e(TAG, "========================================")
+            AppLog.e(TAG, "Exception: ${e.javaClass.simpleName}")
+            AppLog.e(TAG, "Message: ${e.message}")
             AppLog.e(TAG, "Failed to initialize Water Fountain Manager", e)
+            AppLog.e(TAG, "========================================")
             false
         }
     }

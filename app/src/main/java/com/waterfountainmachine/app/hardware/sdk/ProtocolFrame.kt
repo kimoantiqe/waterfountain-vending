@@ -47,24 +47,22 @@ data class ProtocolFrame(
 
     /**
      * Calculate checksum for this frame
-     * Checksum = sum of all bytes except ADDR, FRAME_NUMBER, and CHK (lower 8 bits)
+     * Per VMC spec: Accumulation checksum of all bytes except ADDR, FRAME_NUMBER, and CHK
+     * Result is lower 8-bit data
      */
     fun calculateChecksum(): Byte {
-        var sum = (header.toInt() and 0xFF) +
-                  (command.toInt() and 0xFF) +
-                  (dataLength.toInt() and 0xFF)
-
-        for (b in data) {
-            sum += (b.toInt() and 0xFF)
-        }
-
+        var sum = 0
+        sum += header.toInt() and 0xFF
+        sum += command.toInt() and 0xFF
+        sum += dataLength.toInt() and 0xFF
+        data.forEach { sum += it.toInt() and 0xFF }
         return (sum and 0xFF).toByte()
     }
-
+    
     /**
-     * Validate frame checksum
+     * Verify checksum matches calculated value
      */
-    fun isValid(): Boolean {
+    fun isChecksumValid(): Boolean {
         return checksum == calculateChecksum()
     }
 

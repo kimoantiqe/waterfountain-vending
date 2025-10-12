@@ -2,7 +2,11 @@ package com.waterfountainmachine.app
 
 import android.animation.AnimatorSet
 import android.animation.ObjectAnimator
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
+import android.hardware.usb.UsbManager
 import android.os.Bundle
 import android.view.KeyEvent
 import android.view.MotionEvent
@@ -23,6 +27,7 @@ class MainActivity : AppCompatActivity() {
     private var questionMarkAnimator: AnimatorSet? = null
     private lateinit var adminGestureDetector: AdminGestureDetector
     private var isNavigating = false // Prevent multiple launches
+    private var usbReceiver: BroadcastReceiver? = null
 
     companion object {
         private const val TAG = "MainActivity"
@@ -45,19 +50,32 @@ class MainActivity : AppCompatActivity() {
         setupModalFunctionality()
         setupPressAnimation()
         setupAdminGesture()
+        setupUsbReceiver()
     }
 
     private fun setupKioskMode() {
-        // Keep screen on
-        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        // Check if kiosk mode is enabled in settings
+        val prefs = getSharedPreferences("system_settings", Context.MODE_PRIVATE)
+        val kioskModeEnabled = prefs.getBoolean("kiosk_mode", true) // Default to enabled
+        
+        AppLog.i(TAG, "Kiosk mode setting: ${if (kioskModeEnabled) "ENABLED" else "DISABLED"}")
+        
+        if (kioskModeEnabled) {
+            // Keep screen on
+            window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
-        // Prevent task switching
-        window.addFlags(WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD)
-        window.addFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED)
-        window.addFlags(WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON)
+            // Prevent task switching
+            window.addFlags(WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD)
+            window.addFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED)
+            window.addFlags(WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON)
 
-        // Make this a launcher activity and clear task
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+            // Make this a launcher activity and clear task
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+            
+            AppLog.i(TAG, "Kiosk mode features applied")
+        } else {
+            AppLog.i(TAG, "Kiosk mode disabled - running in normal mode")
+        }
     }
 
     private fun setupFullScreen() {
@@ -358,6 +376,67 @@ class MainActivity : AppCompatActivity() {
 
     private fun setupAdminGesture() {
         adminGestureDetector = AdminGestureDetector(this, binding.root)
+    }
+    
+    private fun setupUsbReceiver() {
+        usbReceiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context, intent: Intent) {
+                when (intent.action) {
+                    UsbManager.ACTION_USB_DEVICE_ATTACHED -> {
+                        val device = intent.getParcelableExtra<android.hardware.usb.UsbDevice>(UsbManager.EXTRA_DEVICE)
+                        AppLog.i(TAG, "USB device attached: ${device?.productName ?: "Unknown"}")
+                        AppLog.i(TAG, "  VID:PID: ${device?.vendorId?.let { String.format("0x%04X", it) }}:${device?.productId?.let { String.format("0x%04X", it) }}")
+                        // Optionally trigger auto-reconnect here if needed
+                    }
+                    UsbManager.ACTION_USB_DEVICE_DETACHED -> {
+                        val device = intent.getParcelableExtra<android.hardware.usb.UsbDevice>(UsbManager.EXTRA_DEVICE)
+                        AppLog.w(TAG, "USB device detached: ${device?.productName ?: "Unknown"}")
+                        AppLog.w(TAG, "  VID:PID: ${device?.vendorId?.let { String.format("0x%04X", it) }}:${device?.productId?.let { String.format("0x%04X", it) }}")
+                        // Handle disconnect gracefully
+                    }
+                }
+            }
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Register USB broadcast receiver
+        usbReceiver?.let {
+            val filter = IntentFilter().apply {
+                addAction(UsbManager.ACTION_USB_DEVICE_ATTACHED)
+                addAction(UsbManager.ACTION_USB_DEVICE_DETACHED)
+            }
+            registerReceiver(it, filter)
+            AppLog.d(TAG, "USB broadcast receiver registered")
+        }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        // Unregister USB broadcast receiver
+        usbReceiver?.let {
+            try {
+                unregisterReceiver(it)
+                AppLog.d(TAG, "USB broadcast receiver unregistered")
+            } catch (e: IllegalArgumentException) {
+                // Receiver was not registered, ignore
+                AppLog.d(TAG, "USB receiver was not registered")
+            }
+        }
+    }
+    
+    override fun onDestroy() {
+        super.onDestroy()
+        // Ensure receiver is unregistered
+        usbReceiver?.let {
+            try {
+                unregisterReceiver(it)
+            } catch (e: IllegalArgumentException) {
+                // Receiver was not registered, ignore
+            }
+        }
+        usbReceiver = null
     }
 
     override fun dispatchTouchEvent(ev: MotionEvent?): Boolean {

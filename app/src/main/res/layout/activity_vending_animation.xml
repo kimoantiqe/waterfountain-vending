@@ -7,108 +7,97 @@
     android:clipChildren="false"
     android:clipToPadding="false">
 
-    <!-- Header with Logo -->
+    <!-- 
+    LAYOUT STRATEGY: Match MainActivity EXACTLY
+    - Main screen has: LinearLayout with 80dp padding + gravity=center
+    - Logo is 500x500dp inside that centered layout
+    - We replicate this EXACT structure so logo appears in identical position
+    -->
+
+    <!-- Main Content - EXACT COPY of MainActivity structure -->
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_gravity="top"
-        android:orientation="horizontal"
-        android:gravity="center"
-        android:padding="80dp">
-
-        <ImageView
-            android:layout_width="140dp"
-            android:layout_height="140dp"
-            android:layout_marginEnd="30dp"
-            android:src="@drawable/logo"
-            android:contentDescription="@string/waterfountain_logo"
-            android:scaleType="fitCenter" />
-
-        <ImageView
-            android:layout_width="400dp"
-            android:layout_height="80dp"
-            android:src="@drawable/white_word_mark"
-            android:contentDescription="@string/waterfountain_wordmark"
-            android:scaleType="fitCenter"
-            android:adjustViewBounds="true"/>
-
-    </LinearLayout>
-
-    <!-- Center Content -->
-    <FrameLayout
-        android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_gravity="center"
+        android:orientation="vertical"
+        android:padding="80dp"
+        android:gravity="center"
         android:clipChildren="false"
         android:clipToPadding="false">
 
-        <!-- Magic Text -->
-        <TextView
-            android:id="@+id/statusText"
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_gravity="center_horizontal"
-            android:layout_marginTop="420dp"
-            android:text="Magic is happening..."
-            android:textSize="72sp"
-            android:textColor="@android:color/white"
-            android:fontFamily="sans-serif-light"
+            android:orientation="vertical"
             android:gravity="center"
-            android:alpha="0"
-            android:shadowColor="#4064A9FF"
-            android:shadowDx="0"
-            android:shadowDy="0"
-            android:shadowRadius="20"/>
-
-        <!-- Progress Ring Container - Centered on screen -->
-        <FrameLayout
-            android:id="@+id/ringContainer"
-            android:layout_width="900dp"
-            android:layout_height="900dp"
-            android:layout_gravity="center"
-            android:alpha="0"
             android:clipChildren="false"
             android:clipToPadding="false">
 
-            <!-- Custom Progress Ring -->
-            <com.waterfountainmachine.app.views.ProgressRingView
-                android:id="@+id/progressRing"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:layout_gravity="center"/>
+            <!-- Magic Text - positioned ABOVE with lots of space -->
+            <TextView
+                android:id="@+id/statusText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Magic is happening..."
+                android:textSize="72sp"
+                android:textColor="@android:color/white"
+                android:fontFamily="sans-serif-light"
+                android:gravity="center"
+                android:alpha="0"
+                android:layout_marginBottom="120dp"
+                android:shadowColor="#4064A9FF"
+                android:shadowDx="0"
+                android:shadowDy="0"
+                android:shadowRadius="20"/>
 
-            <!-- Logo - SAME SIZE as container for perfect transition -->
-            <ImageView
-                android:id="@+id/logoImage"
-                android:layout_width="450dp"
-                android:layout_height="450dp"
-                android:layout_gravity="center"
-                android:src="@drawable/logo"
-                android:contentDescription="@string/waterfountain_logo"
-                android:scaleType="fitCenter"
-                android:alpha="0"/>
+            <!-- Progress Ring and HUGE Logo Container -->
+            <FrameLayout
+                android:id="@+id/ringContainer"
+                android:layout_width="900dp"
+                android:layout_height="900dp"
+                android:clipChildren="false"
+                android:clipToPadding="false">
 
-        </FrameLayout>
+                <!-- Custom Progress Ring -->
+                <com.waterfountainmachine.app.views.ProgressRingView
+                    android:id="@+id/progressRing"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_gravity="center"/>
 
-        <!-- Completion Text -->
-        <TextView
-            android:id="@+id/completionText"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center_horizontal|bottom"
-            android:layout_marginBottom="350dp"
-            android:text="Your water is ready!"
-            android:textSize="68sp"
-            android:textColor="@android:color/white"
-            android:fontFamily="sans-serif-medium"
-            android:gravity="center"
-            android:alpha="0"
-            android:shadowColor="#4064A9FF"
-            android:shadowDx="0"
-            android:shadowDy="0"
-            android:shadowRadius="25"/>
+                <!-- HUGE Logo - 700dp for dramatic shrink effect -->
+                <ImageView
+                    android:id="@+id/logoImage"
+                    android:layout_width="1200dp"
+                    android:layout_height="1200dp"
+                    android:src="@drawable/logo"
+                    android:contentDescription="@string/waterfountain_logo"
+                    android:scaleType="fitCenter"
+                    android:layout_gravity="center"
+                    android:alpha="0"/>
 
-    </FrameLayout>
+            </FrameLayout>
+
+            <!-- Completion Text - positioned BELOW with lots of space -->
+            <TextView
+                android:id="@+id/completionText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Your water is ready!"
+                android:textSize="68sp"
+                android:textColor="@android:color/white"
+                android:fontFamily="sans-serif-medium"
+                android:gravity="center"
+                android:alpha="0"
+                android:layout_marginTop="120dp"
+                android:letterSpacing="0.02"
+                android:shadowColor="#4064A9FF"
+                android:shadowDx="0"
+                android:shadowDy="0"
+                android:shadowRadius="25"/>
+
+        </LinearLayout>
+
+    </LinearLayout>
 
     <!-- Konfetti for celebration -->
     <nl.dionsegijn.konfetti.xml.KonfettiView
