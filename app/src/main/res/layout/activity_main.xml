@@ -104,6 +104,16 @@
 
     </FrameLayout>
 
+    <!-- Mock Mode Indicator (top-right corner) -->
+    <include
+        android:id="@+id/mockModeIndicator"
+        layout="@layout/mock_mode_indicator"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|end"
+        android:layout_margin="16dp"
+        android:visibility="gone" />
+
     <!-- Modal Overlay (initially hidden) -->
     <FrameLayout
         android:id="@+id/modalOverlay"

@@ -1,0 +1,26 @@
+=== DRAWABLE USAGE ANALYSIS REPORT ===
+Generated: Mon Oct 13 23:31:58 EDT 2025
+Project: /Users/karimeldegwy/Desktop/Projects/waterfountain-vending
+
+STATISTICS:
+-----------
+Total Drawables Found:    96
+Used Drawables:           48
+Unused Drawables:         48
+Usage Rate:               50.0%
+
+FILES:
+------
+Unused drawables list:    /Users/karimeldegwy/Desktop/Projects/waterfountain-vending/unused_drawables_report/unused_drawables_20251013_233155.txt
+Used drawables list:      /Users/karimeldegwy/Desktop/Projects/waterfountain-vending/unused_drawables_report/used_drawables_20251013_233155.txt
+Backup script:            /Users/karimeldegwy/Desktop/Projects/waterfountain-vending/unused_drawables_report/backup_unused_20251013_233155.sh
+Delete script:            /Users/karimeldegwy/Desktop/Projects/waterfountain-vending/unused_drawables_report/delete_unused_20251013_233155.sh
+
+NEXT STEPS:
+-----------
+1. Review the unused drawables list: cat "/Users/karimeldegwy/Desktop/Projects/waterfountain-vending/unused_drawables_report/unused_drawables_20251013_233155.txt"
+2. Backup unused files before deletion: /Users/karimeldegwy/Desktop/Projects/waterfountain-vending/unused_drawables_report/backup_unused_20251013_233155.sh
+3. Delete unused files (after backup): /Users/karimeldegwy/Desktop/Projects/waterfountain-vending/unused_drawables_report/delete_unused_20251013_233155.sh
+4. Rebuild project: ./gradlew clean build
+
+WARNING: Always backup before deleting files!

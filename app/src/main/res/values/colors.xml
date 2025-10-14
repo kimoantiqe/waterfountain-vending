@@ -16,4 +16,18 @@
     <color name="admin_accent">#FF4CAF50</color>
     <color name="admin_error">#FFF44336</color>
     <color name="admin_warning">#FFFF9800</color>
+    
+    <!-- Status Colors -->
+    <color name="status_success">#4CAF50</color>
+    <color name="status_error">#F44336</color>
+    <color name="status_warning">#FF9800</color>
+    <color name="status_inactive">#9E9E9E</color>
+    <color name="status_info">#2196F3</color>
+    
+    <!-- Theme Colors for Material Components -->
+    <color name="primary">#2196F3</color>
+    <color name="primary_dark">#1976D2</color>
+    <color name="accent">#4CAF50</color>
+    <color name="text_primary">#212121</color>
+    <color name="text_secondary">#757575</color>
 </resources>

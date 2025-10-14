@@ -27,7 +27,26 @@ class MainActivity : AppCompatActivity() {
     private var questionMarkAnimator: AnimatorSet? = null
     private lateinit var adminGestureDetector: AdminGestureDetector
     private var isNavigating = false // Prevent multiple launches
-    private var usbReceiver: BroadcastReceiver? = null
+    
+    // Initialize USB receiver lazily to avoid race condition
+    private val usbReceiver: BroadcastReceiver by lazy {
+        object : BroadcastReceiver() {
+            override fun onReceive(context: Context, intent: Intent) {
+                when (intent.action) {
+                    UsbManager.ACTION_USB_DEVICE_ATTACHED -> {
+                        val device = intent.getParcelableExtra<android.hardware.usb.UsbDevice>(UsbManager.EXTRA_DEVICE)
+                        AppLog.i(TAG, "USB device attached: ${device?.productName ?: "Unknown"}")
+                        AppLog.i(TAG, "  VID:PID: ${device?.vendorId?.let { String.format("0x%04X", it) }}:${device?.productId?.let { String.format("0x%04X", it) }}")
+                    }
+                    UsbManager.ACTION_USB_DEVICE_DETACHED -> {
+                        val device = intent.getParcelableExtra<android.hardware.usb.UsbDevice>(UsbManager.EXTRA_DEVICE)
+                        AppLog.w(TAG, "USB device detached: ${device?.productName ?: "Unknown"}")
+                        AppLog.w(TAG, "  VID:PID: ${device?.vendorId?.let { String.format("0x%04X", it) }}:${device?.productId?.let { String.format("0x%04X", it) }}")
+                    }
+                }
+            }
+        }
+    }
 
     companion object {
         private const val TAG = "MainActivity"
@@ -50,7 +69,27 @@ class MainActivity : AppCompatActivity() {
         setupModalFunctionality()
         setupPressAnimation()
         setupAdminGesture()
-        setupUsbReceiver()
+        
+        // Initialize hardware on app launch
+        initializeHardware()
+        
+        // Update mock mode indicator visibility
+        updateMockModeIndicator()
+    }
+    
+    /**
+     * Show/hide mock mode indicator based on hardware mode
+     */
+    private fun updateMockModeIndicator() {
+        val prefs = getSharedPreferences("system_settings", Context.MODE_PRIVATE)
+        val useRealSerial = prefs.getBoolean("use_real_serial", false)
+        
+        // Show indicator only if in mock mode (not using real hardware)
+        binding.mockModeIndicator.root.visibility = if (!useRealSerial) View.VISIBLE else View.GONE
+        
+        if (!useRealSerial) {
+            AppLog.d(TAG, "Mock mode indicator displayed (hardware in test mode)")
+        }
     }
 
     private fun setupKioskMode() {
@@ -378,65 +417,54 @@ class MainActivity : AppCompatActivity() {
         adminGestureDetector = AdminGestureDetector(this, binding.root)
     }
     
-    private fun setupUsbReceiver() {
-        usbReceiver = object : BroadcastReceiver() {
-            override fun onReceive(context: Context, intent: Intent) {
-                when (intent.action) {
-                    UsbManager.ACTION_USB_DEVICE_ATTACHED -> {
-                        val device = intent.getParcelableExtra<android.hardware.usb.UsbDevice>(UsbManager.EXTRA_DEVICE)
-                        AppLog.i(TAG, "USB device attached: ${device?.productName ?: "Unknown"}")
-                        AppLog.i(TAG, "  VID:PID: ${device?.vendorId?.let { String.format("0x%04X", it) }}:${device?.productId?.let { String.format("0x%04X", it) }}")
-                        // Optionally trigger auto-reconnect here if needed
-                    }
-                    UsbManager.ACTION_USB_DEVICE_DETACHED -> {
-                        val device = intent.getParcelableExtra<android.hardware.usb.UsbDevice>(UsbManager.EXTRA_DEVICE)
-                        AppLog.w(TAG, "USB device detached: ${device?.productName ?: "Unknown"}")
-                        AppLog.w(TAG, "  VID:PID: ${device?.vendorId?.let { String.format("0x%04X", it) }}:${device?.productId?.let { String.format("0x%04X", it) }}")
-                        // Handle disconnect gracefully
-                    }
-                }
+    /**
+     * Initialize hardware at app launch using Application class
+     */
+    private fun initializeHardware() {
+        val app = application as WaterFountainApplication
+        
+        AppLog.i(TAG, "Triggering hardware initialization from MainActivity")
+        
+        app.initializeHardware { success ->
+            if (success) {
+                AppLog.i(TAG, "Hardware ready for use")
+            } else {
+                AppLog.w(TAG, "Hardware initialization failed - app will use mock mode")
             }
         }
     }
-
+    
     override fun onResume() {
         super.onResume()
-        // Register USB broadcast receiver
-        usbReceiver?.let {
-            val filter = IntentFilter().apply {
-                addAction(UsbManager.ACTION_USB_DEVICE_ATTACHED)
-                addAction(UsbManager.ACTION_USB_DEVICE_DETACHED)
-            }
-            registerReceiver(it, filter)
-            AppLog.d(TAG, "USB broadcast receiver registered")
+        // Register USB broadcast receiver (now safe with lazy initialization)
+        val filter = IntentFilter().apply {
+            addAction(UsbManager.ACTION_USB_DEVICE_ATTACHED)
+            addAction(UsbManager.ACTION_USB_DEVICE_DETACHED)
         }
+        registerReceiver(usbReceiver, filter)
+        AppLog.d(TAG, "USB broadcast receiver registered")
     }
 
     override fun onPause() {
         super.onPause()
         // Unregister USB broadcast receiver
-        usbReceiver?.let {
-            try {
-                unregisterReceiver(it)
-                AppLog.d(TAG, "USB broadcast receiver unregistered")
-            } catch (e: IllegalArgumentException) {
-                // Receiver was not registered, ignore
-                AppLog.d(TAG, "USB receiver was not registered")
-            }
+        try {
+            unregisterReceiver(usbReceiver)
+            AppLog.d(TAG, "USB broadcast receiver unregistered")
+        } catch (e: IllegalArgumentException) {
+            // Receiver was not registered, ignore
+            AppLog.d(TAG, "USB receiver was not registered")
         }
     }
     
     override fun onDestroy() {
         super.onDestroy()
         // Ensure receiver is unregistered
-        usbReceiver?.let {
-            try {
-                unregisterReceiver(it)
-            } catch (e: IllegalArgumentException) {
-                // Receiver was not registered, ignore
-            }
+        try {
+            unregisterReceiver(usbReceiver)
+        } catch (e: IllegalArgumentException) {
+            // Receiver was not registered, ignore
         }
-        usbReceiver = null
     }
 
     override fun dispatchTouchEvent(ev: MotionEvent?): Boolean {

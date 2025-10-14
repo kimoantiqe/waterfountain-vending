@@ -1,0 +1,48 @@
+  [SKIP] ic_launcher (app icon)
+  [SKIP] ic_launcher_round (app icon)
+  [SKIP] ic_launcher (app icon)
+  [SKIP] ic_launcher_round (app icon)
+  [USED] ic_list
+  [USED] gradient_background_main
+  [USED] ic_close
+  [SKIP] ic_launcher_foreground (app icon)
+  [USED] ic_wifi
+  [USED] circle_background
+  [USED] status_indicator
+  [USED] button_background
+  [USED] overlay_rounded_background
+  [USED] white_word_mark
+  [USED] ic_arrow_back
+  [USED] ic_qr_code
+  [USED] sphere_background
+  [USED] circular_button_background
+  [USED] modal_background
+  [USED] status_indicator_connected
+  [USED] ic_phone
+  [USED] ic_phone_elegant
+  [USED] glass_phone_display_background
+  [USED] ic_pin_code
+  [USED] glass_keypad_button
+  [USED] logo
+  [USED] dot_pattern
+  [USED] gradient_background
+  [USED] ic_system
+  [USED] ic_settings
+  [USED] status_indicator_offline
+  [USED] glass_card_background
+  [USED] admin_button_background
+  [USED] button_rounded
+  [USED] glass_keypad_button_selector
+  [USED] qr_display_background
+  [USED] glass_action_button_selector
+  [USED] coming_soon_rounded_background
+  [SKIP] ic_launcher_background (app icon)
+  [USED] mock_indicator_background
+  [SKIP] ic_launcher (app icon)
+  [SKIP] ic_launcher_round (app icon)
+  [SKIP] ic_launcher (app icon)
+  [SKIP] ic_launcher_round (app icon)
+  [SKIP] ic_launcher (app icon)
+  [SKIP] ic_launcher_round (app icon)
+  [SKIP] ic_launcher (app icon)
+  [SKIP] ic_launcher_round (app icon)

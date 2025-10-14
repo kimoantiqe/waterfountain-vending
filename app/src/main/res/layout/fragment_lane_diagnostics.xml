@@ -1,0 +1,534 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#F5F5F5">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <!-- Title -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Lane Diagnostics"
+            android:textSize="24sp"
+            android:textStyle="bold"
+            android:textColor="#333333"
+            android:layout_marginBottom="16dp"/>
+
+        <!-- Summary Card -->
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            app:cardCornerRadius="8dp"
+            app:cardElevation="4dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Overview"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="12dp"/>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="8dp">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Current Lane:"
+                        android:textSize="14sp"/>
+
+                    <TextView
+                        android:id="@+id/currentLaneText"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Lane 1"
+                        android:textSize="14sp"
+                        android:textStyle="bold"/>
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="8dp">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Usable Lanes:"
+                        android:textSize="14sp"/>
+
+                    <TextView
+                        android:id="@+id/usableLanesText"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="8/8"
+                        android:textSize="14sp"
+                        android:textStyle="bold"/>
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Total Dispenses:"
+                        android:textSize="14sp"/>
+
+                    <TextView
+                        android:id="@+id/totalDispensesText"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="0"
+                        android:textSize="14sp"
+                        android:textStyle="bold"/>
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/lastRefreshText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Updated: --:--:--"
+                    android:textSize="12sp"
+                    android:textColor="#999999"
+                    android:gravity="end"
+                    android:layout_marginTop="8dp"/>
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <!-- Lane Cards (simplified for space) -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Individual Lanes"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="12dp"/>
+
+        <!-- Note: Lane cards would be generated programmatically in production -->
+        <!-- For now, showing simplified lane info -->
+        
+        <!-- Lanes 1-4 Row -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="8dp">
+            
+            <androidx.cardview.widget.CardView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginEnd="4dp"
+                app:cardCornerRadius="4dp">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="8dp">
+                    <View
+                        android:id="@+id/lane1Indicator"
+                        android:layout_width="match_parent"
+                        android:layout_height="4dp"
+                        android:background="#4CAF50"
+                        android:layout_marginBottom="4dp"/>
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Lane 1"
+                        android:textStyle="bold"
+                        android:textSize="12sp"/>
+                    <TextView
+                        android:id="@+id/lane1StatusText"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="✅ ACTIVE"
+                        android:textSize="10sp"/>
+                    <TextView
+                        android:id="@+id/lane1StatsText"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="0/0"
+                        android:textSize="10sp"/>
+                    <Button
+                        android:id="@+id/resetLane1Button"
+                        android:layout_width="match_parent"
+                        android:layout_height="32dp"
+                        android:text="Reset"
+                        android:textSize="10sp"
+                        android:padding="2dp"/>
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
+            <!-- Repeat similar structure for lanes 2-4 -->
+            <androidx.cardview.widget.CardView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="4dp"
+                android:layout_marginEnd="4dp"
+                app:cardCornerRadius="4dp">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="8dp">
+                    <View
+                        android:id="@+id/lane2Indicator"
+                        android:layout_width="match_parent"
+                        android:layout_height="4dp"
+                        android:background="#4CAF50"
+                        android:layout_marginBottom="4dp"/>
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Lane 2"
+                        android:textStyle="bold"
+                        android:textSize="12sp"/>
+                    <TextView
+                        android:id="@+id/lane2StatusText"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="✅ ACTIVE"
+                        android:textSize="10sp"/>
+                    <TextView
+                        android:id="@+id/lane2StatsText"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="0/0"
+                        android:textSize="10sp"/>
+                    <Button
+                        android:id="@+id/resetLane2Button"
+                        android:layout_width="match_parent"
+                        android:layout_height="32dp"
+                        android:text="Reset"
+                        android:textSize="10sp"
+                        android:padding="2dp"/>
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
+            <androidx.cardview.widget.CardView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="4dp"
+                android:layout_marginEnd="4dp"
+                app:cardCornerRadius="4dp">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="8dp">
+                    <View
+                        android:id="@+id/lane3Indicator"
+                        android:layout_width="match_parent"
+                        android:layout_height="4dp"
+                        android:background="#4CAF50"
+                        android:layout_marginBottom="4dp"/>
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Lane 3"
+                        android:textStyle="bold"
+                        android:textSize="12sp"/>
+                    <TextView
+                        android:id="@+id/lane3StatusText"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="✅ ACTIVE"
+                        android:textSize="10sp"/>
+                    <TextView
+                        android:id="@+id/lane3StatsText"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="0/0"
+                        android:textSize="10sp"/>
+                    <Button
+                        android:id="@+id/resetLane3Button"
+                        android:layout_width="match_parent"
+                        android:layout_height="32dp"
+                        android:text="Reset"
+                        android:textSize="10sp"
+                        android:padding="2dp"/>
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
+            <androidx.cardview.widget.CardView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="4dp"
+                app:cardCornerRadius="4dp">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="8dp">
+                    <View
+                        android:id="@+id/lane4Indicator"
+                        android:layout_width="match_parent"
+                        android:layout_height="4dp"
+                        android:background="#4CAF50"
+                        android:layout_marginBottom="4dp"/>
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Lane 4"
+                        android:textStyle="bold"
+                        android:textSize="12sp"/>
+                    <TextView
+                        android:id="@+id/lane4StatusText"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="✅ ACTIVE"
+                        android:textSize="10sp"/>
+                    <TextView
+                        android:id="@+id/lane4StatsText"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="0/0"
+                        android:textSize="10sp"/>
+                    <Button
+                        android:id="@+id/resetLane4Button"
+                        android:layout_width="match_parent"
+                        android:layout_height="32dp"
+                        android:text="Reset"
+                        android:textSize="10sp"
+                        android:padding="2dp"/>
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+        </LinearLayout>
+
+        <!-- Lanes 5-8 Row -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="16dp">
+            
+            <androidx.cardview.widget.CardView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginEnd="4dp"
+                app:cardCornerRadius="4dp">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="8dp">
+                    <View
+                        android:id="@+id/lane5Indicator"
+                        android:layout_width="match_parent"
+                        android:layout_height="4dp"
+                        android:background="#4CAF50"
+                        android:layout_marginBottom="4dp"/>
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Lane 5"
+                        android:textStyle="bold"
+                        android:textSize="12sp"/>
+                    <TextView
+                        android:id="@+id/lane5StatusText"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="✅ ACTIVE"
+                        android:textSize="10sp"/>
+                    <TextView
+                        android:id="@+id/lane5StatsText"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="0/0"
+                        android:textSize="10sp"/>
+                    <Button
+                        android:id="@+id/resetLane5Button"
+                        android:layout_width="match_parent"
+                        android:layout_height="32dp"
+                        android:text="Reset"
+                        android:textSize="10sp"
+                        android:padding="2dp"/>
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
+            <androidx.cardview.widget.CardView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="4dp"
+                android:layout_marginEnd="4dp"
+                app:cardCornerRadius="4dp">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="8dp">
+                    <View
+                        android:id="@+id/lane6Indicator"
+                        android:layout_width="match_parent"
+                        android:layout_height="4dp"
+                        android:background="#4CAF50"
+                        android:layout_marginBottom="4dp"/>
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Lane 6"
+                        android:textStyle="bold"
+                        android:textSize="12sp"/>
+                    <TextView
+                        android:id="@+id/lane6StatusText"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="✅ ACTIVE"
+                        android:textSize="10sp"/>
+                    <TextView
+                        android:id="@+id/lane6StatsText"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="0/0"
+                        android:textSize="10sp"/>
+                    <Button
+                        android:id="@+id/resetLane6Button"
+                        android:layout_width="match_parent"
+                        android:layout_height="32dp"
+                        android:text="Reset"
+                        android:textSize="10sp"
+                        android:padding="2dp"/>
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
+            <androidx.cardview.widget.CardView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="4dp"
+                android:layout_marginEnd="4dp"
+                app:cardCornerRadius="4dp">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="8dp">
+                    <View
+                        android:id="@+id/lane7Indicator"
+                        android:layout_width="match_parent"
+                        android:layout_height="4dp"
+                        android:background="#4CAF50"
+                        android:layout_marginBottom="4dp"/>
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Lane 7"
+                        android:textStyle="bold"
+                        android:textSize="12sp"/>
+                    <TextView
+                        android:id="@+id/lane7StatusText"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="✅ ACTIVE"
+                        android:textSize="10sp"/>
+                    <TextView
+                        android:id="@+id/lane7StatsText"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="0/0"
+                        android:textSize="10sp"/>
+                    <Button
+                        android:id="@+id/resetLane7Button"
+                        android:layout_width="match_parent"
+                        android:layout_height="32dp"
+                        android:text="Reset"
+                        android:textSize="10sp"
+                        android:padding="2dp"/>
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
+            <androidx.cardview.widget.CardView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="4dp"
+                app:cardCornerRadius="4dp">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="8dp">
+                    <View
+                        android:id="@+id/lane8Indicator"
+                        android:layout_width="match_parent"
+                        android:layout_height="4dp"
+                        android:background="#4CAF50"
+                        android:layout_marginBottom="4dp"/>
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Lane 8"
+                        android:textStyle="bold"
+                        android:textSize="12sp"/>
+                    <TextView
+                        android:id="@+id/lane8StatusText"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="✅ ACTIVE"
+                        android:textSize="10sp"/>
+                    <TextView
+                        android:id="@+id/lane8StatsText"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="0/0"
+                        android:textSize="10sp"/>
+                    <Button
+                        android:id="@+id/resetLane8Button"
+                        android:layout_width="match_parent"
+                        android:layout_height="32dp"
+                        android:text="Reset"
+                        android:textSize="10sp"
+                        android:padding="2dp"/>
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+        </LinearLayout>
+
+        <!-- Control Buttons -->
+        <Button
+            android:id="@+id/refreshLanesButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="🔄 Refresh Statistics"
+            android:layout_marginTop="16dp"
+            android:layout_marginBottom="8dp"/>
+
+        <Button
+            android:id="@+id/resetAllLanesButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="🔄 Reset All Lanes"
+            android:backgroundTint="#F44336"/>
+
+    </LinearLayout>
+</ScrollView>

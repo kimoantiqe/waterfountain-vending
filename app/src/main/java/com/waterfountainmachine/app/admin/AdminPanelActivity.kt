@@ -56,7 +56,7 @@ class AdminPanelActivity : AppCompatActivity() {
         }
         
         binding.hardwareButton.setOnClickListener {
-            navigateToFragment(HardwareFragment(), "Hardware")
+            navigateToFragment(HardwareTabsFragment(), "Hardware Diagnostics")
             updateNavigationState(binding.hardwareButton)
         }
         

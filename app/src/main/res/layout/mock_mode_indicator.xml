@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Mock Mode Indicator - Shows when app is using mock hardware -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/mockModeIndicator"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:padding="8dp"
+    android:background="@drawable/mock_indicator_background"
+    android:gravity="center"
+    android:visibility="gone">
+    
+    <TextView
+        android:id="@+id/mockIconText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="🔧"
+        android:textSize="16sp"
+        android:layout_marginEnd="4dp"/>
+    
+    <TextView
+        android:id="@+id/mockLabelText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="MOCK"
+        android:textSize="12sp"
+        android:textStyle="bold"
+        android:textColor="#FF9800"/>
+</LinearLayout>

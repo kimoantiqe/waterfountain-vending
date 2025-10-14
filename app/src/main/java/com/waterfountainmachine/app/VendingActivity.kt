@@ -43,6 +43,20 @@ class VendingActivity : AppCompatActivity() {
         setupQuestionMarkAnimation()
         setupModalFunctionality()
         startInactivityTimer()
+        
+        // Update mock mode indicator visibility
+        updateMockModeIndicator()
+    }
+    
+    /**
+     * Show/hide mock mode indicator based on hardware mode
+     */
+    private fun updateMockModeIndicator() {
+        val prefs = getSharedPreferences("system_settings", android.content.Context.MODE_PRIVATE)
+        val useRealSerial = prefs.getBoolean("use_real_serial", false)
+        
+        // Show indicator only if in mock mode (not using real hardware)
+        binding.mockModeIndicator.root.visibility = if (!useRealSerial) View.VISIBLE else View.GONE
     }
 
     private fun setupFullScreen() {
@@ -305,47 +319,25 @@ class VendingActivity : AppCompatActivity() {
     }
 
     /**
-     * Initialize hardware connection
+     * Initialize hardware connection - now uses Application state
      */
     private fun setupHardware() {
         try {
-            waterFountainManager = WaterFountainManager.getInstance(this)
+            // Get hardware manager from Application (already initialized)
+            val app = application as WaterFountainApplication
+            waterFountainManager = app.hardwareManager
+            isHardwareInitialized = app.isHardwareReady()
             
-            // Initialize hardware in background
-            lifecycleScope.launch {
-                try {
-                    Log.d("VendingActivity", "Initializing water fountain hardware...")
-                    isHardwareInitialized = waterFountainManager.initialize()
-                    
-                    if (isHardwareInitialized) {
-                        Log.i("VendingActivity", "Water fountain hardware initialized successfully")
-                        
-                        // Perform health check
-                        val healthCheck = waterFountainManager.performHealthCheck()
-                        Log.d("VendingActivity", "Health check: ${healthCheck.message}")
-                        for (detail in healthCheck.details) {
-                            Log.d("VendingActivity", "  $detail")
-                        }
-                        
-                        // Show success toast on UI thread
-                        runOnUiThread {
-                            Toast.makeText(this@VendingActivity, "Water fountain ready", Toast.LENGTH_SHORT).show()
-                        }
-                    } else {
-                        Log.e("VendingActivity", "Failed to initialize water fountain hardware")
-                        runOnUiThread {
-                            Toast.makeText(this@VendingActivity, "Hardware initialization failed", Toast.LENGTH_LONG).show()
-                        }
-                    }
-                } catch (e: Exception) {
-                    Log.e("VendingActivity", "Exception during hardware initialization", e)
-                    runOnUiThread {
-                        Toast.makeText(this@VendingActivity, "Hardware error: ${e.message}", Toast.LENGTH_LONG).show()
-                    }
-                }
+            if (isHardwareInitialized) {
+                Log.i("VendingActivity", "✅ Hardware ready (initialized at app launch)")
+                Toast.makeText(this, "Water fountain ready", Toast.LENGTH_SHORT).show()
+            } else {
+                Log.w("VendingActivity", "⚠️ Hardware not ready - check admin panel")
+                Toast.makeText(this, "Hardware not ready. Please check connection.", Toast.LENGTH_LONG).show()
             }
         } catch (e: Exception) {
-            Log.e("VendingActivity", "Failed to setup hardware", e)
+            Log.e("VendingActivity", "Exception accessing hardware", e)
+            isHardwareInitialized = false
         }
     }
 
@@ -444,15 +436,8 @@ class VendingActivity : AppCompatActivity() {
         super.onDestroy()
         inactivityHandler.removeCallbacksAndMessages(null)
         
-        // Cleanup hardware connection
-        if (isHardwareInitialized) {
-            lifecycleScope.launch {
-                try {
-                    waterFountainManager.shutdown()
-                } catch (e: Exception) {
-                    Log.e("VendingActivity", "Error during hardware shutdown", e)
-                }
-            }
-        }
+        // Don't shutdown hardware here - it's managed by Application class
+        // Hardware stays alive for the entire app lifecycle
+        Log.d("VendingActivity", "VendingActivity destroyed (hardware remains active)")
     }
 }

@@ -618,6 +618,76 @@ class WaterFountainManager private constructor(
         val lane = laneReport.lanes.find { it.lane == slot }
         return lane?.getStatusText() ?: "Unknown"
     }
+    
+    /**
+     * Get device ID directly from hardware (for debugging)
+     */
+    suspend fun getDeviceId(): String? {
+        if (!isReady()) {
+            AppLog.e(TAG, "Cannot get device ID - system not initialized")
+            return null
+        }
+        
+        return try {
+            val result = sdk!!.getDeviceId()
+            if (result.isSuccess) {
+                result.getOrNull()
+            } else {
+                AppLog.e(TAG, "Failed to get device ID: ${result.exceptionOrNull()?.message}")
+                null
+            }
+        } catch (e: Exception) {
+            AppLog.e(TAG, "Exception getting device ID", e)
+            null
+        }
+    }
+    
+    /**
+     * Dispense water from specific slot with quantity (for testing/debugging)
+     */
+    suspend fun dispenseWater(slot: Int, quantity: Int): Boolean {
+        if (!isReady()) {
+            AppLog.e(TAG, "Cannot dispense water - system not initialized")
+            return false
+        }
+        
+        return try {
+            AppLog.d(TAG, "Manual dispense: slot=$slot, quantity=$quantity (quantity not supported by SDK, using 1)")
+            val result = sdk!!.dispenseWater(slot)
+            if (result.isSuccess) {
+                val dispenseResult = result.getOrThrow()
+                dispenseResult.success
+            } else {
+                AppLog.e(TAG, "Dispense failed: ${result.exceptionOrNull()?.message}")
+                false
+            }
+        } catch (e: Exception) {
+            AppLog.e(TAG, "Exception during manual dispense", e)
+            false
+        }
+    }
+    
+    /**
+     * Query VMC status directly (for debugging)
+     */
+    suspend fun queryVmcStatus(): Boolean {
+        if (!isReady()) {
+            AppLog.e(TAG, "Cannot query status - system not initialized")
+            return false
+        }
+        
+        return try {
+            AppLog.d(TAG, "Querying VMC status...")
+            // Use the SDK's query status method if available
+            // For now, just return connection status
+            val connected = sdk!!.isConnected()
+            AppLog.d(TAG, "VMC status: connected=$connected")
+            connected
+        } catch (e: Exception) {
+            AppLog.e(TAG, "Exception querying VMC status", e)
+            false
+        }
+    }
 }
 
 /**
