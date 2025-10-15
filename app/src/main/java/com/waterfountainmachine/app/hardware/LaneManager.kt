@@ -3,6 +3,7 @@ package com.waterfountainmachine.app.hardware
 import android.content.Context
 import android.content.SharedPreferences
 import android.util.Log
+import com.waterfountainmachine.app.hardware.sdk.SlotValidator
 import com.waterfountainmachine.app.hardware.sdk.WaterDispenseResult
 import com.waterfountainmachine.app.hardware.sdk.VmcErrorCodes
 
@@ -10,11 +11,13 @@ import com.waterfountainmachine.app.hardware.sdk.VmcErrorCodes
  * Smart Lane Management System for Water Fountain Vending Machine
  * 
  * Features:
- * - Tracks current active lane
- * - Automatic fallback to other lanes when current lane is empty/failed
- * - Load balancing across multiple water lanes
- * - Persistent storage of lane status
- * - Smart lane rotation to prevent premature emptying
+ * - Tracks current active slot (48 total slots in 6 rows)
+ * - Automatic fallback to other slots when current slot is empty/failed
+ * - Load balancing across multiple water slots
+ * - Persistent storage of slot status
+ * - Smart slot rotation to prevent premature emptying
+ * 
+ * Valid slots: 1-8, 11-18, 21-28, 31-38, 41-48, 51-58
  */
 class LaneManager private constructor(private val context: Context) {
     
@@ -36,7 +39,7 @@ class LaneManager private constructor(private val context: Context) {
         
         // Configuration
         const val MAX_CONSECUTIVE_FAILURES = 3
-        const val LOAD_BALANCE_THRESHOLD = 10 // Switch lanes every N successful dispenses
+        const val LOAD_BALANCE_THRESHOLD = 10 // Switch slots every N successful dispenses
         
         @Volatile
         private var INSTANCE: LaneManager? = null
@@ -50,9 +53,8 @@ class LaneManager private constructor(private val context: Context) {
     
     private val prefs: SharedPreferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
     
-    // Configuration - can be made configurable later
-    private val totalLanes = 8 // Assume 8 water lanes (1-8)
-    private val enabledLanes = (1..totalLanes).toList() // All lanes enabled by default
+    // Configuration - All 48 valid slots enabled by default
+    private val enabledLanes = SlotValidator.VALID_SLOTS
     
     /**
      * Get the next best lane for water dispensing
@@ -174,19 +176,26 @@ class LaneManager private constructor(private val context: Context) {
      * Find the next available lane starting from current lane
      */
     private fun findNextAvailableLane(startLane: Int): Int {
-        // Try lanes in order starting from the next one
-        val orderedLanes = generateSequence(startLane + 1) { if (it >= totalLanes) 1 else it + 1 }
-            .take(totalLanes)
-            .filter { enabledLanes.contains(it) }
+        // Try slots in order starting from the next valid one
+        val startIndex = enabledLanes.indexOf(startLane)
+        if (startIndex == -1) return enabledLanes.first()
         
-        for (lane in orderedLanes) {
-            if (isLaneUsable(lane)) {
-                return lane
+        // Check slots after the current one
+        for (i in (startIndex + 1) until enabledLanes.size) {
+            if (isLaneUsable(enabledLanes[i])) {
+                return enabledLanes[i]
             }
         }
         
-        // If no lanes are usable, return the original lane (will fail but logged)
-        Log.e(TAG, "No usable lanes available! Returning lane $startLane")
+        // Wrap around to check slots before the current one
+        for (i in 0 until startIndex) {
+            if (isLaneUsable(enabledLanes[i])) {
+                return enabledLanes[i]
+            }
+        }
+        
+        // If no slots are usable, return the original slot (will fail but logged)
+        Log.e(TAG, "No usable slots available! Returning slot $startLane")
         return startLane
     }
     

@@ -1,20 +1,27 @@
 package com.waterfountainmachine.app.admin.fragments
 
+import android.graphics.Color
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Button
+import android.widget.LinearLayout
 import android.widget.Toast
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
+import com.waterfountainmachine.app.R
 import com.waterfountainmachine.app.WaterFountainApplication
 import com.waterfountainmachine.app.databinding.FragmentHardwareTestingBinding
+import com.waterfountainmachine.app.hardware.sdk.SlotValidator
 import com.waterfountainmachine.app.utils.AppLog
 import kotlinx.coroutines.launch
 
 /**
  * Hardware Testing Panel
- * Test connection, individual lanes, and clear faults
+ * Test connection, individual slots (48 total), and clear faults
+ * Supports 48 slots in 6 rows: 1-8, 11-18, 21-28, 31-38, 41-48, 51-58
  */
 class HardwareTestingFragment : Fragment() {
     
@@ -22,6 +29,7 @@ class HardwareTestingFragment : Fragment() {
     private val binding get() = _binding!!
     
     private lateinit var app: WaterFountainApplication
+    private val slotButtons = mutableMapOf<Int, Button>()
     
     companion object {
         private const val TAG = "HardwareTestingFrag"
@@ -41,8 +49,72 @@ class HardwareTestingFragment : Fragment() {
         
         app = requireActivity().application as WaterFountainApplication
         
+        createSlotButtons()
         setupUI()
         updateStatus()
+    }
+    
+    private fun createSlotButtons() {
+        // Create buttons for all 48 valid slots organized in 6 rows
+        binding.slotsContainer.removeAllViews()
+        
+        for (row in 1..6) {
+            // Create row header
+            val rowHeaderLayout = LinearLayout(requireContext()).apply {
+                orientation = LinearLayout.HORIZONTAL
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply {
+                    setMargins(0, 16, 0, 8)
+                }
+            }
+            
+            val rowHeader = android.widget.TextView(requireContext()).apply {
+                text = "Row $row"
+                textSize = 14f
+                setTextColor(ContextCompat.getColor(requireContext(), R.color.text_primary))
+                typeface = android.graphics.Typeface.DEFAULT_BOLD
+                layoutParams = LinearLayout.LayoutParams(
+                    0,
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    1f
+                )
+            }
+            rowHeaderLayout.addView(rowHeader)
+            binding.slotsContainer.addView(rowHeaderLayout)
+            
+            // Create row container for slot buttons
+            val rowLayout = LinearLayout(requireContext()).apply {
+                orientation = LinearLayout.HORIZONTAL
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply {
+                    setMargins(0, 0, 0, 8)
+                }
+            }
+            
+            val slots = SlotValidator.getSlotsInRow(row)
+            for (slot in slots) {
+                val button = Button(requireContext()).apply {
+                    text = slot.toString()
+                    textSize = 12f
+                    layoutParams = LinearLayout.LayoutParams(
+                        0,
+                        LinearLayout.LayoutParams.WRAP_CONTENT,
+                        1f
+                    ).apply {
+                        setMargins(4, 0, 4, 0)
+                    }
+                    setOnClickListener { testSlot(slot) }
+                }
+                slotButtons[slot] = button
+                rowLayout.addView(button)
+            }
+            
+            binding.slotsContainer.addView(rowLayout)
+        }
     }
     
     private fun setupUI() {
@@ -56,19 +128,9 @@ class HardwareTestingFragment : Fragment() {
             clearFaults()
         }
         
-        // Lane test buttons
-        binding.testLane1Button.setOnClickListener { testLane(1) }
-        binding.testLane2Button.setOnClickListener { testLane(2) }
-        binding.testLane3Button.setOnClickListener { testLane(3) }
-        binding.testLane4Button.setOnClickListener { testLane(4) }
-        binding.testLane5Button.setOnClickListener { testLane(5) }
-        binding.testLane6Button.setOnClickListener { testLane(6) }
-        binding.testLane7Button.setOnClickListener { testLane(7) }
-        binding.testLane8Button.setOnClickListener { testLane(8) }
-        
-        // Test all lanes
-        binding.testAllLanesButton.setOnClickListener {
-            testAllLanes()
+        // Test all slots
+        binding.testAllSlotsButton.setOnClickListener {
+            testAllSlots()
         }
     }
     
@@ -82,15 +144,9 @@ class HardwareTestingFragment : Fragment() {
         val enabled = isReady
         binding.testConnectionButton.isEnabled = enabled
         binding.clearFaultsButton.isEnabled = enabled
-        binding.testLane1Button.isEnabled = enabled
-        binding.testLane2Button.isEnabled = enabled
-        binding.testLane3Button.isEnabled = enabled
-        binding.testLane4Button.isEnabled = enabled
-        binding.testLane5Button.isEnabled = enabled
-        binding.testLane6Button.isEnabled = enabled
-        binding.testLane7Button.isEnabled = enabled
-        binding.testLane8Button.isEnabled = enabled
-        binding.testAllLanesButton.isEnabled = enabled
+        binding.testAllSlotsButton.isEnabled = enabled
+        
+        slotButtons.values.forEach { it.isEnabled = enabled }
     }
     
     private fun testConnection() {
@@ -151,132 +207,118 @@ class HardwareTestingFragment : Fragment() {
         }
     }
     
-    private fun testLane(lane: Int) {
+    private fun testSlot(slot: Int) {
         lifecycleScope.launch {
             try {
-                binding.testResultText.text = "Testing lane $lane..."
-                AppLog.i(TAG, "Testing lane $lane...")
+                val position = SlotValidator.getSlotPosition(slot) ?: "Unknown"
+                binding.testResultText.text = "Testing slot $slot ($position)..."
+                AppLog.i(TAG, "Testing slot $slot...")
                 
-                // Disable all lane buttons during test
-                setLaneButtonsEnabled(false)
+                // Disable all slot buttons during test
+                setSlotButtonsEnabled(false)
                 
                 val startTime = System.currentTimeMillis()
                 
                 // Test dispenser
-                val success = app.hardwareManager.testDispenser(lane)
+                val success = app.hardwareManager.testDispenser(slot)
                 
                 val elapsed = System.currentTimeMillis() - startTime
                 
                 if (success) {
-                    binding.testResultText.text = "✅ Lane $lane: Test Passed\nDispensing time: ${elapsed}ms"
-                    AppLog.i(TAG, "✅ Lane $lane test passed (${elapsed}ms)")
-                    Toast.makeText(requireContext(), "Lane $lane test passed!", Toast.LENGTH_SHORT).show()
+                    binding.testResultText.text = "✅ Slot $slot: Test Passed\n$position\nDispensing time: ${elapsed}ms"
+                    AppLog.i(TAG, "✅ Slot $slot test passed (${elapsed}ms)")
+                    Toast.makeText(requireContext(), "Slot $slot test passed!", Toast.LENGTH_SHORT).show()
                     
-                    // Highlight successful lane button
-                    highlightLaneButton(lane, true)
+                    // Highlight successful slot button
+                    highlightSlotButton(slot, true)
                 } else {
-                    binding.testResultText.text = "❌ Lane $lane: Test Failed\nTime: ${elapsed}ms"
-                    AppLog.e(TAG, "❌ Lane $lane test failed")
-                    Toast.makeText(requireContext(), "Lane $lane test failed!", Toast.LENGTH_SHORT).show()
+                    binding.testResultText.text = "❌ Slot $slot: Test Failed\n$position\nTime: ${elapsed}ms"
+                    AppLog.e(TAG, "❌ Slot $slot test failed")
+                    Toast.makeText(requireContext(), "Slot $slot test failed!", Toast.LENGTH_SHORT).show()
                     
-                    // Highlight failed lane button
-                    highlightLaneButton(lane, false)
+                    // Highlight failed slot button
+                    highlightSlotButton(slot, false)
                 }
                 
                 // Re-enable buttons
-                setLaneButtonsEnabled(true)
+                setSlotButtonsEnabled(true)
                 
             } catch (e: Exception) {
-                binding.testResultText.text = "❌ Lane $lane Error: ${e.message}"
-                AppLog.e(TAG, "Lane $lane test error", e)
+                binding.testResultText.text = "❌ Slot $slot Error: ${e.message}"
+                AppLog.e(TAG, "Slot $slot test error", e)
                 Toast.makeText(requireContext(), "Error: ${e.message}", Toast.LENGTH_LONG).show()
-                setLaneButtonsEnabled(true)
+                setSlotButtonsEnabled(true)
             }
         }
     }
     
-    private fun testAllLanes() {
+    private fun testAllSlots() {
         lifecycleScope.launch {
             try {
-                binding.testResultText.text = "Testing all lanes..."
-                AppLog.i(TAG, "Testing all lanes...")
+                binding.testResultText.text = "Testing all 48 slots..."
+                AppLog.i(TAG, "Testing all slots...")
                 
-                setLaneButtonsEnabled(false)
+                setSlotButtonsEnabled(false)
+                binding.testAllSlotsButton.isEnabled = false
                 
                 val results = mutableListOf<String>()
                 var successCount = 0
                 
-                for (lane in 1..8) {
-                    binding.testResultText.text = "Testing all lanes...\nCurrent: Lane $lane"
+                for (slot in SlotValidator.VALID_SLOTS) {
+                    val position = SlotValidator.getSlotPosition(slot)
+                    binding.testResultText.text = "Testing all slots...\nCurrent: Slot $slot ($position)"
                     
-                    val success = app.hardwareManager.testDispenser(lane)
+                    val success = app.hardwareManager.testDispenser(slot)
                     
                     if (success) {
-                        results.add("Lane $lane: ✅")
+                        results.add("Slot $slot: ✅")
                         successCount++
-                        highlightLaneButton(lane, true)
+                        highlightSlotButton(slot, true)
                     } else {
-                        results.add("Lane $lane: ❌")
-                        highlightLaneButton(lane, false)
+                        results.add("Slot $slot: ❌")
+                        highlightSlotButton(slot, false)
                     }
                     
-                    kotlinx.coroutines.delay(500) // Brief delay between tests
+                    kotlinx.coroutines.delay(300) // Brief delay between tests
                 }
                 
-                val summary = "All Lanes Test Complete\n✅ $successCount/8 passed\n\n${results.joinToString("\n")}"
+                val summary = "All Slots Test Complete\n✅ $successCount/48 passed\n\n${results.take(10).joinToString("\n")}\n... (${results.size - 10} more)"
                 binding.testResultText.text = summary
-                AppLog.i(TAG, "All lanes test complete: $successCount/8 passed")
+                AppLog.i(TAG, "All slots test complete: $successCount/48 passed")
                 
                 Toast.makeText(
                     requireContext(),
-                    "$successCount out of 8 lanes passed",
+                    "$successCount out of 48 slots passed",
                     Toast.LENGTH_LONG
                 ).show()
                 
-                setLaneButtonsEnabled(true)
+                setSlotButtonsEnabled(true)
+                binding.testAllSlotsButton.isEnabled = true
                 
             } catch (e: Exception) {
                 binding.testResultText.text = "❌ Error: ${e.message}"
-                AppLog.e(TAG, "Test all lanes error", e)
+                AppLog.e(TAG, "Test all slots error", e)
                 Toast.makeText(requireContext(), "Error: ${e.message}", Toast.LENGTH_LONG).show()
-                setLaneButtonsEnabled(true)
+                setSlotButtonsEnabled(true)
+                binding.testAllSlotsButton.isEnabled = true
             }
         }
     }
     
-    private fun setLaneButtonsEnabled(enabled: Boolean) {
-        binding.testLane1Button.isEnabled = enabled
-        binding.testLane2Button.isEnabled = enabled
-        binding.testLane3Button.isEnabled = enabled
-        binding.testLane4Button.isEnabled = enabled
-        binding.testLane5Button.isEnabled = enabled
-        binding.testLane6Button.isEnabled = enabled
-        binding.testLane7Button.isEnabled = enabled
-        binding.testLane8Button.isEnabled = enabled
-        binding.testAllLanesButton.isEnabled = enabled
+    private fun setSlotButtonsEnabled(enabled: Boolean) {
+        slotButtons.values.forEach { it.isEnabled = enabled }
     }
     
-    private fun highlightLaneButton(lane: Int, success: Boolean) {
-        val color = if (success) android.graphics.Color.parseColor("#4CAF50") 
-                    else android.graphics.Color.parseColor("#F44336")
-        
-        val button = when (lane) {
-            1 -> binding.testLane1Button
-            2 -> binding.testLane2Button
-            3 -> binding.testLane3Button
-            4 -> binding.testLane4Button
-            5 -> binding.testLane5Button
-            6 -> binding.testLane6Button
-            7 -> binding.testLane7Button
-            8 -> binding.testLane8Button
-            else -> return
-        }
+    private fun highlightSlotButton(slot: Int, success: Boolean) {
+        val button = slotButtons[slot] ?: return
+        val color = if (success) Color.parseColor("#4CAF50") 
+                    else Color.parseColor("#F44336")
         
         button.setBackgroundColor(color)
         
         // Reset color after 2 seconds
         button.postDelayed({
-            button.setBackgroundColor(android.graphics.Color.parseColor("#2196F3"))
+            button.setBackgroundColor(ContextCompat.getColor(requireContext(), R.color.primary))
         }, 2000)
     }
     

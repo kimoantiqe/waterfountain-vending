@@ -34,7 +34,7 @@ interface VendingMachineSDK {
     
     /**
      * Send delivery command to dispense water
-     * @param slot Slot number (1-255) - cargo lane
+     * @param slot Slot number - Valid slots: 1-8, 11-18, 21-28, 31-38, 41-48, 51-58 (48 total slots in 6 rows)
      * @param quantity Quantity to dispense (typically 1)
      * @return Delivery response with slot and quantity confirmation
      */
@@ -120,7 +120,7 @@ class VendingMachineSDKImpl(
     }
 
     override suspend fun sendDeliveryCommand(slot: Int, quantity: Int): Result<VmcResponse.DeliveryResponse> {
-        require(slot in 1..255) { "Slot must be between 1 and 255" }
+        SlotValidator.validateSlotOrThrow(slot)
         require(quantity in 1..255) { "Quantity must be between 1 and 255" }
         
         return executeCommand(
@@ -136,7 +136,7 @@ class VendingMachineSDKImpl(
     }
 
     override suspend fun queryDeliveryStatus(slot: Int, quantity: Int): Result<VmcResponse.StatusResponse> {
-        require(slot in 1..255) { "Slot must be between 1 and 255" }
+        SlotValidator.validateSlotOrThrow(slot)
         require(quantity in 1..255) { "Quantity must be between 1 and 255" }
         
         return executeCommand(

@@ -82,6 +82,9 @@ class ProtocolDebuggerFragment : Fragment() {
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         binding.commandSpinner.adapter = adapter
         
+        // Set hint for valid slots
+        binding.slotInput.hint = "Slot (1-8, 11-18, 21-28, 31-38, 41-48, 51-58)"
+        
         // Update UI based on selected command
         binding.commandSpinner.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: View?, position: Int, id: Long) {
@@ -89,6 +92,30 @@ class ProtocolDebuggerFragment : Fragment() {
             }
             override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {}
         }
+    }
+    
+    /**
+     * Validate and parse slot input
+     */
+    private fun getValidatedSlot(): Int? {
+        val slotText = binding.slotInput.text.toString()
+        val slot = slotText.toIntOrNull()
+        
+        if (slot == null) {
+            appendToLog("❌ Invalid slot number: $slotText")
+            return null
+        }
+        
+        if (!SlotValidator.isValidSlot(slot)) {
+            val nearest = SlotValidator.getNearestValidSlot(slot)
+            appendToLog("❌ Invalid slot: $slot. Valid slots: 1-8, 11-18, 21-28, 31-38, 41-48, 51-58")
+            if (nearest != null) {
+                appendToLog("💡 Nearest valid slot: $nearest")
+            }
+            return null
+        }
+        
+        return slot
     }
     
     private fun updateParametersVisibility(commandIndex: Int) {
@@ -140,12 +167,12 @@ class ProtocolDebuggerFragment : Fragment() {
             val frame = when (commandIndex) {
                 0 -> VmcCommandBuilder.getDeviceId()
                 1 -> {
-                    val slot = binding.slotInput.text.toString().toIntOrNull()?.toByte() ?: 1
+                    val slot = getValidatedSlot()?.toByte() ?: return
                     val quantity = binding.quantityInput.text.toString().toIntOrNull()?.toByte() ?: 1
                     VmcCommandBuilder.deliveryCommand(slot, quantity)
                 }
                 2 -> {
-                    val slot = binding.slotInput.text.toString().toIntOrNull()?.toByte() ?: 1
+                    val slot = getValidatedSlot()?.toByte() ?: return
                     val quantity = binding.quantityInput.text.toString().toIntOrNull()?.toByte() ?: 1
                     VmcCommandBuilder.queryStatus(slot, quantity)
                 }
@@ -294,7 +321,7 @@ class ProtocolDebuggerFragment : Fragment() {
                 val result = when (commandIndex) {
                     0 -> app.hardwareManager.getDeviceId()
                     1 -> {
-                        val slot = binding.slotInput.text.toString().toIntOrNull() ?: 1
+                        val slot = getValidatedSlot() ?: return@launch
                         val quantity = binding.quantityInput.text.toString().toIntOrNull() ?: 1
                         app.hardwareManager.dispenseWater(slot, quantity)
                         "Dispense command sent"
@@ -340,12 +367,12 @@ class ProtocolDebuggerFragment : Fragment() {
             val frame = when (commandIndex) {
                 0 -> VmcCommandBuilder.getDeviceId()
                 1 -> {
-                    val slot = binding.slotInput.text.toString().toIntOrNull()?.toByte() ?: 1
+                    val slot = getValidatedSlot()?.toByte() ?: return
                     val quantity = binding.quantityInput.text.toString().toIntOrNull()?.toByte() ?: 1
                     VmcCommandBuilder.deliveryCommand(slot, quantity)
                 }
                 2 -> {
-                    val slot = binding.slotInput.text.toString().toIntOrNull()?.toByte() ?: 1
+                    val slot = getValidatedSlot()?.toByte() ?: return
                     val quantity = binding.quantityInput.text.toString().toIntOrNull()?.toByte() ?: 1
                     VmcCommandBuilder.queryStatus(slot, quantity)
                 }

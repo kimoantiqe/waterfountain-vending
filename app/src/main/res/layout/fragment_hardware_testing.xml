@@ -71,7 +71,7 @@
             </LinearLayout>
         </androidx.cardview.widget.CardView>
 
-        <!-- Lane Testing -->
+        <!-- Slot Testing (48 slots in 6 rows) -->
         <androidx.cardview.widget.CardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -88,100 +88,32 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Lane Testing"
+                    android:text="Slot Testing (48 slots in 6 rows)"
                     android:textSize="18sp"
                     android:textStyle="bold"
                     android:layout_marginBottom="12dp"/>
-
-                <!-- Row 1 -->
-                <LinearLayout
+                
+                <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:layout_marginBottom="8dp">
+                    android:text="Valid slots: 1-8, 11-18, 21-28, 31-38, 41-48, 51-58"
+                    android:textSize="12sp"
+                    android:textColor="#666666"
+                    android:layout_marginBottom="12dp"/>
 
-                    <Button
-                        android:id="@+id/testLane1Button"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="Lane 1"
-                        android:layout_marginEnd="4dp"/>
-
-                    <Button
-                        android:id="@+id/testLane2Button"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="Lane 2"
-                        android:layout_marginStart="4dp"
-                        android:layout_marginEnd="4dp"/>
-
-                    <Button
-                        android:id="@+id/testLane3Button"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="Lane 3"
-                        android:layout_marginStart="4dp"
-                        android:layout_marginEnd="4dp"/>
-
-                    <Button
-                        android:id="@+id/testLane4Button"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="Lane 4"
-                        android:layout_marginStart="4dp"/>
-                </LinearLayout>
-
-                <!-- Row 2 -->
+                <!-- Slots container will be dynamically populated -->
                 <LinearLayout
+                    android:id="@+id/slotsContainer"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:layout_marginBottom="12dp">
-
-                    <Button
-                        android:id="@+id/testLane5Button"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="Lane 5"
-                        android:layout_marginEnd="4dp"/>
-
-                    <Button
-                        android:id="@+id/testLane6Button"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="Lane 6"
-                        android:layout_marginStart="4dp"
-                        android:layout_marginEnd="4dp"/>
-
-                    <Button
-                        android:id="@+id/testLane7Button"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="Lane 7"
-                        android:layout_marginStart="4dp"
-                        android:layout_marginEnd="4dp"/>
-
-                    <Button
-                        android:id="@+id/testLane8Button"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="Lane 8"
-                        android:layout_marginStart="4dp"/>
-                </LinearLayout>
+                    android:orientation="vertical"
+                    android:layout_marginBottom="12dp"/>
 
                 <Button
-                    android:id="@+id/testAllLanesButton"
+                    android:id="@+id/testAllSlotsButton"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="🧪 Test All Lanes"
+                    android:text="🧪 Test All 48 Slots"
                     android:backgroundTint="#4CAF50"/>
             </LinearLayout>
         </androidx.cardview.widget.CardView>
