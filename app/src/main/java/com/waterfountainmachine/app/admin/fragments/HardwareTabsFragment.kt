@@ -17,8 +17,7 @@ import com.waterfountainmachine.app.databinding.FragmentHardwareTabsBinding
  * 
  * Container fragment that hosts all hardware debugging panels in tabs:
  * - Connection: Hardware connection status and controls
- * - Testing: Hardware testing and fault clearing
- * - Lanes: Lane diagnostics and statistics
+ * - Testing: Hardware testing (48 slots) and fault clearing
  * - Protocol: Protocol frame debugger
  */
 class HardwareTabsFragment : Fragment() {
@@ -49,8 +48,7 @@ class HardwareTabsFragment : Fragment() {
             tab.text = when (position) {
                 0 -> "Connection"
                 1 -> "Testing"
-                2 -> "Lanes"
-                3 -> "Protocol"
+                2 -> "Protocol"
                 else -> ""
             }
         }.attach()
@@ -63,14 +61,13 @@ class HardwareTabsFragment : Fragment() {
     
     private inner class HardwarePagerAdapter(fragment: Fragment) : FragmentStateAdapter(fragment) {
         
-        override fun getItemCount(): Int = 4
+        override fun getItemCount(): Int = 3
         
         override fun createFragment(position: Int): Fragment {
             return when (position) {
                 0 -> HardwareConnectionFragment()
                 1 -> HardwareTestingFragment()
-                2 -> LaneDiagnosticsFragment()
-                3 -> ProtocolDebuggerFragment()
+                2 -> ProtocolDebuggerFragment()
                 else -> HardwareConnectionFragment()
             }
         }

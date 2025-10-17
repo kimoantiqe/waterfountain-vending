@@ -30,6 +30,10 @@ class SMSActivity : AppCompatActivity() {
     private var otpCode = ""
     private val maxPhoneLength = 10
     private val maxOtpLength = 6
+    
+    // Phone number masking
+    private var isPhoneNumberVisible = false
+    private var isOtpVisible = false
 
     private var inactivityHandler = Handler(Looper.getMainLooper())
     private var inactivityRunnable: Runnable? = null
@@ -186,6 +190,12 @@ class SMSActivity : AppCompatActivity() {
         currentStep = 1
         phoneNumber = ""
         
+        // Reset visibility state
+        isPhoneNumberVisible = false
+        // Show toggle button on phone entry screen
+        binding.togglePhoneVisibility.visibility = View.VISIBLE
+        updateToggleIcon()
+        
         // Smooth fade transition for text changes
         binding.titleText.animate()
             .alpha(0f)
@@ -232,6 +242,16 @@ class SMSActivity : AppCompatActivity() {
         }
 
         updatePhoneDisplay()
+        
+        // Setup toggle phone visibility button
+        binding.togglePhoneVisibility.setOnClickListener {
+            resetInactivityTimer()
+            if (currentStep == 1) {
+                isPhoneNumberVisible = !isPhoneNumberVisible
+                updatePhoneDisplay()
+                updateToggleIcon()
+            }
+        }
     }
 
     private fun setupOTPStep() {
@@ -258,7 +278,14 @@ class SMSActivity : AppCompatActivity() {
                 subtitleFade.withEndAction {
                     // Update content
                     binding.titleText.text = "Enter verification code"
-                    binding.subtitleText.text = "We sent a code to (${phoneNumber.substring(0, 3)}) ${phoneNumber.substring(3, 6)}-${phoneNumber.substring(6)}"
+                    // Show masked phone number in subtitle (only show last 4 digits)
+                    val maskedPhone = "••• •••-${phoneNumber.substring(6)}"
+                    binding.subtitleText.text = "We sent a code to $maskedPhone"
+                    
+                    // Reset visibility state for OTP - no masking for OTP input
+                    isOtpVisible = true
+                    // Hide the toggle button on verification screen
+                    binding.togglePhoneVisibility.visibility = View.GONE
                     
                     // Prepare OTP UI (hidden initially)
                     binding.otpButtonsLayout.alpha = 0f
@@ -529,12 +556,20 @@ class SMSActivity : AppCompatActivity() {
     }
 
     private fun updatePhoneDisplay() {
-        val formatted = formatSmartPhoneNumber(phoneNumber)
+        val formatted = if (isPhoneNumberVisible) {
+            formatSmartPhoneNumber(phoneNumber)
+        } else {
+            maskPhoneNumber(phoneNumber)
+        }
         binding.phoneDisplay.text = formatted
     }
 
     private fun updatePhoneDisplayWithAnimation() {
-        val formatted = formatSmartPhoneNumber(phoneNumber)
+        val formatted = if (isPhoneNumberVisible) {
+            formatSmartPhoneNumber(phoneNumber)
+        } else {
+            maskPhoneNumber(phoneNumber)
+        }
         
         // Animate the text change
         binding.phoneDisplay.startAnimation(
@@ -544,7 +579,7 @@ class SMSActivity : AppCompatActivity() {
     }
 
     private fun updateOtpDisplay() {
-        // Smooth transition when display updates
+        // Smooth transition when display updates - no masking for OTP
         val formatted = formatOtpCode(otpCode)
         binding.phoneDisplay.animate()
             .alpha(0.7f)
@@ -560,6 +595,7 @@ class SMSActivity : AppCompatActivity() {
     }
 
     private fun updateOtpDisplayWithAnimation() {
+        // No masking for OTP
         val formatted = formatOtpCode(otpCode)
         
         // Animate the text change
@@ -567,6 +603,30 @@ class SMSActivity : AppCompatActivity() {
             android.view.animation.AnimationUtils.loadAnimation(this, R.anim.number_appear)
         )
         binding.phoneDisplay.text = formatted
+    }
+    
+    private fun maskPhoneNumber(number: String): String {
+        // Show only last 2 digits, mask the rest with dots
+        if (number.isEmpty()) return ""
+        
+        return when (number.length) {
+            0 -> ""
+            1, 2 -> number  // Show all if less than or equal to 2
+            3 -> "• ${number.substring(1)}"  // • XX (show last 2)
+            4 -> "(••) ${number.substring(2)}"  // (••) XX (show last 2)
+            5 -> "(•••) ${number.substring(3)}"  // (•••) XX (show last 2)
+            6 -> "(•••) •${number.substring(4)}"  // (•••) •XX (show last 2)
+            7 -> "(•••) ••${number.substring(5)}"  // (•••) ••XX (show last 2)
+            8 -> "(•••) •••-${number.substring(6)}"  // (•••) •••-XX (show last 2)
+            9 -> "(•••) •••-•${number.substring(7)}"  // (•••) •••-•XX (show last 2)
+            10 -> "(•••) •••-••${number.substring(8)}"  // (•••) •••-••XX (show last 2)
+            else -> number
+        }
+    }
+    
+    private fun updateToggleIcon() {
+        // Update alpha to indicate state (more visible when showing numbers)
+        binding.togglePhoneVisibility.alpha = if (isPhoneNumberVisible) 1.0f else 0.7f
     }
 
     private fun formatSmartPhoneNumber(number: String): String {

@@ -10,14 +10,14 @@
     
     <!-- Admin Panel Styles -->
     <style name="KeypadButtonStyle">
-        <item name="android:layout_width">100dp</item>
-        <item name="android:layout_height">100dp</item>
-        <item name="android:layout_margin">12dp</item>
+        <item name="android:layout_width">@dimen/keypad_button_size</item>
+        <item name="android:layout_height">@dimen/keypad_button_size</item>
+        <item name="android:layout_margin">@dimen/keypad_button_margin</item>
         <item name="android:background">@drawable/circular_button_background</item>
         <item name="android:textColor">@color/white</item>
-        <item name="android:textSize">32sp</item>
+        <item name="android:textSize">@dimen/text_size_keypad</item>
         <item name="android:textStyle">bold</item>
-        <item name="android:elevation">6dp</item>
+        <item name="android:elevation">@dimen/keypad_elevation</item>
     </style>
     
     <style name="NavButtonStyle">
@@ -33,12 +33,31 @@
     </style>
     
     <style name="AdminButtonStyle">
-        <item name="android:layout_height">48dp</item>
+        <item name="android:layout_height">@dimen/admin_button_height</item>
         <item name="android:background">@drawable/admin_button_background</item>
         <item name="android:textColor">@color/white</item>
-        <item name="android:textSize">14sp</item>
+        <item name="android:textSize">@dimen/admin_button_text_size</item>
         <item name="android:textAllCaps">false</item>
         <item name="android:elevation">2dp</item>
+    </style>
+    
+    <!-- Glass Keypad Button Style - Uses Widget.AppCompat to support custom backgrounds -->
+    <style name="GlassKeypadButtonStyle" parent="Widget.AppCompat.Button">
+        <item name="android:layout_width">@dimen/keypad_button_size</item>
+        <item name="android:layout_height">@dimen/keypad_button_size</item>
+        <item name="android:background">@drawable/glass_keypad_button_selector</item>
+        <item name="android:textColor">@android:color/white</item>
+        <item name="android:textSize">@dimen/text_size_keypad</item>
+        <item name="android:fontFamily">sans-serif-light</item>
+        <item name="android:elevation">0dp</item>
+    </style>
+    
+    <!-- Glass Action Button Style -->
+    <style name="GlassActionButtonStyle" parent="Widget.AppCompat.Button">
+        <item name="android:background">@drawable/glass_action_button_selector</item>
+        <item name="android:textColor">@android:color/white</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:elevation">0dp</item>
     </style>
 
 </resources>

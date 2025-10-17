@@ -9,31 +9,31 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"
-        android:padding="60dp"
+        android:padding="@dimen/main_screen_padding"
         android:gravity="center">
 
         <!-- Header with Back Button and Centered Logo/Wordmark -->
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="140dp"
+            android:layout_height="@dimen/header_height"
             android:gravity="center_vertical"
-            android:layout_marginBottom="80dp">
+            android:layout_marginBottom="@dimen/header_margin_bottom">
 
             <!-- Back Button - positioned absolutely to not affect centering -->
             <FrameLayout
-                android:layout_width="140dp"
+                android:layout_width="@dimen/back_button_size"
                 android:layout_height="match_parent"
                 android:gravity="center_vertical">
 
                 <ImageButton
                     android:id="@+id/backButton"
-                    android:layout_width="120dp"
-                    android:layout_height="120dp"
+                    android:layout_width="@dimen/back_button_size"
+                    android:layout_height="@dimen/back_button_size"
                     android:background="?android:attr/selectableItemBackgroundBorderless"
                     android:contentDescription="@string/back_button"
                     android:src="@drawable/ic_arrow_back"
                     android:alpha="0.9"
-                    android:padding="20dp"
+                    android:padding="@dimen/back_button_padding"
                     android:scaleType="fitCenter"
                     app:tint="@android:color/white" />
 
@@ -48,16 +48,16 @@
                 android:orientation="horizontal">
 
                 <ImageView
-                    android:layout_width="140dp"
-                    android:layout_height="140dp"
-                    android:layout_marginEnd="30dp"
+                    android:layout_width="@dimen/header_logo_size"
+                    android:layout_height="@dimen/header_logo_size"
+                    android:layout_marginEnd="@dimen/margin_large"
                     android:src="@drawable/logo"
                     android:contentDescription="@string/waterfountain_logo"
                     android:scaleType="fitCenter" />
 
                 <ImageView
-                    android:layout_width="400dp"
-                    android:layout_height="80dp"
+                    android:layout_width="@dimen/header_wordmark_width"
+                    android:layout_height="@dimen/header_wordmark_height"
                     android:src="@drawable/white_word_mark"
                     android:contentDescription="@string/waterfountain_wordmark"
                     android:scaleType="fitCenter"
@@ -67,7 +67,7 @@
 
             <!-- Empty space to balance the back button -->
             <View
-                android:layout_width="140dp"
+                android:layout_width="@dimen/back_button_size"
                 android:layout_height="match_parent" />
 
         </LinearLayout>
@@ -88,11 +88,11 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Enter Phone Number"
-                android:textSize="72sp"
+                android:textSize="@dimen/text_size_title"
                 android:textColor="@android:color/white"
                 android:fontFamily="sans-serif-medium"
                 android:gravity="center"
-                android:layout_marginBottom="20dp"/>
+                android:layout_marginBottom="@dimen/margin_medium"/>
 
             <!-- Timer Display (initially hidden, shows during OTP step) -->
             <LinearLayout
@@ -129,46 +129,65 @@
             </LinearLayout>
 
             <!-- Resend Button in Timer Position (initially hidden, replaces timer) -->
-            <Button
+            <androidx.appcompat.widget.AppCompatButton
                 android:id="@+id/resendCodeButton"
+                style="@style/GlassKeypadButtonStyle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Resend Code"
                 android:textSize="36sp"
-                android:textColor="@android:color/white"
-                android:fontFamily="sans-serif-medium"
-                android:background="@drawable/glass_keypad_button_selector"
                 android:paddingHorizontal="40dp"
                 android:paddingVertical="20dp"
                 android:layout_marginBottom="30dp"
                 android:visibility="gone"
                 android:elevation="8dp"/>
 
-            <!-- Phone Display in a Glass Box - Bigger size -->
-            <LinearLayout
+            <!-- Phone Display in a Glass Box - Bigger size with show/hide toggle -->
+            <FrameLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:minWidth="600dp"
-                android:background="@drawable/glass_phone_display_background"
-                android:gravity="center"
-                android:paddingHorizontal="50dp"
-                android:paddingVertical="35dp"
-                android:layout_marginBottom="40dp"
-                android:elevation="8dp">
+                android:layout_marginBottom="@dimen/phone_display_margin_bottom">
 
-                <TextView
-                    android:id="@+id/phoneDisplay"
+                <LinearLayout
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text=""
-                    android:textSize="60sp"
-                    android:textColor="@android:color/white"
-                    android:fontFamily="sans-serif-light"
+                    android:minWidth="480dp"
+                    android:background="@drawable/glass_phone_display_background"
                     android:gravity="center"
-                    android:letterSpacing="0.08"
-                    android:minWidth="480dp"/>
+                    android:paddingHorizontal="@dimen/margin_xlarge"
+                    android:paddingVertical="@dimen/margin_large"
+                    android:elevation="8dp">
 
-            </LinearLayout>
+                    <TextView
+                        android:id="@+id/phoneDisplay"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text=""
+                        android:textSize="@dimen/phone_display_text_size"
+                        android:textColor="@android:color/white"
+                        android:fontFamily="sans-serif-light"
+                        android:gravity="center"
+                        android:letterSpacing="0.08"
+                        android:minWidth="380dp"/>
+
+                </LinearLayout>
+
+                <!-- Show/Hide Toggle Button -->
+                <ImageButton
+                    android:id="@+id/togglePhoneVisibility"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:layout_gravity="end|center_vertical"
+                    android:layout_marginEnd="12dp"
+                    android:background="?android:attr/selectableItemBackgroundBorderless"
+                    android:src="@android:drawable/ic_menu_view"
+                    android:contentDescription="Show/Hide phone number"
+                    android:alpha="0.7"
+                    android:padding="8dp"
+                    android:scaleType="fitCenter"
+                    app:tint="@android:color/white"/>
+
+            </FrameLayout>
 
             <!-- Subtitle -->
             <TextView
@@ -176,11 +195,11 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="We'll send you a verification code"
-                android:textSize="32sp"
+                android:textSize="@dimen/text_size_subtitle"
                 android:textColor="#CCFFFFFF"
                 android:fontFamily="sans-serif-light"
                 android:gravity="center"
-                android:layout_marginBottom="50dp"/>
+                android:layout_marginBottom="@dimen/margin_xlarge"/>
 
             <!-- Bigger On-Screen Keypad with Glass Effect -->
             <LinearLayout
@@ -197,37 +216,22 @@
                     android:orientation="horizontal"
                     android:layout_marginBottom="24dp">
 
-                    <Button
+                    <androidx.appcompat.widget.AppCompatButton
                         android:id="@+id/btn1"
-                        android:layout_width="140dp"
-                        android:layout_height="140dp"
+                        style="@style/GlassKeypadButtonStyle"
                         android:text="1"
-                        android:textSize="48sp"
-                        android:textColor="@android:color/white"
-                        android:fontFamily="sans-serif-medium"
-                        android:background="@drawable/glass_keypad_button_selector"
                         android:layout_marginEnd="24dp"/>
 
-                    <Button
+                    <androidx.appcompat.widget.AppCompatButton
                         android:id="@+id/btn2"
-                        android:layout_width="140dp"
-                        android:layout_height="140dp"
+                        style="@style/GlassKeypadButtonStyle"
                         android:text="2"
-                        android:textSize="48sp"
-                        android:textColor="@android:color/white"
-                        android:fontFamily="sans-serif-medium"
-                        android:background="@drawable/glass_keypad_button_selector"
                         android:layout_marginEnd="24dp"/>
 
-                    <Button
+                    <androidx.appcompat.widget.AppCompatButton
                         android:id="@+id/btn3"
-                        android:layout_width="140dp"
-                        android:layout_height="140dp"
-                        android:text="3"
-                        android:textSize="48sp"
-                        android:textColor="@android:color/white"
-                        android:fontFamily="sans-serif-medium"
-                        android:background="@drawable/glass_keypad_button_selector"/>
+                        style="@style/GlassKeypadButtonStyle"
+                        android:text="3"/>
 
                 </LinearLayout>
 
@@ -238,37 +242,22 @@
                     android:orientation="horizontal"
                     android:layout_marginBottom="24dp">
 
-                    <Button
+                    <androidx.appcompat.widget.AppCompatButton
                         android:id="@+id/btn4"
-                        android:layout_width="140dp"
-                        android:layout_height="140dp"
+                        style="@style/GlassKeypadButtonStyle"
                         android:text="4"
-                        android:textSize="48sp"
-                        android:textColor="@android:color/white"
-                        android:fontFamily="sans-serif-medium"
-                        android:background="@drawable/glass_keypad_button_selector"
                         android:layout_marginEnd="24dp"/>
 
-                    <Button
+                    <androidx.appcompat.widget.AppCompatButton
                         android:id="@+id/btn5"
-                        android:layout_width="140dp"
-                        android:layout_height="140dp"
+                        style="@style/GlassKeypadButtonStyle"
                         android:text="5"
-                        android:textSize="48sp"
-                        android:textColor="@android:color/white"
-                        android:fontFamily="sans-serif-medium"
-                        android:background="@drawable/glass_keypad_button_selector"
                         android:layout_marginEnd="24dp"/>
 
-                    <Button
+                    <androidx.appcompat.widget.AppCompatButton
                         android:id="@+id/btn6"
-                        android:layout_width="140dp"
-                        android:layout_height="140dp"
-                        android:text="6"
-                        android:textSize="48sp"
-                        android:textColor="@android:color/white"
-                        android:fontFamily="sans-serif-medium"
-                        android:background="@drawable/glass_keypad_button_selector"/>
+                        style="@style/GlassKeypadButtonStyle"
+                        android:text="6"/>
 
                 </LinearLayout>
 
@@ -279,37 +268,22 @@
                     android:orientation="horizontal"
                     android:layout_marginBottom="24dp">
 
-                    <Button
+                    <androidx.appcompat.widget.AppCompatButton
                         android:id="@+id/btn7"
-                        android:layout_width="140dp"
-                        android:layout_height="140dp"
+                        style="@style/GlassKeypadButtonStyle"
                         android:text="7"
-                        android:textSize="48sp"
-                        android:textColor="@android:color/white"
-                        android:fontFamily="sans-serif-medium"
-                        android:background="@drawable/glass_keypad_button_selector"
                         android:layout_marginEnd="24dp"/>
 
-                    <Button
+                    <androidx.appcompat.widget.AppCompatButton
                         android:id="@+id/btn8"
-                        android:layout_width="140dp"
-                        android:layout_height="140dp"
+                        style="@style/GlassKeypadButtonStyle"
                         android:text="8"
-                        android:textSize="48sp"
-                        android:textColor="@android:color/white"
-                        android:fontFamily="sans-serif-medium"
-                        android:background="@drawable/glass_keypad_button_selector"
                         android:layout_marginEnd="24dp"/>
 
-                    <Button
+                    <androidx.appcompat.widget.AppCompatButton
                         android:id="@+id/btn9"
-                        android:layout_width="140dp"
-                        android:layout_height="140dp"
-                        android:text="9"
-                        android:textSize="48sp"
-                        android:textColor="@android:color/white"
-                        android:fontFamily="sans-serif-medium"
-                        android:background="@drawable/glass_keypad_button_selector"/>
+                        style="@style/GlassKeypadButtonStyle"
+                        android:text="9"/>
 
                 </LinearLayout>
 
@@ -319,37 +293,22 @@
                     android:layout_height="wrap_content"
                     android:orientation="horizontal">
 
-                    <Button
+                    <androidx.appcompat.widget.AppCompatButton
                         android:id="@+id/btnClear"
-                        android:layout_width="140dp"
-                        android:layout_height="140dp"
+                        style="@style/GlassKeypadButtonStyle"
                         android:text="C"
-                        android:textSize="48sp"
-                        android:textColor="@android:color/white"
-                        android:fontFamily="sans-serif-medium"
-                        android:background="@drawable/glass_keypad_button_selector"
                         android:layout_marginEnd="24dp"/>
 
-                    <Button
+                    <androidx.appcompat.widget.AppCompatButton
                         android:id="@+id/btn0"
-                        android:layout_width="140dp"
-                        android:layout_height="140dp"
+                        style="@style/GlassKeypadButtonStyle"
                         android:text="0"
-                        android:textSize="48sp"
-                        android:textColor="@android:color/white"
-                        android:fontFamily="sans-serif-medium"
-                        android:background="@drawable/glass_keypad_button_selector"
                         android:layout_marginEnd="24dp"/>
 
-                    <Button
+                    <androidx.appcompat.widget.AppCompatButton
                         android:id="@+id/btnBackspace"
-                        android:layout_width="140dp"
-                        android:layout_height="140dp"
-                        android:text="⌫"
-                        android:textSize="48sp"
-                        android:textColor="@android:color/white"
-                        android:fontFamily="sans-serif-medium"
-                        android:background="@drawable/glass_keypad_button_selector"/>
+                        style="@style/GlassKeypadButtonStyle"
+                        android:text="⌫"/>
 
                 </LinearLayout>
 
@@ -357,17 +316,15 @@
 
             <!-- Main Action Buttons -->
             <!-- Send Code Button (Step 1) -->
-            <Button
+            <androidx.appcompat.widget.AppCompatButton
                 android:id="@+id/verifyButton"
-                android:layout_width="260dp"
-                android:layout_height="110dp"
+                style="@style/GlassActionButtonStyle"
+                android:layout_width="@dimen/action_button_width"
+                android:layout_height="@dimen/action_button_height"
                 android:text="Send Code"
-                android:textSize="36sp"
-                android:textColor="@android:color/white"
-                android:fontFamily="sans-serif-medium"
-                android:background="@drawable/glass_action_button_selector"
+                android:textSize="@dimen/action_button_text_size"
                 android:enabled="false"
-                android:layout_marginTop="20dp"/>
+                android:layout_marginTop="@dimen/margin_medium"/>
 
             <!-- OTP Step Buttons Layout (initially hidden) -->
             <LinearLayout
@@ -376,21 +333,19 @@
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
                 android:gravity="center"
-                android:layout_marginTop="20dp"
+                android:layout_marginTop="@dimen/margin_medium"
                 android:visibility="gone"
                 android:clipChildren="false"
                 android:clipToPadding="false">
 
                 <!-- Verify Button -->
-                <Button
+                <androidx.appcompat.widget.AppCompatButton
                     android:id="@+id/verifyOtpButton"
-                    android:layout_width="260dp"
-                    android:layout_height="110dp"
+                    style="@style/GlassActionButtonStyle"
+                    android:layout_width="@dimen/action_button_width"
+                    android:layout_height="@dimen/action_button_height"
                     android:text="Verify"
-                    android:textSize="36sp"
-                    android:textColor="@android:color/white"
-                    android:fontFamily="sans-serif-medium"
-                    android:background="@drawable/glass_action_button_selector"
+                    android:textSize="@dimen/action_button_text_size"
                     android:enabled="false"/>
 
             </LinearLayout>
@@ -402,23 +357,24 @@
     <!-- Centered Question Mark Button at Bottom with Glass Effect -->
     <FrameLayout
         android:id="@+id/questionMarkButton"
-        android:layout_width="220dp"
-        android:layout_height="220dp"
+        android:layout_width="@dimen/question_button_size"
+        android:layout_height="@dimen/question_button_size"
         android:layout_gravity="bottom|center_horizontal"
-        android:layout_marginBottom="60dp"
-        android:padding="20dp"
+        android:layout_marginBottom="@dimen/question_button_bottom_margin"
+        android:padding="@dimen/margin_medium"
         android:clipToPadding="false"
         android:clipChildren="false"
         android:clickable="true"
         android:focusable="true"
         android:elevation="12dp">
 
-        <!-- 3D Sphere background -->
+        <!-- 3D Sphere background with pressed state -->
         <View
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:layout_gravity="center"
-            android:background="@drawable/sphere_background"/>
+            android:background="@drawable/sphere_button_selector"
+            android:duplicateParentState="true"/>
 
         <TextView
             android:id="@+id/questionMarkIcon"
@@ -426,7 +382,7 @@
             android:layout_height="wrap_content"
             android:layout_gravity="center"
             android:text="?"
-            android:textSize="72sp"
+            android:textSize="@dimen/question_icon_size"
             android:textColor="@android:color/white"
             android:fontFamily="sans-serif-medium"
             android:shadowColor="#40000000"
@@ -441,43 +397,64 @@
         android:id="@+id/modalOverlay"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="#80000000"
+        android:background="#C0000000"
         android:visibility="gone"
         android:clickable="true">
 
         <!-- Modal Content -->
         <LinearLayout
             android:id="@+id/modalContent"
-            android:layout_width="800dp"
+            android:layout_width="@dimen/modal_width"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
             android:background="@drawable/modal_background"
             android:orientation="vertical"
-            android:padding="60dp"
-            android:gravity="center">
+            android:padding="@dimen/modal_padding"
+            android:gravity="center"
+            android:elevation="16dp">
+
+            <!-- Icon -->
+            <ImageView
+                android:layout_width="80dp"
+                android:layout_height="80dp"
+                android:src="@drawable/logo"
+                android:contentDescription="WaterFountain logo"
+                android:layout_marginBottom="@dimen/margin_large"
+                android:alpha="0.95"/>
 
             <!-- Modal Title -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Why is this free?"
-                android:textSize="42sp"
+                android:textSize="@dimen/modal_title_size"
                 android:textColor="@android:color/white"
                 android:fontFamily="sans-serif-medium"
                 android:gravity="center"
-                android:layout_marginBottom="30dp"/>
+                android:letterSpacing="0.02"
+                android:layout_marginBottom="@dimen/margin_medium"/>
+
+            <!-- Decorative line -->
+            <View
+                android:layout_width="60dp"
+                android:layout_height="3dp"
+                android:background="@android:color/white"
+                android:alpha="0.4"
+                android:layout_marginBottom="@dimen/margin_large"/>
 
             <!-- Modal Message -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Our spring water is completely free. Nature doesn't charge, so neither do we. Instead, we partner with local businesses who cover the cost to keep you hydrated.\n\nGet one every single day with your phone number"
-                android:textSize="32sp"
-                android:textColor="#E0FFFFFF"
+                android:textSize="@dimen/modal_text_size"
+                android:textColor="#FFFFFF"
                 android:fontFamily="sans-serif-light"
                 android:gravity="center"
-                android:lineSpacingExtra="8dp"
-                android:layout_marginBottom="40dp"/>
+                android:lineSpacingExtra="10dp"
+                android:lineSpacingMultiplier="1.3"
+                android:alpha="0.95"
+                android:layout_marginBottom="@dimen/margin_xlarge"/>
 
             <!-- Close Button -->
             <TextView
@@ -485,15 +462,17 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Got it!"
-                android:textSize="36sp"
-                android:textColor="@android:color/white"
+                android:textSize="@dimen/modal_button_text_size"
+                android:textColor="#263238"
                 android:fontFamily="sans-serif-medium"
-                android:background="@drawable/button_background"
-                android:paddingHorizontal="40dp"
-                android:paddingVertical="16dp"
+                android:background="@drawable/modal_button_background"
+                android:paddingHorizontal="50dp"
+                android:paddingVertical="20dp"
                 android:clickable="true"
                 android:focusable="true"
-                android:gravity="center"/>
+                android:gravity="center"
+                android:letterSpacing="0.05"
+                android:elevation="4dp"/>
 
         </LinearLayout>
 

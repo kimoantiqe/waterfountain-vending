@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="180dp"
+    android:height="180dp"
+    android:viewportWidth="180"
+    android:viewportHeight="180">
+
+    <!-- Shadow Body -->
+    <path
+        android:fillColor="#20000000"
+        android:pathData="M58,48 L118,48 L118,148 Q118,158 108,158 L68,158 Q58,158 58,148 Z"/>
+
+    <!-- Shadow Neck -->
+    <path
+        android:fillColor="#20000000"
+        android:pathData="M78,28 L98,28 L98,48 L78,48 Z"/>
+
+    <!-- Shadow Cap -->
+    <path
+        android:fillColor="#15000000"
+        android:pathData="M73,23 L103,23 Q108,23 108,28 L108,33 Q108,38 103,38 L73,38 Q68,38 68,33 L68,28 Q68,23 73,23"/>
+
+</vector>
+

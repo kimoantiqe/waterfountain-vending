@@ -10,35 +10,35 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:orientation="vertical"
-        android:padding="80dp"
-        android:gravity="center"
         android:clipChildren="false"
-        android:clipToPadding="false">
+        android:clipToPadding="false"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:padding="@dimen/main_screen_padding">
 
         <!-- Header with Back Button and Centered Logo/Wordmark -->
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="140dp"
-            android:gravity="center_vertical"
-            android:layout_marginBottom="80dp">
+            android:layout_height="@dimen/header_height"
+            android:layout_marginBottom="@dimen/header_margin_bottom"
+            android:gravity="center_vertical">
 
             <!-- Back Button - positioned absolutely to not affect centering -->
             <FrameLayout
-                android:layout_width="140dp"
+                android:layout_width="@dimen/back_button_size"
                 android:layout_height="match_parent"
                 android:gravity="center_vertical">
 
                 <ImageButton
                     android:id="@+id/backButton"
-                    android:layout_width="120dp"
-                    android:layout_height="120dp"
+                    android:layout_width="@dimen/back_button_size"
+                    android:layout_height="@dimen/back_button_size"
+                    android:alpha="0.9"
                     android:background="?android:attr/selectableItemBackgroundBorderless"
                     android:contentDescription="@string/back_button"
-                    android:src="@drawable/ic_arrow_back"
-                    android:alpha="0.9"
-                    android:padding="20dp"
+                    android:padding="@dimen/back_button_padding"
                     android:scaleType="fitCenter"
+                    android:src="@drawable/ic_arrow_back"
                     app:tint="@android:color/white" />
 
             </FrameLayout>
@@ -52,26 +52,26 @@
                 android:orientation="horizontal">
 
                 <ImageView
-                    android:layout_width="140dp"
-                    android:layout_height="140dp"
-                    android:layout_marginEnd="30dp"
-                    android:src="@drawable/logo"
+                    android:layout_width="@dimen/header_logo_size"
+                    android:layout_height="@dimen/header_logo_size"
+                    android:layout_marginEnd="20dp"
                     android:contentDescription="@string/waterfountain_logo"
-                    android:scaleType="fitCenter" />
+                    android:scaleType="fitCenter"
+                    android:src="@drawable/logo" />
 
                 <ImageView
-                    android:layout_width="400dp"
-                    android:layout_height="80dp"
-                    android:src="@drawable/white_word_mark"
+                    android:layout_width="@dimen/header_wordmark_width"
+                    android:layout_height="@dimen/header_wordmark_height"
+                    android:adjustViewBounds="true"
                     android:contentDescription="@string/waterfountain_wordmark"
                     android:scaleType="fitCenter"
-                    android:adjustViewBounds="true"/>
+                    android:src="@drawable/white_word_mark" />
 
             </LinearLayout>
 
             <!-- Empty space to balance the back button -->
             <View
-                android:layout_width="140dp"
+                android:layout_width="@dimen/back_button_size"
                 android:layout_height="match_parent" />
 
         </LinearLayout>
@@ -83,111 +83,111 @@
             android:layout_weight="1"
             android:clipChildren="false"
             android:clipToPadding="false">
-            
+
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
                 android:layout_marginBottom="100dp"
-                android:orientation="vertical"
-                android:gravity="center"
                 android:clipChildren="false"
-                android:clipToPadding="false">
+                android:clipToPadding="false"
+                android:gravity="center"
+                android:orientation="vertical">
 
                 <!-- Title with improved hierarchy -->
                 <TextView
                     android:id="@+id/titleText"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Choose Your Verification"
-                    android:textSize="68sp"
-                    android:textColor="@android:color/white"
+                    android:layout_marginBottom="@dimen/margin_medium"
                     android:fontFamily="sans-serif-medium"
                     android:gravity="center"
                     android:letterSpacing="0.01"
-                    android:layout_marginBottom="16dp"/>
+                    android:text="Choose Your Verification"
+                    android:textColor="@android:color/white"
+                    android:textSize="@dimen/text_size_title" />
 
                 <!-- Subtitle with better contrast -->
                 <TextView
                     android:id="@+id/subtitleText"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Fast, free, and secure"
-                    android:textSize="42sp"
-                    android:textColor="#CCFFFFFF"
+                    android:layout_marginBottom="48dp"
                     android:fontFamily="sans-serif-light"
                     android:gravity="center"
                     android:letterSpacing="0.02"
-                    android:layout_marginBottom="80dp"/>
+                    android:text="Fast, free, and secure"
+                    android:textColor="#CCFFFFFF"
+                    android:textSize="@dimen/text_size_subtitle" />
 
                 <!-- Option Cards with improved design -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center"
                     android:layout_marginHorizontal="40dp"
                     android:clipChildren="false"
-                    android:clipToPadding="false">
+                    android:clipToPadding="false"
+                    android:gravity="center"
+                    android:orientation="horizontal">
 
                     <!-- SMS Option - Active (left) - Redesigned -->
                     <LinearLayout
                         android:id="@+id/smsCard"
                         android:layout_width="0dp"
-                        android:layout_height="540dp"
+                        android:layout_height="@dimen/card_height"
+                        android:layout_marginEnd="@dimen/card_margin"
                         android:layout_weight="1"
-                        android:orientation="vertical"
-                        android:gravity="center"
                         android:background="@drawable/glass_card_background"
-                        android:layout_marginEnd="20dp"
-                        android:padding="50dp"
                         android:clickable="true"
+                        android:elevation="@dimen/card_elevation"
                         android:focusable="true"
-                        android:elevation="8dp">
+                        android:gravity="center"
+                        android:orientation="vertical"
+                        android:padding="@dimen/card_padding">
 
                         <!-- Icon with better visual weight -->
                         <ImageView
-                            android:layout_width="160dp"
-                            android:layout_height="160dp"
-                            android:src="@drawable/ic_phone_elegant"
-                            app:tint="#2c3e50"
+                            android:layout_width="@dimen/card_icon_size"
+                            android:layout_height="@dimen/card_icon_size"
+                            android:layout_marginBottom="@dimen/margin_large"
                             android:contentDescription="Phone icon"
-                            android:layout_marginBottom="40dp"/>
+                            android:src="@drawable/ic_phone_elegant"
+                            app:tint="#2c3e50" />
 
                         <!-- Card title with better hierarchy -->
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Phone Number"
-                            android:textSize="44sp"
-                            android:textColor="#2c3e50"
+                            android:layout_marginBottom="@dimen/margin_small"
                             android:fontFamily="sans-serif-medium"
                             android:gravity="center"
                             android:letterSpacing="-0.01"
-                            android:layout_marginBottom="16dp"/>
+                            android:text="Phone Number"
+                            android:textColor="#2c3e50"
+                            android:textSize="@dimen/card_title_size" />
 
                         <!-- Tagline -->
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="No app needed"
-                            android:textSize="28sp"
-                            android:textColor="#546e7a"
+                            android:layout_marginBottom="@dimen/margin_medium"
                             android:fontFamily="sans-serif"
                             android:gravity="center"
-                            android:layout_marginBottom="24dp"/>
+                            android:text="No app needed"
+                            android:textColor="#546e7a"
+                            android:textSize="@dimen/card_subtitle_size" />
 
                         <!-- Feature list with better spacing -->
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Works offline\nPrivacy focused\nQuick verification"
-                            android:textSize="24sp"
-                            android:textColor="#607d8b"
                             android:fontFamily="sans-serif-light"
                             android:gravity="center"
-                            android:lineSpacingExtra="8dp"
-                            android:lineSpacingMultiplier="1.3"/>
+                            android:lineSpacingExtra="6dp"
+                            android:lineSpacingMultiplier="1.2"
+                            android:text="Works offline\nPrivacy focused\nQuick verification"
+                            android:textColor="#607d8b"
+                            android:textSize="@dimen/card_text_size" />
 
                     </LinearLayout>
 
@@ -195,66 +195,66 @@
                     <FrameLayout
                         android:id="@+id/pinCodeCard"
                         android:layout_width="0dp"
-                        android:layout_height="540dp"
+                        android:layout_height="@dimen/card_height"
+                        android:layout_marginHorizontal="@dimen/card_margin"
                         android:layout_weight="1"
-                        android:layout_marginHorizontal="20dp"
+                        android:alpha="0.5"
                         android:background="@drawable/glass_card_background"
                         android:clickable="false"
-                        android:focusable="false"
-                        android:alpha="0.5"
-                        android:elevation="4dp">
+                        android:elevation="@dimen/card_elevation"
+                        android:focusable="false">
 
                         <!-- Base card content -->
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="match_parent"
-                            android:orientation="vertical"
                             android:gravity="center"
-                            android:padding="50dp">
+                            android:orientation="vertical"
+                            android:padding="@dimen/card_padding">
 
                             <ImageView
-                                android:layout_width="160dp"
-                                android:layout_height="160dp"
-                                android:src="@drawable/ic_pin_code"
-                                app:tint="#2c3e50"
+                                android:layout_width="@dimen/card_icon_size"
+                                android:layout_height="@dimen/card_icon_size"
+                                android:layout_marginBottom="@dimen/margin_large"
+                                android:alpha="0.4"
                                 android:contentDescription="PIN Code icon"
-                                android:layout_marginBottom="40dp"
-                                android:alpha="0.4"/>
+                                android:src="@drawable/ic_pin_code"
+                                app:tint="#2c3e50" />
 
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="PIN Code"
-                                android:textSize="44sp"
-                                android:textColor="#2c3e50"
+                                android:layout_marginBottom="@dimen/margin_small"
+                                android:alpha="0.4"
                                 android:fontFamily="sans-serif-medium"
                                 android:gravity="center"
                                 android:letterSpacing="-0.01"
-                                android:layout_marginBottom="16dp"
-                                android:alpha="0.4"/>
+                                android:text="PIN Code"
+                                android:textColor="#2c3e50"
+                                android:textSize="@dimen/card_title_size" />
 
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="From mobile app"
-                                android:textSize="28sp"
-                                android:textColor="#546e7a"
+                                android:layout_marginBottom="@dimen/margin_medium"
+                                android:alpha="0.4"
                                 android:fontFamily="sans-serif"
                                 android:gravity="center"
-                                android:layout_marginBottom="24dp"
-                                android:alpha="0.4"/>
+                                android:text="From mobile app"
+                                android:textColor="#546e7a"
+                                android:textSize="@dimen/card_subtitle_size" />
 
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Account required\nMost secure\nFast verification"
-                                android:textSize="24sp"
-                                android:textColor="#607d8b"
+                                android:alpha="0.4"
                                 android:fontFamily="sans-serif-light"
                                 android:gravity="center"
-                                android:lineSpacingExtra="8dp"
-                                android:lineSpacingMultiplier="1.3"
-                                android:alpha="0.4"/>
+                                android:lineSpacingExtra="6dp"
+                                android:lineSpacingMultiplier="1.2"
+                                android:text="Account required\nMost secure\nFast verification"
+                                android:textColor="#607d8b"
+                                android:textSize="@dimen/card_text_size" />
 
                         </LinearLayout>
 
@@ -273,16 +273,16 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="COMING SOON"
-                                android:textSize="36sp"
-                                android:textColor="@android:color/white"
+                                android:background="@drawable/coming_soon_rounded_background"
+                                android:elevation="@dimen/card_elevation"
                                 android:fontFamily="sans-serif-medium"
                                 android:gravity="center"
-                                android:background="@drawable/coming_soon_rounded_background"
+                                android:letterSpacing="0.08"
                                 android:paddingHorizontal="36dp"
                                 android:paddingVertical="18dp"
-                                android:letterSpacing="0.08"
-                                android:elevation="4dp"/>
+                                android:text="COMING SOON"
+                                android:textColor="@android:color/white"
+                                android:textSize="@dimen/text_size_subtitle" />
 
                         </LinearLayout>
 
@@ -292,66 +292,66 @@
                     <FrameLayout
                         android:id="@+id/qrCodeCard"
                         android:layout_width="0dp"
-                        android:layout_height="540dp"
+                        android:layout_height="@dimen/card_height"
+                        android:layout_marginStart="@dimen/card_margin"
                         android:layout_weight="1"
-                        android:layout_marginStart="20dp"
+                        android:alpha="0.5"
                         android:background="@drawable/glass_card_background"
                         android:clickable="false"
-                        android:focusable="false"
-                        android:alpha="0.5"
-                        android:elevation="4dp">
+                        android:elevation="@dimen/card_elevation"
+                        android:focusable="false">
 
                         <!-- Base card content -->
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="match_parent"
-                            android:orientation="vertical"
                             android:gravity="center"
-                            android:padding="50dp">
+                            android:orientation="vertical"
+                            android:padding="@dimen/card_padding">
 
                             <ImageView
-                                android:layout_width="160dp"
-                                android:layout_height="160dp"
-                                android:src="@drawable/ic_qr_code"
-                                app:tint="#2c3e50"
+                                android:layout_width="@dimen/card_icon_size"
+                                android:layout_height="@dimen/card_icon_size"
+                                android:layout_marginBottom="@dimen/margin_large"
+                                android:alpha="0.4"
                                 android:contentDescription="QR Code icon"
-                                android:layout_marginBottom="40dp"
-                                android:alpha="0.4"/>
+                                android:src="@drawable/ic_qr_code"
+                                app:tint="#2c3e50" />
 
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Scan QR Code"
-                                android:textSize="44sp"
-                                android:textColor="#2c3e50"
+                                android:layout_marginBottom="@dimen/margin_small"
+                                android:alpha="0.4"
                                 android:fontFamily="sans-serif-medium"
                                 android:gravity="center"
                                 android:letterSpacing="-0.01"
-                                android:layout_marginBottom="16dp"
-                                android:alpha="0.4"/>
+                                android:text="Scan QR Code"
+                                android:textColor="#2c3e50"
+                                android:textSize="@dimen/card_title_size" />
 
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Instant verification"
-                                android:textSize="28sp"
-                                android:textColor="#546e7a"
+                                android:layout_marginBottom="@dimen/margin_medium"
+                                android:alpha="0.4"
                                 android:fontFamily="sans-serif"
                                 android:gravity="center"
-                                android:layout_marginBottom="24dp"
-                                android:alpha="0.4"/>
+                                android:text="Instant verification"
+                                android:textColor="#546e7a"
+                                android:textSize="@dimen/card_subtitle_size" />
 
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Works everywhere\nNo account needed\nSuper fast"
-                                android:textSize="24sp"
-                                android:textColor="#607d8b"
+                                android:alpha="0.4"
                                 android:fontFamily="sans-serif-light"
                                 android:gravity="center"
-                                android:lineSpacingExtra="8dp"
-                                android:lineSpacingMultiplier="1.3"
-                                android:alpha="0.4"/>
+                                android:lineSpacingExtra="6dp"
+                                android:lineSpacingMultiplier="1.2"
+                                android:text="Works everywhere\nNo account needed\nSuper fast"
+                                android:textColor="#607d8b"
+                                android:textSize="@dimen/card_text_size" />
 
                         </LinearLayout>
 
@@ -370,16 +370,16 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="COMING SOON"
-                                android:textSize="36sp"
-                                android:textColor="@android:color/white"
+                                android:background="@drawable/coming_soon_rounded_background"
+                                android:elevation="@dimen/card_elevation"
                                 android:fontFamily="sans-serif-medium"
                                 android:gravity="center"
-                                android:background="@drawable/coming_soon_rounded_background"
+                                android:letterSpacing="0.08"
                                 android:paddingHorizontal="36dp"
                                 android:paddingVertical="18dp"
-                                android:letterSpacing="0.08"
-                                android:elevation="4dp"/>
+                                android:text="COMING SOON"
+                                android:textColor="@android:color/white"
+                                android:textSize="@dimen/text_size_subtitle" />
 
                         </LinearLayout>
 
@@ -388,7 +388,7 @@
                 </LinearLayout>
 
             </LinearLayout>
-            
+
         </FrameLayout>
 
     </LinearLayout>
@@ -396,37 +396,38 @@
     <!-- Centered Question Mark Button at Bottom with Glass Effect -->
     <FrameLayout
         android:id="@+id/questionMarkButton"
-        android:layout_width="220dp"
-        android:layout_height="220dp"
+        android:layout_width="@dimen/question_button_size"
+        android:layout_height="@dimen/question_button_size"
         android:layout_gravity="bottom|center_horizontal"
-        android:layout_marginBottom="60dp"
-        android:padding="20dp"
-        android:clipToPadding="false"
-        android:clipChildren="false"
+        android:layout_marginBottom="@dimen/question_button_bottom_margin"
         android:clickable="true"
+        android:clipChildren="false"
+        android:clipToPadding="false"
+        android:elevation="12dp"
         android:focusable="true"
-        android:elevation="12dp">
+        android:padding="@dimen/margin_medium">
 
-        <!-- 3D Sphere background -->
+        <!-- 3D Sphere background with pressed state -->
         <View
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:layout_gravity="center"
-            android:background="@drawable/sphere_background"/>
+            android:background="@drawable/sphere_button_selector"
+            android:duplicateParentState="true" />
 
         <TextView
             android:id="@+id/questionMarkIcon"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
-            android:text="?"
-            android:textSize="72sp"
-            android:textColor="@android:color/white"
             android:fontFamily="sans-serif-medium"
             android:shadowColor="#40000000"
             android:shadowDx="0"
             android:shadowDy="2"
-            android:shadowRadius="4"/>
+            android:shadowRadius="4"
+            android:text="?"
+            android:textColor="@android:color/white"
+            android:textSize="@dimen/question_icon_size" />
 
     </FrameLayout>
 
@@ -435,59 +436,82 @@
         android:id="@+id/modalOverlay"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="#80000000"
-        android:visibility="gone"
-        android:clickable="true">
+        android:background="#C0000000"
+        android:clickable="true"
+        android:visibility="gone">
 
         <!-- Modal Content -->
         <LinearLayout
             android:id="@+id/modalContent"
-            android:layout_width="800dp"
+            android:layout_width="@dimen/modal_width"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
             android:background="@drawable/modal_background"
+            android:elevation="16dp"
+            android:gravity="center"
             android:orientation="vertical"
-            android:padding="60dp"
-            android:gravity="center">
+            android:padding="@dimen/modal_padding">
+
+            <!-- Icon -->
+            <ImageView
+                android:layout_width="80dp"
+                android:layout_height="80dp"
+                android:layout_marginBottom="@dimen/margin_large"
+                android:alpha="0.95"
+                android:contentDescription="WaterFountain logo"
+                android:src="@drawable/logo" />
 
             <!-- Modal Title -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Why is this free?"
-                android:textSize="42sp"
-                android:textColor="@android:color/white"
+                android:layout_marginBottom="@dimen/margin_medium"
                 android:fontFamily="sans-serif-medium"
                 android:gravity="center"
-                android:layout_marginBottom="30dp"/>
+                android:letterSpacing="0.02"
+                android:text="Why is this free?"
+                android:textColor="@android:color/white"
+                android:textSize="@dimen/modal_title_size" />
+
+            <!-- Decorative line -->
+            <View
+                android:layout_width="60dp"
+                android:layout_height="3dp"
+                android:layout_marginBottom="@dimen/margin_large"
+                android:alpha="0.4"
+                android:background="@android:color/white" />
 
             <!-- Modal Message -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Our spring water is completely free. Nature doesn't charge, so neither do we. Instead, we partner with local businesses who cover the cost to keep you hydrated.\n\nGet one every single day with your phone number"
-                android:textSize="32sp"
-                android:textColor="#E0FFFFFF"
+                android:layout_marginBottom="@dimen/margin_xlarge"
+                android:alpha="0.95"
                 android:fontFamily="sans-serif-light"
                 android:gravity="center"
-                android:lineSpacingExtra="8dp"
-                android:layout_marginBottom="40dp"/>
+                android:lineSpacingExtra="10dp"
+                android:lineSpacingMultiplier="1.3"
+                android:text="Our spring water is completely free. Nature doesn't charge, so neither do we. Instead, we partner with local businesses who cover the cost to keep you hydrated.\n\nGet one every single day with your phone number"
+                android:textColor="#FFFFFF"
+                android:textSize="@dimen/modal_text_size" />
 
             <!-- Close Button -->
             <TextView
                 android:id="@+id/closeModalButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Got it!"
-                android:textSize="36sp"
-                android:textColor="@android:color/white"
-                android:fontFamily="sans-serif-medium"
-                android:background="@drawable/button_background"
-                android:paddingHorizontal="40dp"
-                android:paddingVertical="16dp"
+                android:background="@drawable/modal_button_background"
                 android:clickable="true"
+                android:elevation="4dp"
                 android:focusable="true"
-                android:gravity="center"/>
+                android:fontFamily="sans-serif-medium"
+                android:gravity="center"
+                android:letterSpacing="0.05"
+                android:paddingHorizontal="50dp"
+                android:paddingVertical="20dp"
+                android:text="Got it!"
+                android:textColor="#263238"
+                android:textSize="@dimen/modal_button_text_size" />
 
         </LinearLayout>
 

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="160dp"
+    android:height="160dp"
+    android:viewportWidth="160"
+    android:viewportHeight="160">
+
+    <!-- Highlight Shine on Bottle Body -->
+    <path
+        android:fillColor="#40FFFFFF"
+        android:pathData="M60,45 L75,45 L75,135 Q75,140 70,140 L65,140 Q60,140 60,135 Z"/>
+
+    <!-- Top Highlight -->
+    <path
+        android:fillColor="#60FFFFFF"
+        android:pathData="M60,45 L85,45 Q90,45 90,50 L90,55 Q90,60 85,60 L65,60 Q60,60 60,55 Z"/>
+
+    <!-- Neck Highlight -->
+    <path
+        android:fillColor="#50FFFFFF"
+        android:pathData="M72,22 L78,22 L78,40 L72,40 Z"/>
+
+</vector>
+
