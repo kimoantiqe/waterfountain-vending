@@ -29,7 +29,7 @@ class ProtocolFrameTest {
         // Verify checksum calculation
         val expectedChecksum = (0x55 + 0x31 + 0x01 + 0xAD) and 0xFF
         assertEquals(expectedChecksum.toByte(), frame.checksum)
-        assertTrue(frame.isValid())
+        assertTrue(frame.isChecksumValid())
     }
 
     @Test
@@ -55,7 +55,7 @@ class ProtocolFrameTest {
             checksum = 0x00 // Wrong checksum
         )
 
-        assertFalse(frame.isValid())
+        assertFalse(frame.isChecksumValid())
     }
 
     @Test
@@ -68,7 +68,7 @@ class ProtocolFrameTest {
             checksum = 0x00
         )
 
-        assertFalse(frame.isValid())
+        assertFalse(frame.isChecksumValid())
     }
 
     @Test
@@ -121,7 +121,7 @@ class ProtocolFrameTest {
 
         assertEquals(0, frame.dataLength.toInt())
         assertArrayEquals(byteArrayOf(), frame.data)
-        assertTrue(frame.isValid())
+        assertTrue(frame.isChecksumValid())
     }
 
     @Test
@@ -135,7 +135,7 @@ class ProtocolFrameTest {
 
         assertEquals(255, frame.dataLength.toInt() and 0xFF)
         assertArrayEquals(maxData, frame.data)
-        assertTrue(frame.isValid())
+        assertTrue(frame.isChecksumValid())
     }
 
     @Test

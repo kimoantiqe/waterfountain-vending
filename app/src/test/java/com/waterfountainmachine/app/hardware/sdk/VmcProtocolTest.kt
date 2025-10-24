@@ -17,7 +17,7 @@ class VmcProtocolTest {
         assertEquals(VmcCommands.GET_DEVICE_ID, frame.command)
         assertEquals(1, frame.dataLength.toInt() and 0xFF)
         assertArrayEquals(byteArrayOf(0xAD.toByte()), frame.data)
-        assertTrue(frame.isValid())
+        assertTrue(frame.isChecksumValid())
     }
 
     @Test
@@ -30,7 +30,7 @@ class VmcProtocolTest {
         assertEquals(VmcCommands.DELIVERY_COMMAND, frame.command)
         assertEquals(2, frame.dataLength.toInt() and 0xFF)
         assertArrayEquals(byteArrayOf(cargoLane, quantity), frame.data)
-        assertTrue(frame.isValid())
+        assertTrue(frame.isChecksumValid())
     }
 
     @Test
@@ -50,7 +50,7 @@ class VmcProtocolTest {
         assertEquals(VmcCommands.REMOVE_FAULT, frame.command)
         assertEquals(1, frame.dataLength.toInt() and 0xFF)
         assertArrayEquals(byteArrayOf(0xFF.toByte()), frame.data)
-        assertTrue(frame.isValid())
+        assertTrue(frame.isChecksumValid())
     }
 
     @Test
@@ -63,7 +63,7 @@ class VmcProtocolTest {
         assertEquals(VmcCommands.QUERY_STATUS, frame.command)
         assertEquals(2, frame.dataLength.toInt() and 0xFF)
         assertArrayEquals(byteArrayOf(slot, quantity), frame.data)
-        assertTrue(frame.isValid())
+        assertTrue(frame.isChecksumValid())
     }
 
     @Test
