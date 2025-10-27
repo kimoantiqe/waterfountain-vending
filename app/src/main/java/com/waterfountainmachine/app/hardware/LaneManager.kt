@@ -5,7 +5,6 @@ import android.content.SharedPreferences
 import android.util.Log
 import com.waterfountainmachine.app.hardware.sdk.SlotValidator
 import com.waterfountainmachine.app.hardware.sdk.WaterDispenseResult
-import com.waterfountainmachine.app.hardware.sdk.VmcErrorCodes
 
 /**
  * Smart Lane Management System for Water Fountain Vending Machine
@@ -139,14 +138,17 @@ class LaneManager private constructor(private val context: Context) {
             putInt(getLaneFailuresKey(lane), currentFailures)
             
             // Check if lane should be marked as empty or failed
+            // Error codes from vendor SDK:
+            // 0x02 = Motor failure
+            // 0x03 = Optical sensor failure
             when (errorCode) {
-                VmcErrorCodes.MOTOR_FAILURE -> {
+                0x02.toByte() -> { // MOTOR_FAILURE
                     if (currentFailures >= MAX_CONSECUTIVE_FAILURES) {
                         Log.w(TAG, "Lane $lane disabled due to motor failures")
                         putInt(getLaneStatusKey(lane), LANE_STATUS_FAILED)
                     }
                 }
-                VmcErrorCodes.OPTICAL_EYE_FAILURE -> {
+                0x03.toByte() -> { // OPTICAL_EYE_FAILURE
                     Log.w(TAG, "Lane $lane marked as empty due to optical sensor")
                     putInt(getLaneStatusKey(lane), LANE_STATUS_EMPTY)
                 }

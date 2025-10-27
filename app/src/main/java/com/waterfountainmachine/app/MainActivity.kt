@@ -2,11 +2,8 @@ package com.waterfountainmachine.app
 
 import android.animation.AnimatorSet
 import android.animation.ObjectAnimator
-import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.content.IntentFilter
-import android.hardware.usb.UsbManager
 import android.os.Bundle
 import android.view.KeyEvent
 import android.view.MotionEvent
@@ -27,26 +24,6 @@ class MainActivity : AppCompatActivity() {
     private var questionMarkAnimator: AnimatorSet? = null
     private lateinit var adminGestureDetector: AdminGestureDetector
     private var isNavigating = false // Prevent multiple launches
-    
-    // Initialize USB receiver lazily to avoid race condition
-    private val usbReceiver: BroadcastReceiver by lazy {
-        object : BroadcastReceiver() {
-            override fun onReceive(context: Context, intent: Intent) {
-                when (intent.action) {
-                    UsbManager.ACTION_USB_DEVICE_ATTACHED -> {
-                        val device = intent.getParcelableExtra<android.hardware.usb.UsbDevice>(UsbManager.EXTRA_DEVICE)
-                        AppLog.i(TAG, "USB device attached: ${device?.productName ?: "Unknown"}")
-                        AppLog.i(TAG, "  VID:PID: ${device?.vendorId?.let { String.format("0x%04X", it) }}:${device?.productId?.let { String.format("0x%04X", it) }}")
-                    }
-                    UsbManager.ACTION_USB_DEVICE_DETACHED -> {
-                        val device = intent.getParcelableExtra<android.hardware.usb.UsbDevice>(UsbManager.EXTRA_DEVICE)
-                        AppLog.w(TAG, "USB device detached: ${device?.productName ?: "Unknown"}")
-                        AppLog.w(TAG, "  VID:PID: ${device?.vendorId?.let { String.format("0x%04X", it) }}:${device?.productId?.let { String.format("0x%04X", it) }}")
-                    }
-                }
-            }
-        }
-    }
 
     companion object {
         private const val TAG = "MainActivity"
@@ -434,37 +411,9 @@ class MainActivity : AppCompatActivity() {
         }
     }
     
-    override fun onResume() {
-        super.onResume()
-        // Register USB broadcast receiver (now safe with lazy initialization)
-        val filter = IntentFilter().apply {
-            addAction(UsbManager.ACTION_USB_DEVICE_ATTACHED)
-            addAction(UsbManager.ACTION_USB_DEVICE_DETACHED)
-        }
-        registerReceiver(usbReceiver, filter)
-        AppLog.d(TAG, "USB broadcast receiver registered")
-    }
-
-    override fun onPause() {
-        super.onPause()
-        // Unregister USB broadcast receiver
-        try {
-            unregisterReceiver(usbReceiver)
-            AppLog.d(TAG, "USB broadcast receiver unregistered")
-        } catch (e: IllegalArgumentException) {
-            // Receiver was not registered, ignore
-            AppLog.d(TAG, "USB receiver was not registered")
-        }
-    }
-    
     override fun onDestroy() {
         super.onDestroy()
-        // Ensure receiver is unregistered
-        try {
-            unregisterReceiver(usbReceiver)
-        } catch (e: IllegalArgumentException) {
-            // Receiver was not registered, ignore
-        }
+        AppLog.d(TAG, "MainActivity destroyed")
     }
 
     override fun dispatchTouchEvent(ev: MotionEvent?): Boolean {

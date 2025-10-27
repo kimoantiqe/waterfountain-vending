@@ -1,37 +1,40 @@
 package com.waterfountainmachine.app.admin.fragments
 
-import android.content.Context
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Button
-import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.waterfountainmachine.app.R
-import com.waterfountainmachine.app.WaterFountainApplication
-import com.waterfountainmachine.app.databinding.FragmentHardwareConnectionBinding
-import com.waterfountainmachine.app.hardware.sdk.UsbSerialCommunicator
+import com.waterfountainmachine.app.databinding.FragmentConnectionTestBinding
 import com.waterfountainmachine.app.utils.AppLog
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.IOException
+import java.net.InetSocketAddress
+import java.net.Socket
+import java.text.SimpleDateFormat
+import java.util.*
 
 /**
- * Hardware Connection Panel
- * Shows live connection status, USB devices, chipset info
+ * Network Connectivity Test Fragment
+ * Tests internet connection by attempting to connect to google.com
  */
 class HardwareConnectionFragment : Fragment() {
     
-    private var _binding: FragmentHardwareConnectionBinding? = null
+    private var _binding: FragmentConnectionTestBinding? = null
     private val binding get() = _binding!!
     
-    private lateinit var app: WaterFountainApplication
-    private var isAutoRefreshEnabled = false
+    private var isTesting = false
     
     companion object {
-        private const val TAG = "HardwareConnectionFrag"
+        private const val TAG = "ConnectionTest"
+        private const val TEST_HOST = "google.com"
+        private const val TEST_PORT = 80
+        private const val TIMEOUT_MS = 3000
     }
     
     override fun onCreateView(
@@ -39,274 +42,179 @@ class HardwareConnectionFragment : Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        _binding = FragmentHardwareConnectionBinding.inflate(inflater, container, false)
+        _binding = FragmentConnectionTestBinding.inflate(inflater, container, false)
         return binding.root
     }
     
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         
-        app = requireActivity().application as WaterFountainApplication
-        
         setupUI()
-        loadConnectionStatus()
-        
-        // Start auto-refresh
-        startAutoRefresh()
     }
     
     private fun setupUI() {
-        // Refresh button
-        binding.refreshConnectionButton.setOnClickListener {
-            loadConnectionStatus()
-        }
+        // Set target host display
+        binding.targetHost.text = "$TEST_HOST:$TEST_PORT"
         
-        // Initialize hardware button
-        binding.initializeHardwareButton.setOnClickListener {
-            initializeHardware()
-        }
-        
-        // Reconnect button
-        binding.reconnectHardwareButton.setOnClickListener {
-            reconnectHardware()
-        }
-        
-        // Disconnect button
-        binding.disconnectHardwareButton.setOnClickListener {
-            disconnectHardware()
-        }
-        
-        // Auto-refresh toggle
-        binding.autoRefreshToggle.setOnCheckedChangeListener { _, isChecked ->
-            isAutoRefreshEnabled = isChecked
-            if (isChecked) {
-                startAutoRefresh()
-            }
+        // Setup test button
+        binding.testConnectionButton.setOnClickListener {
+            performConnectionTest()
         }
     }
     
-    private fun loadConnectionStatus() {
+    private fun performConnectionTest() {
+        if (isTesting) return
+        
         lifecycleScope.launch {
             try {
-                AppLog.d(TAG, "Loading connection status...")
+                isTesting = true
+                binding.testConnectionButton.isEnabled = false
                 
-                // Hardware state
-                val state = app.hardwareState
-                val stateText = app.getHardwareStateDescription()
-                val stateColor = when (state) {
-                    WaterFountainApplication.HardwareState.READY -> R.color.status_success
-                    WaterFountainApplication.HardwareState.INITIALIZING -> R.color.status_warning
-                    WaterFountainApplication.HardwareState.ERROR -> R.color.status_error
-                    else -> R.color.status_inactive
+                // Update UI - Testing state
+                updateUITesting()
+                
+                AppLog.d(TAG, "Starting connection test to $TEST_HOST:$TEST_PORT")
+                
+                // Perform connection test
+                val startTime = System.currentTimeMillis()
+                val result = withContext(Dispatchers.IO) {
+                    testConnection(TEST_HOST, TEST_PORT, TIMEOUT_MS)
                 }
+                val latency = System.currentTimeMillis() - startTime
                 
-                binding.hardwareStateText.text = stateText
-                binding.hardwareStateIndicator.setBackgroundColor(
-                    ContextCompat.getColor(requireContext(), stateColor)
-                )
-                
-                // Hardware mode (mock vs real)
-                val prefs = requireContext().getSharedPreferences("system_settings", Context.MODE_PRIVATE)
-                val useRealSerial = prefs.getBoolean("use_real_serial", false)
-                
-                binding.hardwareModeText.text = if (useRealSerial) "LIVE HARDWARE (USB)" else "MOCK (Testing)"
-                binding.hardwareModeIndicator.setBackgroundColor(
-                    ContextCompat.getColor(
-                        requireContext(),
-                        if (useRealSerial) R.color.status_success else R.color.status_warning
-                    )
-                )
-                
-                // Hardware ready status
-                val isReady = app.isHardwareReady()
-                binding.hardwareReadyText.text = if (isReady) "Ready" else "Not Ready"
-                binding.hardwareReadyIndicator.setBackgroundColor(
-                    ContextCompat.getColor(
-                        requireContext(),
-                        if (isReady) R.color.status_success else R.color.status_error
-                    )
-                )
-                
-                // USB device info (only for real hardware)
-                if (useRealSerial && isReady) {
-                    loadUsbDeviceInfo()
+                // Update UI - Show result
+                if (result) {
+                    updateUISuccess(latency)
+                    AppLog.i(TAG, "✅ Connection successful: ${latency}ms")
                 } else {
-                    binding.usbDeviceInfoCard.visibility = View.GONE
-                }
-                
-                // Connection time
-                binding.connectionTimeText.text = "Updated: ${getCurrentTime()}"
-                
-                AppLog.d(TAG, "Connection status loaded: State=$stateText, Mode=${if (useRealSerial) "LIVE" else "MOCK"}, Ready=$isReady")
-                
-            } catch (e: Exception) {
-                AppLog.e(TAG, "Error loading connection status", e)
-                binding.hardwareStateText.text = "Error: ${e.message}"
-            }
-        }
-    }
-    
-    private fun loadUsbDeviceInfo() {
-        try {
-            // Try to get USB device info from UsbSerialCommunicator
-            val communicator = UsbSerialCommunicator(requireContext())
-            val devices = communicator.getAvailableDevices()
-            
-            if (devices.isNotEmpty()) {
-                val device = devices[0]
-                
-                binding.usbDeviceInfoCard.visibility = View.VISIBLE
-                binding.usbDeviceNameText.text = device.productName ?: "Unknown Device"
-                binding.usbManufacturerText.text = device.manufacturerName ?: "Unknown"
-                binding.usbVidPidText.text = "VID: 0x${String.format("%04X", device.vendorId)} / PID: 0x${String.format("%04X", device.productId)}"
-                binding.usbSerialText.text = device.serialNumber ?: "N/A"
-                
-                // Chipset detection would require driver inspection
-                binding.usbChipsetText.text = "Detecting..."
-                
-            } else {
-                binding.usbDeviceInfoCard.visibility = View.GONE
-            }
-            
-        } catch (e: Exception) {
-            AppLog.e(TAG, "Error loading USB device info", e)
-            binding.usbDeviceInfoCard.visibility = View.GONE
-        }
-    }
-    
-    private fun initializeHardware() {
-        lifecycleScope.launch {
-            try {
-                binding.initializeHardwareButton.isEnabled = false
-                binding.hardwareStateText.text = "Initializing..."
-                
-                AppLog.i(TAG, "User requested hardware initialization")
-                
-                app.initializeHardware { success ->
-                    lifecycleScope.launch {
-                        if (success) {
-                            AppLog.i(TAG, "✅ Hardware initialized successfully")
-                            android.widget.Toast.makeText(
-                                requireContext(),
-                                "Hardware initialized successfully",
-                                android.widget.Toast.LENGTH_SHORT
-                            ).show()
-                        } else {
-                            AppLog.e(TAG, "❌ Hardware initialization failed")
-                            android.widget.Toast.makeText(
-                                requireContext(),
-                                "Hardware initialization failed. Check logs.",
-                                android.widget.Toast.LENGTH_LONG
-                            ).show()
-                        }
-                        
-                        delay(500)
-                        loadConnectionStatus()
-                        binding.initializeHardwareButton.isEnabled = true
-                    }
+                    updateUIFailure()
+                    AppLog.w(TAG, "❌ Connection failed")
                 }
                 
             } catch (e: Exception) {
-                AppLog.e(TAG, "Error during initialization", e)
-                binding.initializeHardwareButton.isEnabled = true
-                loadConnectionStatus()
+                AppLog.e(TAG, "Error during connection test", e)
+                updateUIError(e.message ?: "Unknown error")
+                
+            } finally {
+                isTesting = false
+                binding.testConnectionButton.isEnabled = true
             }
         }
     }
     
-    private fun reconnectHardware() {
-        lifecycleScope.launch {
-            try {
-                binding.reconnectHardwareButton.isEnabled = false
-                binding.hardwareStateText.text = "Reconnecting..."
-                
-                AppLog.i(TAG, "User requested hardware reconnect")
-                
-                app.reinitializeHardware { success ->
-                    lifecycleScope.launch {
-                        if (success) {
-                            AppLog.i(TAG, "✅ Reconnect successful")
-                            android.widget.Toast.makeText(
-                                requireContext(),
-                                "Reconnected successfully",
-                                android.widget.Toast.LENGTH_SHORT
-                            ).show()
-                        } else {
-                            AppLog.e(TAG, "❌ Reconnect failed")
-                            android.widget.Toast.makeText(
-                                requireContext(),
-                                "Reconnect failed. Check logs.",
-                                android.widget.Toast.LENGTH_LONG
-                            ).show()
-                        }
-                        
-                        delay(500)
-                        loadConnectionStatus()
-                        binding.reconnectHardwareButton.isEnabled = true
-                    }
-                }
-                
-            } catch (e: Exception) {
-                AppLog.e(TAG, "Error during reconnect", e)
-                binding.reconnectHardwareButton.isEnabled = true
-                loadConnectionStatus()
-            }
-        }
-    }
-    
-    private fun disconnectHardware() {
-        lifecycleScope.launch {
-            try {
-                binding.disconnectHardwareButton.isEnabled = false
-                binding.hardwareStateText.text = "Disconnecting..."
-                
-                AppLog.i(TAG, "User requested hardware disconnect")
-                
-                app.shutdownHardware()
-                
-                delay(500)
-                loadConnectionStatus()
-                
-                android.widget.Toast.makeText(
-                    requireContext(),
-                    "Hardware disconnected",
-                    android.widget.Toast.LENGTH_SHORT
-                ).show()
-                
-                binding.disconnectHardwareButton.isEnabled = true
-                
-            } catch (e: Exception) {
-                AppLog.e(TAG, "Error during disconnect", e)
-                binding.disconnectHardwareButton.isEnabled = true
-                loadConnectionStatus()
-            }
-        }
-    }
-    
-    private fun startAutoRefresh() {
-        if (!isAutoRefreshEnabled) return
+    private fun updateUITesting() {
+        // Status icon - emoji
+        binding.statusIcon.text = "🔄"
         
-        lifecycleScope.launch {
-            while (isAutoRefreshEnabled && isAdded) {
-                delay(2000) // Refresh every 2 seconds
-                loadConnectionStatus()
+        // Status text
+        binding.statusText.text = "Testing..."
+        binding.statusText.setTextColor(
+            ContextCompat.getColor(requireContext(), R.color.status_warning)
+        )
+        
+        // Details
+        binding.statusDetails.text = "Attempting to connect to $TEST_HOST"
+        
+        // Latency
+        binding.latencyText.text = "—"
+        
+        // Update timestamp
+        binding.lastTestTime.text = getCurrentTime()
+    }
+    
+    private fun updateUISuccess(latencyMs: Long) {
+        // Icon - success emoji
+        binding.statusIcon.text = "✅"
+        
+        // Status text
+        binding.statusText.text = "✓ Connected"
+        binding.statusText.setTextColor(
+            ContextCompat.getColor(requireContext(), R.color.status_success)
+        )
+        
+        // Details
+        binding.statusDetails.text = "Successfully connected to $TEST_HOST"
+        
+        // Latency
+        val latencyColor = when {
+            latencyMs < 100 -> R.color.status_success
+            latencyMs < 300 -> R.color.status_warning
+            else -> R.color.status_error
+        }
+        binding.latencyText.text = "${latencyMs}ms"
+        binding.latencyText.setTextColor(
+            ContextCompat.getColor(requireContext(), latencyColor)
+        )
+        
+        // Update timestamp
+        binding.lastTestTime.text = getCurrentTime()
+    }
+    
+    private fun updateUIFailure() {
+        // Icon - error emoji
+        binding.statusIcon.text = "❌"
+        
+        // Status text
+        binding.statusText.text = "✗ No Connection"
+        binding.statusText.setTextColor(
+            ContextCompat.getColor(requireContext(), R.color.status_error)
+        )
+        
+        // Details
+        binding.statusDetails.text = "Unable to reach $TEST_HOST. Check your internet connection."
+        
+        // Latency
+        binding.latencyText.text = "Timeout"
+        binding.latencyText.setTextColor(
+            ContextCompat.getColor(requireContext(), R.color.status_error)
+        )
+        
+        // Update timestamp
+        binding.lastTestTime.text = getCurrentTime()
+    }
+    
+    private fun updateUIError(errorMessage: String) {
+        // Icon - error emoji
+        binding.statusIcon.text = "⚠️"
+        
+        // Status text
+        binding.statusText.text = "Error"
+        binding.statusText.setTextColor(
+            ContextCompat.getColor(requireContext(), R.color.status_error)
+        )
+        
+        // Details
+        binding.statusDetails.text = errorMessage
+        
+        // Latency
+        binding.latencyText.text = "—"
+        
+        // Update timestamp
+        binding.lastTestTime.text = getCurrentTime()
+    }
+    
+    /**
+     * Test connection by attempting to open a socket
+     */
+    private fun testConnection(host: String, port: Int, timeoutMs: Int): Boolean {
+        return try {
+            Socket().use { socket ->
+                socket.connect(InetSocketAddress(host, port), timeoutMs)
+                true
             }
+        } catch (e: IOException) {
+            AppLog.d(TAG, "Connection test failed: ${e.message}")
+            false
         }
     }
     
     private fun getCurrentTime(): String {
-        val sdf = java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.getDefault())
-        return sdf.format(java.util.Date())
-    }
-    
-    override fun onResume() {
-        super.onResume()
-        loadConnectionStatus()
+        val sdf = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
+        return sdf.format(Date())
     }
     
     override fun onDestroyView() {
         super.onDestroyView()
-        isAutoRefreshEnabled = false
         _binding = null
     }
 }

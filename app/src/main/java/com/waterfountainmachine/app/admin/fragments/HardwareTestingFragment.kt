@@ -20,7 +20,7 @@ import kotlinx.coroutines.launch
 
 /**
  * Hardware Testing Panel
- * Test connection, individual slots (48 total), and clear faults
+ * Test individual slots (48 total) and verify hardware status
  * Supports 48 slots in 6 rows: 1-8, 11-18, 21-28, 31-38, 41-48, 51-58
  */
 class HardwareTestingFragment : Fragment() {
@@ -30,6 +30,10 @@ class HardwareTestingFragment : Fragment() {
     
     private lateinit var app: WaterFountainApplication
     private val slotButtons = mutableMapOf<Int, Button>()
+    
+    private val hardwareStateObserver: (WaterFountainApplication.HardwareState) -> Unit = { state ->
+        updateStatus()
+    }
     
     companion object {
         private const val TAG = "HardwareTestingFrag"
@@ -48,6 +52,9 @@ class HardwareTestingFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         
         app = requireActivity().application as WaterFountainApplication
+        
+        // Observe hardware state changes
+        app.observeHardwareState(hardwareStateObserver)
         
         createSlotButtons()
         setupUI()
@@ -118,90 +125,85 @@ class HardwareTestingFragment : Fragment() {
     }
     
     private fun setupUI() {
-        // Test connection
-        binding.testConnectionButton.setOnClickListener {
-            testConnection()
-        }
-        
-        // Clear faults
-        binding.clearFaultsButton.setOnClickListener {
-            clearFaults()
-        }
-        
-        // Test all slots
+        // Test all slots button
         binding.testAllSlotsButton.setOnClickListener {
             testAllSlots()
         }
+        
+        // Get device status button
+        binding.testConnectionButton.text = "Get Device Status"
+        binding.testConnectionButton.setOnClickListener {
+            getDeviceStatus()
+        }
+        
+        // Hide clear faults button (not implemented in vendor SDK)
+        binding.clearFaultsButton.visibility = View.GONE
     }
     
     private fun updateStatus() {
+        val state = app.hardwareState
         val isReady = app.isHardwareReady()
-        val statusText = if (isReady) "✅ Hardware Ready" else "❌ Hardware Not Ready"
+        
+        // Update status text with detailed state
+        val statusText = when (state) {
+            WaterFountainApplication.HardwareState.UNINITIALIZED -> 
+                "❌ Hardware Not Initialized"
+            WaterFountainApplication.HardwareState.INITIALIZING -> 
+                "🔄 Initializing..."
+            WaterFountainApplication.HardwareState.READY -> 
+                "✅ Hardware Ready"
+            WaterFountainApplication.HardwareState.ERROR -> 
+                "❌ Hardware Error - Check logs"
+            WaterFountainApplication.HardwareState.MAINTENANCE_MODE -> 
+                "🔧 Maintenance Mode"
+            WaterFountainApplication.HardwareState.DISCONNECTED -> 
+                "❌ Hardware Disconnected"
+        }
         
         binding.hardwareStatusText.text = statusText
+        binding.hardwareStatusText.setTextColor(
+            ContextCompat.getColor(
+                requireContext(), 
+                if (isReady) R.color.status_success else R.color.status_error
+            )
+        )
         
         // Enable/disable buttons based on hardware state
         val enabled = isReady
         binding.testConnectionButton.isEnabled = enabled
-        binding.clearFaultsButton.isEnabled = enabled
         binding.testAllSlotsButton.isEnabled = enabled
         
         slotButtons.values.forEach { it.isEnabled = enabled }
-    }
-    
-    private fun testConnection() {
-        lifecycleScope.launch {
-            try {
-                binding.testResultText.text = "Testing connection..."
-                AppLog.i(TAG, "Testing hardware connection...")
-                
-                val startTime = System.currentTimeMillis()
-                
-                // Get device ID as connection test
-                val result = app.hardwareManager.getDeviceStatus()
-                
-                val elapsed = System.currentTimeMillis() - startTime
-                
-                if (result != null && result.startsWith("Connected:")) {
-                    val deviceId = result.substringAfter("Connected: ")
-                    binding.testResultText.text = "✅ Connection OK\nDevice: $deviceId\nResponse time: ${elapsed}ms"
-                    AppLog.i(TAG, "✅ Connection test passed: $deviceId (${elapsed}ms)")
-                    Toast.makeText(requireContext(), "Connection test passed!", Toast.LENGTH_SHORT).show()
-                } else {
-                    binding.testResultText.text = "❌ Connection Failed\n$result\nResponse time: ${elapsed}ms"
-                    AppLog.e(TAG, "❌ Connection test failed: $result")
-                    Toast.makeText(requireContext(), "Connection test failed!", Toast.LENGTH_SHORT).show()
-                }
-                
-            } catch (e: Exception) {
-                binding.testResultText.text = "❌ Error: ${e.message}"
-                AppLog.e(TAG, "Connection test error", e)
-                Toast.makeText(requireContext(), "Error: ${e.message}", Toast.LENGTH_LONG).show()
-            }
+        
+        // Show warning if not ready
+        if (!isReady) {
+            binding.testResultText.text = "⚠️ Hardware is not ready.\n\nInitialize hardware from the Connection tab first."
         }
     }
     
-    private fun clearFaults() {
+    private fun getDeviceStatus() {
         lifecycleScope.launch {
             try {
-                binding.testResultText.text = "Clearing faults..."
-                AppLog.i(TAG, "Clearing hardware faults...")
+                binding.testResultText.text = "Getting device status..."
+                AppLog.i(TAG, "Getting hardware device status...")
                 
-                val success = app.hardwareManager.clearFaults()
+                val startTime = System.currentTimeMillis()
+                val result = app.hardwareManager.getDeviceStatus()
+                val elapsed = System.currentTimeMillis() - startTime
                 
-                if (success) {
-                    binding.testResultText.text = "✅ Faults Cleared Successfully"
-                    AppLog.i(TAG, "✅ Faults cleared")
-                    Toast.makeText(requireContext(), "Faults cleared successfully", Toast.LENGTH_SHORT).show()
+                if (result != null) {
+                    binding.testResultText.text = "✅ Device Status Retrieved\n\n$result\n\nResponse time: ${elapsed}ms"
+                    AppLog.i(TAG, "✅ Device status: $result (${elapsed}ms)")
+                    Toast.makeText(requireContext(), "Status retrieved successfully", Toast.LENGTH_SHORT).show()
                 } else {
-                    binding.testResultText.text = "❌ Failed to Clear Faults"
-                    AppLog.e(TAG, "❌ Failed to clear faults")
-                    Toast.makeText(requireContext(), "Failed to clear faults", Toast.LENGTH_SHORT).show()
+                    binding.testResultText.text = "❌ Failed to Get Device Status\n\nNo response from hardware\nResponse time: ${elapsed}ms"
+                    AppLog.e(TAG, "❌ Failed to get device status")
+                    Toast.makeText(requireContext(), "Failed to get status", Toast.LENGTH_SHORT).show()
                 }
                 
             } catch (e: Exception) {
                 binding.testResultText.text = "❌ Error: ${e.message}"
-                AppLog.e(TAG, "Clear faults error", e)
+                AppLog.e(TAG, "Get device status error", e)
                 Toast.makeText(requireContext(), "Error: ${e.message}", Toast.LENGTH_LONG).show()
             }
         }
@@ -329,6 +331,8 @@ class HardwareTestingFragment : Fragment() {
     
     override fun onDestroyView() {
         super.onDestroyView()
+        // Remove observer
+        app.removeHardwareStateObserver(hardwareStateObserver)
         _binding = null
     }
 }

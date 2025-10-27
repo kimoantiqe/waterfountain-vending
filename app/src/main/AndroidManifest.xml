@@ -6,15 +6,21 @@
     <uses-permission android:name="android.permission.DISABLE_KEYGUARD" />
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
 
+    <!-- Network permissions -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <!-- Vendor SDK permissions (required by SerialPortUtils) -->
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.WRITE_SETTINGS" />
+
     <!-- SMS permissions (for later implementation) -->
     <uses-permission android:name="android.permission.SEND_SMS" />
     <uses-permission android:name="android.permission.RECEIVE_SMS" />
 
     <!-- Camera permission for QR code -->
     <uses-permission android:name="android.permission.CAMERA" />
-
-    <!-- USB Host permissions for hardware communication -->
-    <uses-feature android:name="android.hardware.usb.host" android:required="false" />
 
     <!-- Hardware features for Chrome OS compatibility -->
     <uses-feature android:name="android.hardware.telephony" android:required="false" />
@@ -102,12 +108,5 @@
         </provider>
 
     </application>
-
-    <!-- USB Device Attachment Intent Filter -->
-    <queries>
-        <intent>
-            <action android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED" />
-        </intent>
-    </queries>
 
 </manifest>

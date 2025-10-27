@@ -75,8 +75,8 @@ dependencies {
     // Confetti library for celebration animation
     implementation("nl.dionsegijn:konfetti-xml:2.0.4")
 
-    // USB Serial library for real hardware communication
-    implementation("com.github.mik3y:usb-serial-for-android:3.7.3")
+    // Vendor SDK (SerialPortUtils-release.aar) - replaces USB serial library
+    implementation(files("libs/SerialPortUtils-release.aar"))
 
     // Unit Testing dependencies
     testImplementation(libs.junit)
