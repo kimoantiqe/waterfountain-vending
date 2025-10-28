@@ -30,13 +30,10 @@
                 android:layout_marginBottom="@dimen/logo_margin_bottom"/>
 
             <!-- Much Bigger Wordmark Below Logo -->
-            <ImageView
-                android:layout_width="@dimen/wordmark_width"
-                android:layout_height="@dimen/wordmark_height"
-                android:src="@drawable/white_word_mark"
-                android:contentDescription="WaterFountain wordmark"
-                android:scaleType="fitCenter"
-                android:adjustViewBounds="true"
+            <TextView
+                android:text="@string/wordmark_text"
+                android:contentDescription="@string/waterfountain_wordmark"
+                style="@style/WordmarkTextStyle.Large"
                 android:layout_marginBottom="@dimen/wordmark_margin_bottom"/>
 
             <!-- Tagline under wordmark -->

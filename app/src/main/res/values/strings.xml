@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">WaterFountain Machine</string>
+    <string name="wordmark_text">water fountain</string>
 
     <!-- SMS Activity strings -->
     <string name="back_button">Back button</string>

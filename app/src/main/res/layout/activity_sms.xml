@@ -55,13 +55,10 @@
                     android:contentDescription="@string/waterfountain_logo"
                     android:scaleType="fitCenter" />
 
-                <ImageView
-                    android:layout_width="@dimen/header_wordmark_width"
-                    android:layout_height="@dimen/header_wordmark_height"
-                    android:src="@drawable/white_word_mark"
+                <TextView
+                    android:text="@string/wordmark_text"
                     android:contentDescription="@string/waterfountain_wordmark"
-                    android:scaleType="fitCenter"
-                    android:adjustViewBounds="true"/>
+                    style="@style/WordmarkTextStyle.Small" />
 
             </LinearLayout>
 
