@@ -12,12 +12,12 @@ import android.view.WindowManager
 import android.view.animation.AccelerateDecelerateInterpolator
 import android.view.animation.DecelerateInterpolator
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.WindowCompat
-import androidx.core.view.WindowInsetsCompat
-import androidx.core.view.WindowInsetsControllerCompat
 import com.waterfountainmachine.app.admin.AdminGestureDetector
 import com.waterfountainmachine.app.databinding.ActivityMainBinding
 import com.waterfountainmachine.app.utils.AppLog
+import com.waterfountainmachine.app.utils.FullScreenUtils
+import com.waterfountainmachine.app.utils.AnimationUtils
+import com.waterfountainmachine.app.utils.HardwareKeyHandler
 
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
@@ -95,18 +95,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupFullScreen() {
-        WindowCompat.setDecorFitsSystemWindows(window, false)
-        val controller = WindowInsetsControllerCompat(window, binding.root)
-        controller.hide(WindowInsetsCompat.Type.systemBars())
-        controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-
-        // Hide system UI completely
-        binding.root.systemUiVisibility = (View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-                or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-                or View.SYSTEM_UI_FLAG_FULLSCREEN
-                or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY)
+        FullScreenUtils.setupFullScreen(window, binding.root)
     }
 
     private fun setupClickListener() {
@@ -133,38 +122,11 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupQuestionMarkAnimation() {
-        // Create a more frequent and engaging shake animation
-        val shakeX = ObjectAnimator.ofFloat(binding.questionMarkButton, "translationX", 0f, -12f, 12f, -8f, 8f, -4f, 4f, 0f)
-        shakeX.duration = 1000 // Shorter duration
-
-        val rotate = ObjectAnimator.ofFloat(binding.questionMarkIcon, "rotation", 0f, 20f, -20f, 15f, -15f, 8f, -8f, 0f)
-        rotate.duration = 1000
-
-        val scale = ObjectAnimator.ofFloat(binding.questionMarkButton, "scaleX", 1f, 1.15f, 1f)
-        scale.duration = 1000
-
-        val scaleY = ObjectAnimator.ofFloat(binding.questionMarkButton, "scaleY", 1f, 1.15f, 1f)
-        scaleY.duration = 1000
-
-        questionMarkAnimator = AnimatorSet().apply {
-            playTogether(shakeX, rotate, scale, scaleY)
-            interpolator = AccelerateDecelerateInterpolator()
-            startDelay = 1000 // Start sooner
-        }
-
-        // Create repeating animation with much shorter intervals
-        questionMarkAnimator?.addListener(object : android.animation.AnimatorListenerAdapter() {
-            override fun onAnimationEnd(animation: android.animation.Animator) {
-                // Much more frequent shaking
-                binding.root.postDelayed({
-                    if (questionMarkAnimator != null) {
-                        questionMarkAnimator?.start()
-                    }
-                }, 1500) // Only 1.5 second pause between animations
-            }
-        })
-
-        questionMarkAnimator?.start()
+        questionMarkAnimator = AnimationUtils.setupQuestionMarkAnimation(
+            button = binding.questionMarkButton,
+            icon = binding.questionMarkIcon,
+            rootView = binding.root
+        )
     }
 
     private fun setupPressAnimation() {
@@ -339,32 +301,13 @@ class MainActivity : AppCompatActivity() {
 
     private fun showModal() {
         binding.modalOverlay.visibility = View.VISIBLE
-
-        // Animate modal appearance
-        binding.modalContent.alpha = 0f
-        binding.modalContent.scaleX = 0.8f
-        binding.modalContent.scaleY = 0.8f
-
-        binding.modalContent.animate()
-            .alpha(1f)
-            .scaleX(1f)
-            .scaleY(1f)
-            .setDuration(300)
-            .setInterpolator(AccelerateDecelerateInterpolator())
-            .start()
+        AnimationUtils.showModalAnimation(binding.modalContent)
     }
 
     private fun hideModal() {
-        binding.modalContent.animate()
-            .alpha(0f)
-            .scaleX(0.8f)
-            .scaleY(0.8f)
-            .setDuration(250)
-            .setInterpolator(AccelerateDecelerateInterpolator())
-            .withEndAction {
-                binding.modalOverlay.visibility = View.GONE
-            }
-            .start()
+        AnimationUtils.hideModalAnimation(binding.modalContent) {
+            binding.modalOverlay.visibility = View.GONE
+        }
     }
 
     // Prevent back button from exiting app
@@ -375,18 +318,14 @@ class MainActivity : AppCompatActivity() {
 
     // Prevent hardware keys from exiting
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
-        return when (keyCode) {
-            KeyEvent.KEYCODE_HOME,
-            KeyEvent.KEYCODE_RECENT_APPS,
-            KeyEvent.KEYCODE_BACK -> true // Block these keys
-            else -> super.onKeyDown(keyCode, event)
-        }
+        return HardwareKeyHandler.handleKeyDown(keyCode)
+            || super.onKeyDown(keyCode, event)
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
         if (hasFocus) {
-            setupFullScreen()
+            FullScreenUtils.reapplyFullScreen(window, binding.root)
         }
     }
 
@@ -402,11 +341,59 @@ class MainActivity : AppCompatActivity() {
         
         AppLog.i(TAG, "Triggering hardware initialization from MainActivity")
         
+        // Observe hardware state changes
+        app.observeHardwareState { state ->
+            runOnUiThread {
+                updateHardwareStatusIndicator(state)
+            }
+        }
+        
         app.initializeHardware { success ->
             if (success) {
-                AppLog.i(TAG, "Hardware ready for use")
+                AppLog.i(TAG, "✅ Hardware ready for use")
             } else {
-                AppLog.w(TAG, "Hardware initialization failed - app will use mock mode")
+                AppLog.e(TAG, "❌ Hardware initialization failed - operations may not work")
+            }
+        }
+    }
+    
+    /**
+     * Update hardware status indicator in UI
+     */
+    private fun updateHardwareStatusIndicator(state: WaterFountainApplication.HardwareState) {
+        val statusIndicator = binding.root.findViewById<View>(R.id.hardwareStatusIndicator)
+        
+        statusIndicator?.let { indicator ->
+            when (state) {
+                WaterFountainApplication.HardwareState.READY -> {
+                    // Hide indicator when hardware is ready (green = success = no need to show)
+                    indicator.visibility = View.GONE
+                }
+                WaterFountainApplication.HardwareState.ERROR,
+                WaterFountainApplication.HardwareState.DISCONNECTED -> {
+                    // Red circle - hardware error
+                    indicator.visibility = View.VISIBLE
+                    indicator.background = resources.getDrawable(R.drawable.circle_indicator, null)
+                    AppLog.w(TAG, "⚠️ Hardware status indicator: RED (error/disconnected)")
+                }
+                WaterFountainApplication.HardwareState.INITIALIZING -> {
+                    // Orange circle - initializing
+                    indicator.visibility = View.VISIBLE
+                    val drawable = indicator.background.mutate()
+                    if (drawable is android.graphics.drawable.GradientDrawable) {
+                        drawable.setColor(0xFFFFA500.toInt()) // Orange
+                    }
+                    AppLog.d(TAG, "⚠️ Hardware status indicator: ORANGE (initializing)")
+                }
+                else -> {
+                    // Gray circle - other states (uninitialized, maintenance)
+                    indicator.visibility = View.VISIBLE
+                    val drawable = indicator.background.mutate()
+                    if (drawable is android.graphics.drawable.GradientDrawable) {
+                        drawable.setColor(0xFF808080.toInt()) // Gray
+                    }
+                    AppLog.d(TAG, "⚠️ Hardware status indicator: GRAY (${state.name})")
+                }
             }
         }
     }

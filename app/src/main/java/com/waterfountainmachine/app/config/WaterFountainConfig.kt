@@ -20,15 +20,13 @@ class WaterFountainConfig private constructor(context: Context) {
         private const val KEY_COMMAND_TIMEOUT = "command_timeout_ms"
         private const val KEY_STATUS_POLLING_INTERVAL = "status_polling_interval_ms"
         private const val KEY_MAX_POLLING_ATTEMPTS = "max_polling_attempts"
-        private const val KEY_AUTO_CLEAR_FAULTS = "auto_clear_faults"
         
         // Default values
         private const val DEFAULT_WATER_SLOT = 1
-        private const val DEFAULT_BAUD_RATE = 9600  // VMC uses 9600 baud (CORRECTED from 115200)
+        private const val DEFAULT_BAUD_RATE = 9600  // VMC uses 9600 baud
         private const val DEFAULT_COMMAND_TIMEOUT = 5000L
         private const val DEFAULT_STATUS_POLLING_INTERVAL = 500L
         private const val DEFAULT_MAX_POLLING_ATTEMPTS = 20
-        private const val DEFAULT_AUTO_CLEAR_FAULTS = true
         
         @Volatile
         private var INSTANCE: WaterFountainConfig? = null
@@ -80,13 +78,6 @@ class WaterFountainConfig private constructor(context: Context) {
         set(value) = prefs.edit().putInt(KEY_MAX_POLLING_ATTEMPTS, value).apply()
     
     /**
-     * Whether to automatically clear faults before dispensing
-     */
-    var autoClearFaults: Boolean
-        get() = prefs.getBoolean(KEY_AUTO_CLEAR_FAULTS, DEFAULT_AUTO_CLEAR_FAULTS)
-        set(value) = prefs.edit().putBoolean(KEY_AUTO_CLEAR_FAULTS, value).apply()
-    
-    /**
      * Reset all settings to defaults
      */
     fun resetToDefaults() {
@@ -104,7 +95,6 @@ class WaterFountainConfig private constructor(context: Context) {
             - Command Timeout: ${commandTimeoutMs}ms
             - Status Polling Interval: ${statusPollingIntervalMs}ms
             - Max Polling Attempts: $maxPollingAttempts
-            - Auto Clear Faults: $autoClearFaults
         """.trimIndent()
     }
 }

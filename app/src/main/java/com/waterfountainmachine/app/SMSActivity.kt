@@ -4,23 +4,19 @@ import android.animation.AnimatorSet
 import android.animation.ObjectAnimator
 import android.content.Intent
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
-import android.view.KeyEvent
 import android.view.View
 import android.view.animation.AccelerateDecelerateInterpolator
-import android.widget.Button
-import android.widget.ImageButton
-import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.WindowCompat
-import androidx.core.view.WindowInsetsCompat
-import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.lifecycleScope
 import com.waterfountainmachine.app.databinding.ActivitySmsBinding
 import com.waterfountainmachine.app.hardware.WaterFountainManager
+import com.waterfountainmachine.app.utils.FullScreenUtils
+import com.waterfountainmachine.app.utils.AnimationUtils
+import com.waterfountainmachine.app.utils.InactivityTimer
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 
 class SMSActivity : AppCompatActivity() {
 
@@ -28,56 +24,48 @@ class SMSActivity : AppCompatActivity() {
     private var currentStep = 1
     private var phoneNumber = ""
     private var otpCode = ""
-    private val maxPhoneLength = 10
-    private val maxOtpLength = 6
     
     // Phone number masking
     private var isPhoneNumberVisible = false
     private var isOtpVisible = false
 
-    private var inactivityHandler = Handler(Looper.getMainLooper())
-    private var inactivityRunnable: Runnable? = null
-    private val inactivityTimeout = 360000L // 6 minutes (allows for 2 min timer + 2 resends with buffer)
+    private lateinit var inactivityTimer: InactivityTimer
     private var questionMarkAnimator: AnimatorSet? = null
 
-    // Timer for OTP resend
-    private var otpTimerHandler = Handler(Looper.getMainLooper())
-    private var otpTimerRunnable: Runnable? = null
-    private var otpTimeRemaining = 120 // 2 minutes in seconds
+    // Timer for OTP resend - using coroutines instead of Handler to prevent memory leaks
+    private var otpTimerJob: Job? = null
+    private var otpTimeRemaining = OTP_TIMEOUT_SECONDS
 
     // Water fountain hardware manager
     private lateinit var waterFountainManager: WaterFountainManager
+    
+    companion object {
+        private const val TAG = "SMSActivity"
+        private const val MAX_PHONE_LENGTH = 10
+        private const val MAX_OTP_LENGTH = 6
+        private const val OTP_TIMEOUT_SECONDS = 120
+        private const val INACTIVITY_TIMEOUT_MS = 360_000L // 6 minutes
+        private const val ANIMATION_DURATION_MS = 300L
+        private const val SHAKE_ANIMATION_DURATION_MS = 500L
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivitySmsBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        setupFullScreen()
+        FullScreenUtils.setupFullScreen(window, binding.root)
         initializeViews()
         setupKeypadListeners()
         setupPhoneNumberStep()
         setupQuestionMarkAnimation()
         setupModalFunctionality()
-        setupInactivityTimer()
+        
+        inactivityTimer = InactivityTimer(INACTIVITY_TIMEOUT_MS) { finish() }
+        inactivityTimer.start()
         
         // Initialize water fountain hardware
         setupHardware()
-    }
-
-    private fun setupFullScreen() {
-        WindowCompat.setDecorFitsSystemWindows(window, false)
-        val controller = WindowInsetsControllerCompat(window, binding.root)
-        controller.hide(WindowInsetsCompat.Type.systemBars())
-        controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-
-        // Hide system UI completely
-        binding.root.systemUiVisibility = (View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-                or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-                or View.SYSTEM_UI_FLAG_FULLSCREEN
-                or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY)
     }
 
     private fun initializeViews() {
@@ -97,44 +85,17 @@ class SMSActivity : AppCompatActivity() {
     }
 
     private fun setupQuestionMarkAnimation() {
-        // Create a more frequent and engaging shake animation
-        val shakeX = ObjectAnimator.ofFloat(binding.questionMarkButton, "translationX", 0f, -12f, 12f, -8f, 8f, -4f, 4f, 0f)
-        shakeX.duration = 1000 // Shorter duration
-
-        val rotate = ObjectAnimator.ofFloat(binding.questionMarkIcon, "rotation", 0f, 20f, -20f, 15f, -15f, 8f, -8f, 0f)
-        rotate.duration = 1000
-
-        val scale = ObjectAnimator.ofFloat(binding.questionMarkButton, "scaleX", 1f, 1.15f, 1f)
-        scale.duration = 1000
-
-        val scaleY = ObjectAnimator.ofFloat(binding.questionMarkButton, "scaleY", 1f, 1.15f, 1f)
-        scaleY.duration = 1000
-
-        questionMarkAnimator = AnimatorSet().apply {
-            playTogether(shakeX, rotate, scale, scaleY)
-            interpolator = AccelerateDecelerateInterpolator()
-            startDelay = 1000 // Start sooner
-        }
-
-        // Create repeating animation with much shorter intervals
-        questionMarkAnimator?.addListener(object : android.animation.AnimatorListenerAdapter() {
-            override fun onAnimationEnd(animation: android.animation.Animator) {
-                // Much more frequent shaking
-                binding.root.postDelayed({
-                    if (questionMarkAnimator != null) {
-                        questionMarkAnimator?.start()
-                    }
-                }, 1500) // Only 1.5 second pause between animations
-            }
-        })
-
-        questionMarkAnimator?.start()
+        questionMarkAnimator = AnimationUtils.setupQuestionMarkAnimation(
+            button = binding.questionMarkButton,
+            icon = binding.questionMarkIcon,
+            rootView = binding.root
+        )
     }
 
     private fun setupModalFunctionality() {
         // Question mark button click
         binding.questionMarkButton.setOnClickListener {
-            resetInactivityTimer()
+            inactivityTimer.reset()
             showModal()
         }
 
@@ -158,32 +119,13 @@ class SMSActivity : AppCompatActivity() {
 
     private fun showModal() {
         binding.modalOverlay.visibility = View.VISIBLE
-
-        // Animate modal appearance
-        binding.modalContent.alpha = 0f
-        binding.modalContent.scaleX = 0.8f
-        binding.modalContent.scaleY = 0.8f
-
-        binding.modalContent.animate()
-            .alpha(1f)
-            .scaleX(1f)
-            .scaleY(1f)
-            .setDuration(300)
-            .setInterpolator(AccelerateDecelerateInterpolator())
-            .start()
+        AnimationUtils.showModalAnimation(binding.modalContent)
     }
 
     private fun hideModal() {
-        binding.modalContent.animate()
-            .alpha(0f)
-            .scaleX(0.8f)
-            .scaleY(0.8f)
-            .setDuration(250)
-            .setInterpolator(AccelerateDecelerateInterpolator())
-            .withEndAction {
-                binding.modalOverlay.visibility = View.GONE
-            }
-            .start()
+        AnimationUtils.hideModalAnimation(binding.modalContent) {
+            binding.modalOverlay.visibility = View.GONE
+        }
     }
 
     private fun setupPhoneNumberStep() {
@@ -245,7 +187,7 @@ class SMSActivity : AppCompatActivity() {
         
         // Setup toggle phone visibility button
         binding.togglePhoneVisibility.setOnClickListener {
-            resetInactivityTimer()
+            inactivityTimer.reset()
             if (currentStep == 1) {
                 isPhoneNumberVisible = !isPhoneNumberVisible
                 updatePhoneDisplay()
@@ -322,9 +264,10 @@ class SMSActivity : AppCompatActivity() {
                         .start()
                     
                     // Show and start the timer with fade (after other elements)
-                    binding.root.postDelayed({
+                    lifecycleScope.launch {
+                        delay(ANIMATION_DURATION_MS)
                         startOtpTimer()
-                    }, 300)
+                    }
                     
                     // Simulate sending SMS (in real app, integrate with SMS service)
                     simulateSendSMS()
@@ -337,7 +280,9 @@ class SMSActivity : AppCompatActivity() {
     }
 
     private fun startOtpTimer() {
-        otpTimeRemaining = 120 // Reset to 2 minutes
+        // Cancel any existing timer
+        otpTimerJob?.cancel()
+        otpTimeRemaining = OTP_TIMEOUT_SECONDS // Reset to 2 minutes
         
         // Fade out resend button if visible, fade in timer
         if (binding.resendCodeButton.visibility == View.VISIBLE) {
@@ -353,7 +298,7 @@ class SMSActivity : AppCompatActivity() {
                     binding.timerLayout.visibility = View.VISIBLE
                     binding.timerLayout.animate()
                         .alpha(1f)
-                        .setDuration(300)
+                        .setDuration(ANIMATION_DURATION_MS)
                         .start()
                 }
                 .start()
@@ -363,42 +308,40 @@ class SMSActivity : AppCompatActivity() {
             binding.timerLayout.visibility = View.VISIBLE
             binding.timerLayout.animate()
                 .alpha(1f)
-                .setDuration(300)
+                .setDuration(ANIMATION_DURATION_MS)
                 .start()
         }
         
-        otpTimerRunnable = object : Runnable {
-            override fun run() {
-                if (otpTimeRemaining > 0) {
-                    // Update timer display
-                    val minutes = otpTimeRemaining / 60
-                    val seconds = otpTimeRemaining % 60
-                    binding.timerText.text = String.format("%d:%02d", minutes, seconds)
+        // Start coroutine-based timer to prevent memory leaks
+        otpTimerJob = lifecycleScope.launch {
+            while (otpTimeRemaining > 0) {
+                // Update timer display
+                val minutes = otpTimeRemaining / 60
+                val seconds = otpTimeRemaining % 60
+                binding.timerText.text = String.format("%d:%02d", minutes, seconds)
+                
+                delay(1000) // Wait 1 second
+                otpTimeRemaining--
+            }
+            
+            // Timer expired - fade out timer, fade in resend button
+            binding.timerLayout.animate()
+                .alpha(0f)
+                .setDuration(200)
+                .withEndAction {
+                    binding.timerLayout.visibility = View.GONE
+                    binding.timerLayout.alpha = 1f
                     
-                    otpTimeRemaining--
-                    otpTimerHandler.postDelayed(this, 1000)
-                } else {
-                    // Timer expired - fade out timer, fade in resend button
-                    binding.timerLayout.animate()
-                        .alpha(0f)
-                        .setDuration(200)
-                        .withEndAction {
-                            binding.timerLayout.visibility = View.GONE
-                            binding.timerLayout.alpha = 1f
-                            
-                            // Now fade in resend button
-                            binding.resendCodeButton.alpha = 0f
-                            binding.resendCodeButton.visibility = View.VISIBLE
-                            binding.resendCodeButton.animate()
-                                .alpha(1f)
-                                .setDuration(300)
-                                .start()
-                        }
+                    // Now fade in resend button
+                    binding.resendCodeButton.alpha = 0f
+                    binding.resendCodeButton.visibility = View.VISIBLE
+                    binding.resendCodeButton.animate()
+                        .alpha(1f)
+                        .setDuration(ANIMATION_DURATION_MS)
                         .start()
                 }
-            }
+                .start()
         }
-        otpTimerHandler.post(otpTimerRunnable!!)
     }
 
     private fun simulateSendSMS() {
@@ -407,19 +350,20 @@ class SMSActivity : AppCompatActivity() {
         // val demoCode = "123456" // Commented out to avoid unused variable warning
 
         // Auto-fill for demo (remove in production)
-        Handler(Looper.getMainLooper()).postDelayed({
-            // This is just for testing - remove in production
-            // otpCode = demoCode
-            // updateOtpDisplay()
-            // continueButton.isEnabled = true
-        }, 2000)
+        // Removed Handler - would use coroutines if needed:
+        // lifecycleScope.launch {
+        //     delay(2000)
+        //     otpCode = demoCode
+        //     updateOtpDisplay()
+        //     binding.verifyOtpButton.isEnabled = true
+        // }
     }
 
     private fun verifyAndProceed() {
         // In real implementation, verify OTP with SMS service
         // For demo, we'll accept any 6-digit code
 
-        if (otpCode.length == maxOtpLength) {
+        if (otpCode.length == MAX_OTP_LENGTH) {
             // SMS verification successful - now dispense water
             dispenseWaterAfterVerification()
         }
@@ -473,35 +417,22 @@ class SMSActivity : AppCompatActivity() {
         finish()
     }
 
-    private fun setupInactivityTimer() {
-        resetInactivityTimer()
-    }
 
-    private fun resetInactivityTimer() {
-        inactivityRunnable?.let { inactivityHandler.removeCallbacks(it) }
-
-        inactivityRunnable = Runnable {
-            // Return to main activity after inactivity
-            finish()
-        }
-
-        inactivityHandler.postDelayed(inactivityRunnable!!, inactivityTimeout)
-    }
 
     private fun addDigit(digit: String) {
         when (currentStep) {
             1 -> {
-                if (phoneNumber.length < maxPhoneLength) {
+                if (phoneNumber.length < MAX_PHONE_LENGTH) {
                     phoneNumber += digit
                     updatePhoneDisplayWithAnimation()
-                    binding.verifyButton.isEnabled = phoneNumber.length == maxPhoneLength
+                    binding.verifyButton.isEnabled = phoneNumber.length == MAX_PHONE_LENGTH
                 }
             }
             2 -> {
-                if (otpCode.length < maxOtpLength) {
+                if (otpCode.length < MAX_OTP_LENGTH) {
                     otpCode += digit
                     updateOtpDisplayWithAnimation()
-                    binding.verifyOtpButton.isEnabled = otpCode.length == maxOtpLength
+                    binding.verifyOtpButton.isEnabled = otpCode.length == MAX_OTP_LENGTH
                 }
             }
         }
@@ -516,11 +447,12 @@ class SMSActivity : AppCompatActivity() {
                         android.view.animation.AnimationUtils.loadAnimation(this, R.anim.number_disappear)
                     )
                     
-                    Handler(Looper.getMainLooper()).postDelayed({
+                    lifecycleScope.launch {
+                        delay(100)
                         phoneNumber = phoneNumber.dropLast(1)
                         updatePhoneDisplay()
-                        binding.verifyButton.isEnabled = phoneNumber.length == maxPhoneLength
-                    }, 100)
+                        binding.verifyButton.isEnabled = phoneNumber.length == MAX_PHONE_LENGTH
+                    }
                 }
             }
             2 -> {
@@ -530,11 +462,12 @@ class SMSActivity : AppCompatActivity() {
                         android.view.animation.AnimationUtils.loadAnimation(this, R.anim.number_disappear)
                     )
                     
-                    Handler(Looper.getMainLooper()).postDelayed({
+                    lifecycleScope.launch {
+                        delay(100)
                         otpCode = otpCode.dropLast(1)
                         updateOtpDisplay()
-                        binding.verifyOtpButton.isEnabled = otpCode.length == maxOtpLength
-                    }, 100)
+                        binding.verifyOtpButton.isEnabled = otpCode.length == MAX_OTP_LENGTH
+                    }
                 }
             }
         }
@@ -658,9 +591,9 @@ class SMSActivity : AppCompatActivity() {
     private fun setupKeypadListeners() {
         // Set up send code button listener (step 1)
         binding.verifyButton.setOnClickListener {
-            resetInactivityTimer()
+            inactivityTimer.reset()
             performButtonAnimation(binding.verifyButton) {
-                if (phoneNumber.length == maxPhoneLength) {
+                if (phoneNumber.length == MAX_PHONE_LENGTH) {
                     setupOTPStep()
                 }
             }
@@ -668,9 +601,9 @@ class SMSActivity : AppCompatActivity() {
 
         // Set up verify OTP button listener (step 2)
         binding.verifyOtpButton.setOnClickListener {
-            resetInactivityTimer()
+            inactivityTimer.reset()
             performButtonAnimation(binding.verifyOtpButton) {
-                if (otpCode.length == maxOtpLength) {
+                if (otpCode.length == MAX_OTP_LENGTH) {
                     verifyAndProceed()
                 }
             }
@@ -678,27 +611,27 @@ class SMSActivity : AppCompatActivity() {
 
         // Set up resend code button listener with proper animation
         binding.resendCodeButton.setOnClickListener {
-            resetInactivityTimer()
+            inactivityTimer.reset()
             performKeypadAnimation(binding.resendCodeButton) {
                 resendVerificationCode()
             }
         }
 
         // Set up number button listeners with feedback animations
-        binding.btn0.setOnClickListener { resetInactivityTimer(); performKeypadAnimation(binding.btn0) { addDigit("0") } }
-        binding.btn1.setOnClickListener { resetInactivityTimer(); performKeypadAnimation(binding.btn1) { addDigit("1") } }
-        binding.btn2.setOnClickListener { resetInactivityTimer(); performKeypadAnimation(binding.btn2) { addDigit("2") } }
-        binding.btn3.setOnClickListener { resetInactivityTimer(); performKeypadAnimation(binding.btn3) { addDigit("3") } }
-        binding.btn4.setOnClickListener { resetInactivityTimer(); performKeypadAnimation(binding.btn4) { addDigit("4") } }
-        binding.btn5.setOnClickListener { resetInactivityTimer(); performKeypadAnimation(binding.btn5) { addDigit("5") } }
-        binding.btn6.setOnClickListener { resetInactivityTimer(); performKeypadAnimation(binding.btn6) { addDigit("6") } }
-        binding.btn7.setOnClickListener { resetInactivityTimer(); performKeypadAnimation(binding.btn7) { addDigit("7") } }
-        binding.btn8.setOnClickListener { resetInactivityTimer(); performKeypadAnimation(binding.btn8) { addDigit("8") } }
-        binding.btn9.setOnClickListener { resetInactivityTimer(); performKeypadAnimation(binding.btn9) { addDigit("9") } }
+        binding.btn0.setOnClickListener { inactivityTimer.reset(); performKeypadAnimation(binding.btn0) { addDigit("0") } }
+        binding.btn1.setOnClickListener { inactivityTimer.reset(); performKeypadAnimation(binding.btn1) { addDigit("1") } }
+        binding.btn2.setOnClickListener { inactivityTimer.reset(); performKeypadAnimation(binding.btn2) { addDigit("2") } }
+        binding.btn3.setOnClickListener { inactivityTimer.reset(); performKeypadAnimation(binding.btn3) { addDigit("3") } }
+        binding.btn4.setOnClickListener { inactivityTimer.reset(); performKeypadAnimation(binding.btn4) { addDigit("4") } }
+        binding.btn5.setOnClickListener { inactivityTimer.reset(); performKeypadAnimation(binding.btn5) { addDigit("5") } }
+        binding.btn6.setOnClickListener { inactivityTimer.reset(); performKeypadAnimation(binding.btn6) { addDigit("6") } }
+        binding.btn7.setOnClickListener { inactivityTimer.reset(); performKeypadAnimation(binding.btn7) { addDigit("7") } }
+        binding.btn8.setOnClickListener { inactivityTimer.reset(); performKeypadAnimation(binding.btn8) { addDigit("8") } }
+        binding.btn9.setOnClickListener { inactivityTimer.reset(); performKeypadAnimation(binding.btn9) { addDigit("9") } }
 
         // Set up control button listeners with feedback
-        binding.btnBackspace.setOnClickListener { resetInactivityTimer(); performKeypadAnimation(binding.btnBackspace) { removeLastDigit() } }
-        binding.btnClear.setOnClickListener { resetInactivityTimer(); performKeypadAnimation(binding.btnClear) { clearInput() } }
+        binding.btnBackspace.setOnClickListener { inactivityTimer.reset(); performKeypadAnimation(binding.btnBackspace) { removeLastDigit() } }
+        binding.btnClear.setOnClickListener { inactivityTimer.reset(); performKeypadAnimation(binding.btnClear) { clearInput() } }
     }
 
     private fun performButtonAnimation(button: View, onComplete: () -> Unit) {
@@ -791,8 +724,8 @@ class SMSActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        inactivityRunnable?.let { inactivityHandler.removeCallbacks(it) }
-        otpTimerRunnable?.let { otpTimerHandler.removeCallbacks(it) }
+        inactivityTimer.cleanup()
+        otpTimerJob?.cancel()
         
         // Clean up hardware resources
         if (::waterFountainManager.isInitialized) {
@@ -804,13 +737,13 @@ class SMSActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        setupFullScreen()
-        resetInactivityTimer()
+        FullScreenUtils.reapplyFullScreen(window, binding.root)
+        inactivityTimer.reset()
     }
 
     override fun onPause() {
         super.onPause()
-        inactivityRunnable?.let { inactivityHandler.removeCallbacks(it) }
-        otpTimerRunnable?.let { otpTimerHandler.removeCallbacks(it) }
+        inactivityTimer.stop()
+        otpTimerJob?.cancel()
     }
 }

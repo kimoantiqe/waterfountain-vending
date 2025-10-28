@@ -101,11 +101,8 @@ class HardwareFragment : Fragment() {
             if (!isProcessing) runFullDiagnostics()
         }
         
-        binding.clearErrorsButton.setOnClickListener {
-            if (!isProcessing) clearAllErrors()
-        }
-        
-        // Remove unused buttons
+        // Remove unused buttons (vendor SDK handles faults automatically)
+        binding.clearErrorsButton.visibility = View.GONE
         binding.calibrateSlotButton.visibility = View.GONE
         binding.emergencyStopButton.visibility = View.GONE
         binding.primeSystemButton.visibility = View.GONE
@@ -281,43 +278,6 @@ class HardwareFragment : Fragment() {
             } finally {
                 isProcessing = false
                 binding.runFullDiagnosticsButton.isEnabled = true
-            }
-        }
-    }
-    
-    private fun clearAllErrors() {
-        if (isProcessing) return
-        
-        if (!waterFountainManager.isConnected()) {
-            Toast.makeText(context, "Hardware not initialized. Please wait...", Toast.LENGTH_LONG).show()
-            return
-        }
-        
-        isProcessing = true
-        binding.clearErrorsButton.isEnabled = false
-        
-        lifecycleScope.launch {
-            try {
-                val success = waterFountainManager.clearAllErrors()
-                
-                if (success) {
-                    binding.systemStatusText.text = "All errors cleared"
-                    Toast.makeText(context, "All errors cleared successfully", Toast.LENGTH_SHORT).show()
-                    
-                    // Refresh displays
-                    updateSlotDisplay()
-                    runInitialDiagnostics()
-                } else {
-                    binding.systemStatusText.text = "Failed to clear errors"
-                    Toast.makeText(context, "Failed to clear errors", Toast.LENGTH_SHORT).show()
-                }
-                
-            } catch (e: Exception) {
-                binding.systemStatusText.text = "Failed to clear errors: ${e.message}"
-                Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
-            } finally {
-                isProcessing = false
-                binding.clearErrorsButton.isEnabled = true
             }
         }
     }

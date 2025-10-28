@@ -31,7 +31,6 @@ object WaterFountainDebug {
             results.add("  - Command Timeout: ${config.commandTimeoutMs}ms")
             results.add("  - Status Polling Interval: ${config.statusPollingIntervalMs}ms")
             results.add("  - Max Polling Attempts: ${config.maxPollingAttempts}")
-            results.add("  - Auto Clear Faults: ${config.autoClearFaults}")
             
             // Test 2: Manager Initialization
             results.add("\n2. Testing Manager Initialization...")
@@ -104,11 +103,10 @@ object WaterFountainDebug {
         
         // Set testing-friendly values
         config.waterSlot = 1
-        config.serialBaudRate = 115200
+        config.serialBaudRate = 9600
         config.commandTimeoutMs = 3000L  // Shorter for testing
         config.statusPollingIntervalMs = 200L
         config.maxPollingAttempts = 10  // Fewer for faster testing
-        config.autoClearFaults = true
         
         Log.i(TAG, "Water fountain configured for testing")
         Log.i(TAG, config.getConfigSummary())
@@ -122,11 +120,10 @@ object WaterFountainDebug {
         
         // Set production values
         config.waterSlot = 1
-        config.serialBaudRate = 115200
+        config.serialBaudRate = 9600
         config.commandTimeoutMs = 5000L
         config.statusPollingIntervalMs = 500L
         config.maxPollingAttempts = 20
-        config.autoClearFaults = true
         
         Log.i(TAG, "Water fountain configured for production")
         Log.i(TAG, config.getConfigSummary())

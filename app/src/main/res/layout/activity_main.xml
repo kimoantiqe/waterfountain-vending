@@ -201,4 +201,16 @@
 
     </FrameLayout>
 
+    <!-- Hardware Status Indicator (top-right corner) -->
+    <!-- Shows red circle when hardware has errors, hidden when ready -->
+    <View
+        android:id="@+id/hardwareStatusIndicator"
+        android:layout_width="20dp"
+        android:layout_height="20dp"
+        android:layout_gravity="top|end"
+        android:layout_margin="16dp"
+        android:background="@drawable/circle_indicator"
+        android:visibility="gone"
+        android:elevation="10dp"/>
+
 </FrameLayout>

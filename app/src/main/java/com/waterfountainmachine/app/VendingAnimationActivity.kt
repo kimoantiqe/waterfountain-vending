@@ -5,8 +5,6 @@ import android.animation.ObjectAnimator
 import android.annotation.SuppressLint
 import android.content.Intent
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import android.view.animation.DecelerateInterpolator
 import android.view.animation.OvershootInterpolator
 import android.widget.FrameLayout
@@ -16,12 +14,16 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import androidx.lifecycle.lifecycleScope
 import com.waterfountainmachine.app.views.ProgressRingView
+import com.waterfountainmachine.app.utils.FullScreenUtils
 import nl.dionsegijn.konfetti.core.Party
 import nl.dionsegijn.konfetti.core.Position
 import nl.dionsegijn.konfetti.core.emitter.Emitter
 import nl.dionsegijn.konfetti.core.models.Size
 import nl.dionsegijn.konfetti.xml.KonfettiView
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.util.concurrent.TimeUnit
 
 class VendingAnimationActivity : AppCompatActivity() {
@@ -52,6 +54,16 @@ class VendingAnimationActivity : AppCompatActivity() {
         "Stay hydrated!",
         "Freshly dispensed!"
     )
+    
+    companion object {
+        private const val FADE_IN_DELAY_MS = 200L
+        private const val PROGRESS_START_DELAY_MS = 1000L
+        private const val PROGRESS_DURATION_MS = 6000L
+        private const val RING_COMPLETION_DELAY_MS = 7000L
+        private const val MORPH_TO_LOGO_DELAY_MS = 7500L
+        private const val SHOW_COMPLETION_DELAY_MS = 8500L
+        private const val RETURN_TO_MAIN_DELAY_MS = 12000L
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -84,42 +96,36 @@ class VendingAnimationActivity : AppCompatActivity() {
     }
 
     private fun setupFullscreen() {
-        WindowCompat.setDecorFitsSystemWindows(window, false)
-        val controller = WindowInsetsControllerCompat(window, window.decorView)
-        controller.hide(WindowInsetsCompat.Type.systemBars())
-        controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        FullScreenUtils.setupFullScreen(window, window.decorView)
     }
 
     private fun startRingAnimation() {
-        // Phase 1: Fade in text and ring (0-1s)
-        Handler(Looper.getMainLooper()).postDelayed({
+        // Use coroutines for sequential animations instead of Handler chains
+        lifecycleScope.launch {
+            // Phase 1: Fade in text and ring (0-1s)
+            delay(FADE_IN_DELAY_MS)
             fadeInElements()
-        }, 200)
 
-        // Phase 2: Start ring progress (1-7s)
-        Handler(Looper.getMainLooper()).postDelayed({
-            progressRing.animateProgress(6000)
-        }, 1000)
+            // Phase 2: Start ring progress (1-7s)
+            delay(PROGRESS_START_DELAY_MS - FADE_IN_DELAY_MS)
+            progressRing.animateProgress(PROGRESS_DURATION_MS)
 
-        // Phase 3: Ring completion snap (7s)
-        Handler(Looper.getMainLooper()).postDelayed({
+            // Phase 3: Ring completion snap (7s)
+            delay(RING_COMPLETION_DELAY_MS - PROGRESS_START_DELAY_MS)
             ringCompletionSnap()
-        }, 7000)
 
-        // Phase 4: Morph to logo (7.5-8.5s)
-        Handler(Looper.getMainLooper()).postDelayed({
+            // Phase 4: Morph to logo (7.5-8.5s)
+            delay(MORPH_TO_LOGO_DELAY_MS - RING_COMPLETION_DELAY_MS)
             morphToLogo()
-        }, 7500)
 
-        // Phase 5: Show completion text + confetti (8.5-9.5s)
-        Handler(Looper.getMainLooper()).postDelayed({
+            // Phase 5: Show completion text + confetti (8.5-9.5s)
+            delay(SHOW_COMPLETION_DELAY_MS - MORPH_TO_LOGO_DELAY_MS)
             showCompletion()
-        }, 8500)
 
-        // Phase 6: Return to main screen (12s)
-        Handler(Looper.getMainLooper()).postDelayed({
+            // Phase 6: Return to main screen (12s)
+            delay(RETURN_TO_MAIN_DELAY_MS - SHOW_COMPLETION_DELAY_MS)
             returnToMainScreen()
-        }, 12000)
+        }
     }
 
     private fun fadeInElements() {

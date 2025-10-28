@@ -185,21 +185,26 @@ class HardwareTestingFragment : Fragment() {
         lifecycleScope.launch {
             try {
                 binding.testResultText.text = "Getting device status..."
-                AppLog.i(TAG, "Getting hardware device status...")
+                AppLog.i(TAG, "Running device diagnostics...")
                 
                 val startTime = System.currentTimeMillis()
-                val result = app.hardwareManager.getDeviceStatus()
+                
+                // Run diagnostics instead of calling removed getDeviceStatus()
+                val diagnostics = app.hardwareManager.runFullDiagnostics()
                 val elapsed = System.currentTimeMillis() - startTime
                 
-                if (result != null) {
-                    binding.testResultText.text = "✅ Device Status Retrieved\n\n$result\n\nResponse time: ${elapsed}ms"
-                    AppLog.i(TAG, "✅ Device status: $result (${elapsed}ms)")
-                    Toast.makeText(requireContext(), "Status retrieved successfully", Toast.LENGTH_SHORT).show()
-                } else {
-                    binding.testResultText.text = "❌ Failed to Get Device Status\n\nNo response from hardware\nResponse time: ${elapsed}ms"
-                    AppLog.e(TAG, "❌ Failed to get device status")
-                    Toast.makeText(requireContext(), "Failed to get status", Toast.LENGTH_SHORT).show()
+                // Format diagnostics results
+                val statusText = buildString {
+                    append("✅ Device Diagnostics\n\n")
+                    diagnostics.forEach { (key, value) ->
+                        append("$key: $value\n")
+                    }
+                    append("\nResponse time: ${elapsed}ms")
                 }
+                
+                binding.testResultText.text = statusText
+                AppLog.i(TAG, "✅ Device diagnostics completed (${elapsed}ms)")
+                Toast.makeText(requireContext(), "Diagnostics completed successfully", Toast.LENGTH_SHORT).show()
                 
             } catch (e: Exception) {
                 binding.testResultText.text = "❌ Error: ${e.message}"

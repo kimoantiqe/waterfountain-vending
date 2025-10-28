@@ -32,9 +32,8 @@ class WaterFountainManager private constructor(
     }
     
     // SDK instance - initialized lazily
-    private var sdk: VendorSDKAdapter? = null
+    private var sdk: IVendingMachineAdapter? = null
     private var isInitialized = false
-    private var useMockMode = false // Track if we're in mock mode
     
     // Lane management system
     private val laneManager = LaneManager.getInstance(context)
@@ -54,93 +53,56 @@ class WaterFountainManager private constructor(
             // Check if we should use real or mock serial communicator
             val prefs = context.getSharedPreferences("system_settings", Context.MODE_PRIVATE)
             val useRealSerial = prefs.getBoolean("use_real_serial", false)
-            useMockMode = !useRealSerial // Store mock mode flag
-            
             
             AppLog.i(TAG, "Serial Communicator Configuration:")
             AppLog.i(TAG, "  Mode: ${if (useRealSerial) "REAL HARDWARE (Vendor SDK)" else "MOCK (Testing)"}")
             AppLog.i(TAG, "  Setting Key: use_real_serial = $useRealSerial")
             
-            
             if (useRealSerial) {
                 AppLog.i(TAG, "Initializing Vendor SDK Adapter (Real Hardware)...")
                 AppLog.i(TAG, "This will use CYVendingMachine SDK with /dev/ttyS0 serial port")
             } else {
-                AppLog.i(TAG, "Initializing Mock Mode...")
+                AppLog.i(TAG, "Initializing Mock Adapter (Testing Mode)...")
                 AppLog.i(TAG, "This will simulate hardware responses for testing")
             }
             
-            // Create SDK adapter (real or mock)
-            AppLog.i(TAG, "Creating Vending Machine SDK Adapter...")
+            // Create SDK adapter (real or mock) using polymorphism
+            AppLog.i(TAG, "Creating Vending Machine Adapter...")
             sdk = if (useRealSerial) {
-                // Real hardware using vendor SDK
-                VendorSDKAdapter(
-                    timeoutMs = config.commandTimeoutMs
-                )
+                VendorSDKAdapter(timeoutMs = config.commandTimeoutMs)
             } else {
-                // Mock mode for testing
-                createMockAdapter()
+                MockVendingMachineAdapter(simulateDelayMs = 2000L)
             }
-            AppLog.d(TAG, "✓ SDK adapter created")
+            
+            val adapterName = sdk?.javaClass?.simpleName ?: "Unknown"
+            AppLog.d(TAG, "✓ Adapter created: $adapterName")
             
             // Initialize adapter
             val initResult = sdk?.initialize()
-            if (initResult?.isSuccess != true) {
-                AppLog.e(TAG, "❌ SDK initialization FAILED")
-                return false
-            }
-            AppLog.d(TAG, "✓ SDK initialized")
-            
-            // Connect to hardware
-            val serialConfig = SerialConfig(baudRate = config.serialBaudRate)
-            
-            AppLog.i(TAG, "Attempting hardware connection...")
-            AppLog.d(TAG, "Serial Config: baudRate=${serialConfig.baudRate}, dataBits=${serialConfig.dataBits}, stopBits=${serialConfig.stopBits}")
-            AppLog.d(TAG, "Timeout: ${config.commandTimeoutMs}ms")
-            
-            val connected = sdk?.connect(serialConfig) ?: false
-            
-            
-            if (connected) {
-                AppLog.i(TAG, "✅ Hardware connection SUCCESSFUL")
-            } else {
-                AppLog.e(TAG, "❌ Hardware connection FAILED - SDK returned false")
+            if (initResult?.isFailure == true) {
+                AppLog.e(TAG, "❌ SDK initialization FAILED: ${initResult.exceptionOrNull()?.message}")
                 return false
             }
             
+            AppLog.i(TAG, "✅ SDK initialized successfully")
+            AppLog.i(TAG, "Note: Vendor SDK uses per-operation connections (opens/closes port per dispense)")
             
-            AppLog.i(TAG, "Testing connection by retrieving device ID...")
-            // Test connection by getting device ID
-            val deviceIdResult = sdk?.getDeviceId()
+            // Verify SDK is ready
+            val ready = sdk?.isReady() ?: false
             
-            if (deviceIdResult?.isSuccess == true) {
-                val deviceId = deviceIdResult.getOrNull()
-                AppLog.i(TAG, "✅ Device ID retrieved successfully")
-                AppLog.i(TAG, "Connected to VMC Device: '$deviceId'")
+            if (ready) {
+                AppLog.i(TAG, "✅ Hardware ready for operations")
                 isInitialized = true
             } else {
-                val exception = deviceIdResult?.exceptionOrNull()
-                AppLog.e(TAG, "Failed to get device ID from VMC")
-                AppLog.e(TAG, "Exception Type: ${exception?.javaClass?.simpleName ?: "Unknown"}")
-                AppLog.e(TAG, "Error Message: ${exception?.message ?: "No message"}")
-                
-                if (exception != null) {
-                    AppLog.e(TAG, "Full exception details:", exception)
-                }
+                AppLog.e(TAG, "❌ Hardware not ready - SDK returned false")
                 return false
-            }
-            
-            // Auto-clear faults if configured
-            if (config.autoClearFaults) {
-                AppLog.d(TAG, "Auto-clearing faults (configured in settings)...")
-                clearFaults()
             }
             
             AppLog.i(TAG, "========================================")
             AppLog.i(TAG, "✅ INITIALIZATION COMPLETE")
             AppLog.i(TAG, "========================================")
             AppLog.i(TAG, "Status: Ready for water dispensing")
-            AppLog.i(TAG, "Device: Connected and operational")
+            AppLog.i(TAG, "Connection: Per-operation (opens/closes serial port each dispense)")
             AppLog.i(TAG, "========================================")
             
             true
@@ -157,22 +119,12 @@ class WaterFountainManager private constructor(
     }
     
     /**
-     * Create mock adapter for testing (simulates hardware)
-     * Returns a real VendorSDKAdapter - mock behavior is simulated at a higher level
-     */
-    private fun createMockAdapter(): VendorSDKAdapter {
-        AppLog.i(TAG, "Creating mock adapter (will simulate at manager level)")
-        // Return a regular adapter, but we won't actually call it in mock mode
-        return VendorSDKAdapter(timeoutMs = config.commandTimeoutMs)
-    }
-    
-    /**
-     * Disconnect from hardware and cleanup resources
+     * Shutdown the manager and cleanup resources
      */
     suspend fun shutdown() {
         try {
             AppLog.d(TAG, "Shutting down Water Fountain Manager...")
-            sdk?.disconnect()
+            sdk?.shutdown()
             isInitialized = false
             AppLog.i(TAG, "Water Fountain Manager shut down successfully")
         } catch (e: Exception) {
@@ -181,9 +133,9 @@ class WaterFountainManager private constructor(
     }
     
     /**
-     * Check if the manager is initialized and connected
+     * Check if the manager is initialized and ready for operations
      */
-    fun isReady(): Boolean = isInitialized && (sdk?.isConnected() == true)
+    fun isReady(): Boolean = isInitialized && (sdk?.isReady() == true)
     
     /**
      * Get current active water slot/lane
@@ -219,7 +171,7 @@ class WaterFountainManager private constructor(
             )
         }
         
-        return try {
+        try {
             // Get the best lane for dispensing
             val primaryLane = laneManager.getNextLane()
             AppLog.i(TAG, "Attempting to dispense water from lane $primaryLane...")
@@ -277,37 +229,18 @@ class WaterFountainManager private constructor(
      */
     private suspend fun attemptDispenseFromLane(lane: Int): WaterDispenseResult {
         return try {
-            // Handle mock mode
-            if (useMockMode) {
-                AppLog.d(TAG, "Mock mode: dispenseWater(lane=$lane)")
-                
-                // Validate slot
-                if (!SlotValidator.isValidSlot(lane)) {
-                    AppLog.w(TAG, "Mock mode: Invalid slot $lane")
-                    return WaterDispenseResult(
-                        success = false,
-                        slot = lane,
-                        errorCode = 0x01,
-                        errorMessage = "Invalid slot number",
-                        dispensingTimeMs = 0
-                    )
-                }
-                
-                // Simulate dispensing delay
-                delay(2000)
-                
-                AppLog.i(TAG, "Mock mode: Water dispensed successfully from lane $lane")
+            val sdkInstance = sdk
+            if (sdkInstance == null) {
+                AppLog.e(TAG, "SDK is not initialized")
                 return WaterDispenseResult(
-                    success = true,
+                    success = false,
                     slot = lane,
-                    errorCode = null,
-                    errorMessage = null,
-                    dispensingTimeMs = 2000
+                    errorMessage = "Hardware not initialized"
                 )
             }
             
-            // Real hardware mode
-            val result = sdk!!.dispenseWater(lane)
+            // Use polymorphic SDK - no conditionals needed!
+            val result = sdkInstance.dispenseWater(lane)
             
             if (result.isSuccess) {
                 val dispenseResult = result.getOrThrow()
@@ -336,56 +269,7 @@ class WaterFountainManager private constructor(
         }
     }
     
-    /**
-     * Clear any hardware faults
-     */
-    suspend fun clearFaults(): Boolean {
-        if (!isReady()) {
-            AppLog.e(TAG, "Cannot clear faults - manager not ready")
-            return false
-        }
-        
-        return try {
-            AppLog.d(TAG, "Clearing hardware faults...")
-            val result = sdk!!.clearFaults()
-            val success = result.isSuccess && (result.getOrNull() == true)
-            
-            if (success) {
-                AppLog.i(TAG, "Hardware faults cleared successfully")
-            } else {
-                AppLog.w(TAG, "Failed to clear faults: ${result.exceptionOrNull()?.message}")
-            }
-            
-            success
-        } catch (e: Exception) {
-            AppLog.e(TAG, "Exception while clearing faults", e)
-            false
-        }
-    }
-    
-    /**
-     * Get current device status
-     */
-    suspend fun getDeviceStatus(): String? {
-        if (!isReady()) {
-            return null
-        }
-        
-        return try {
-            if (useMockMode) {
-                "Connected: MockWaterFountain001"
-            } else {
-                val deviceIdResult = sdk!!.getDeviceId()
-                if (deviceIdResult.isSuccess) {
-                    "Connected: ${deviceIdResult.getOrNull()}"
-                } else {
-                    "Error: ${deviceIdResult.exceptionOrNull()?.message}"
-                }
-            }
-        } catch (e: Exception) {
-            "Exception: ${e.message}"
-        }
-    }
+
     
     /**
      * Test the connection and basic functionality
@@ -403,25 +287,7 @@ class WaterFountainManager private constructor(
             val checks = mutableListOf<String>()
             var allPassed = true
             
-            // Check 1: Device ID
-            val deviceIdResult = sdk!!.getDeviceId()
-            if (deviceIdResult.isSuccess) {
-                checks.add("✓ Device ID: ${deviceIdResult.getOrNull()}")
-            } else {
-                checks.add("✗ Device ID failed: ${deviceIdResult.exceptionOrNull()?.message}")
-                allPassed = false
-            }
-            
-            // Check 2: Clear faults
-            val clearResult = sdk!!.clearFaults()
-            if (clearResult.isSuccess && clearResult.getOrNull() == true) {
-                checks.add("✓ Fault clearing: OK")
-            } else {
-                checks.add("✗ Fault clearing failed: ${clearResult.exceptionOrNull()?.message}")
-                allPassed = false
-            }
-            
-            // Check 3: Lane status
+            // Check: Lane status
             val laneReport = laneManager.getLaneStatusReport()
             checks.add("✓ Current Lane: ${laneReport.currentLane}")
             checks.add("✓ Usable Lanes: ${laneReport.usableLanesCount}/${laneReport.lanes.size}")
@@ -493,19 +359,7 @@ class WaterFountainManager private constructor(
         }
     }
     
-    /**
-     * Clear all faults using SDK clearFaults
-     */
-    suspend fun clearAllErrors(): Boolean {
-        AppLog.d(TAG, "clearAllErrors()")
-        
-        if (!isReady()) {
-            AppLog.e(TAG, "Cannot clear errors - system not initialized")
-            return false
-        }
-        
-        return clearFaults()
-    }
+
     
     /**
      * Check if system is connected
@@ -538,10 +392,6 @@ class WaterFountainManager private constructor(
             diagnostics["usableLanes"] = "${laneReport.usableLanesCount}/${laneReport.lanes.size}"
             diagnostics["totalDispenses"] = laneReport.totalDispenses
             
-            val deviceStatus = getDeviceStatus()
-            if (deviceStatus != null) {
-                diagnostics["deviceId"] = deviceStatus
-            }
             diagnostics["initialized"] = true
         } catch (e: Exception) {
             diagnostics["error"] = e.message ?: "Unknown error"
@@ -561,28 +411,7 @@ class WaterFountainManager private constructor(
         return lane?.getStatusText() ?: "Unknown"
     }
     
-    /**
-     * Get device ID directly from hardware (for debugging)
-     */
-    suspend fun getDeviceId(): String? {
-        if (!isReady()) {
-            AppLog.e(TAG, "Cannot get device ID - system not initialized")
-            return null
-        }
-        
-        return try {
-            val result = sdk!!.getDeviceId()
-            if (result.isSuccess) {
-                result.getOrNull()
-            } else {
-                AppLog.e(TAG, "Failed to get device ID: ${result.exceptionOrNull()?.message}")
-                null
-            }
-        } catch (e: Exception) {
-            AppLog.e(TAG, "Exception getting device ID", e)
-            null
-        }
-    }
+
     
     /**
      * Dispense water from specific slot with quantity (for testing/debugging)
@@ -594,8 +423,14 @@ class WaterFountainManager private constructor(
         }
         
         return try {
+            val sdkInstance = sdk
+            if (sdkInstance == null) {
+                AppLog.e(TAG, "SDK is not initialized")
+                return false
+            }
+            
             AppLog.d(TAG, "Manual dispense: slot=$slot, quantity=$quantity (quantity not supported by SDK, using 1)")
-            val result = sdk!!.dispenseWater(slot)
+            val result = sdkInstance.dispenseWater(slot)
             if (result.isSuccess) {
                 val dispenseResult = result.getOrThrow()
                 dispenseResult.success
@@ -619,12 +454,17 @@ class WaterFountainManager private constructor(
         }
         
         return try {
-            AppLog.d(TAG, "Querying VMC status...")
-            // Use the SDK's query status method if available
-            // For now, just return connection status
-            val connected = sdk!!.isConnected()
-            AppLog.d(TAG, "VMC status: connected=$connected")
-            connected
+            val sdkInstance = sdk
+            if (sdkInstance == null) {
+                AppLog.e(TAG, "SDK is not initialized")
+                return false
+            }
+            
+            AppLog.d(TAG, "Querying VMC readiness...")
+            // Check if SDK is ready for operations
+            val ready = sdkInstance.isReady()
+            AppLog.d(TAG, "VMC status: ready=$ready")
+            ready
         } catch (e: Exception) {
             AppLog.e(TAG, "Exception querying VMC status", e)
             false
