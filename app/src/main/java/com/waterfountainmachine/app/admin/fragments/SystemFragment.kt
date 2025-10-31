@@ -11,11 +11,10 @@ import android.os.StatFs
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Toast
 import androidx.core.content.FileProvider
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
-import com.waterfountainmachine.app.MainActivity
+import com.waterfountainmachine.app.activities.MainActivity
 import com.waterfountainmachine.app.databinding.FragmentSystemBinding
 import com.waterfountainmachine.app.utils.AppLog
 import com.waterfountainmachine.app.utils.LogCollector
@@ -157,12 +156,12 @@ class SystemFragment : Fragment() {
             
             // Validate ranges
             if (inactivityTimeout < 10 || inactivityTimeout > 300) {
-                Toast.makeText(context, "Inactivity timeout must be between 10-300 seconds", Toast.LENGTH_SHORT).show()
+                AppLog.w(TAG, "Inactivity timeout must be between 10-300 seconds")
                 return
             }
             
             if (sessionTimeout < 60 || sessionTimeout > 3600) {
-                Toast.makeText(context, "Session timeout must be between 60-3600 seconds", Toast.LENGTH_SHORT).show()
+                AppLog.w(TAG, "Session timeout must be between 60-3600 seconds")
                 return
             }
             
@@ -173,14 +172,11 @@ class SystemFragment : Fragment() {
                 .apply()
             
             binding.systemStatusText.text = "Timeout settings saved: Inactivity=${inactivityTimeout}s, Session=${sessionTimeout}s"
-            Toast.makeText(context, "Timeout settings saved", Toast.LENGTH_SHORT).show()
-            
             AppLog.i(TAG, "Timeout settings updated: inactivity=${inactivityTimeout}s, session=${sessionTimeout}s")
             
         } catch (e: Exception) {
             AppLog.e(TAG, "Error saving timeout settings", e)
             binding.systemStatusText.text = "Error saving settings: ${e.message}"
-            Toast.makeText(context, "Error saving settings", Toast.LENGTH_SHORT).show()
         }
     }
     
@@ -194,10 +190,6 @@ class SystemFragment : Fragment() {
                 
                 binding.systemStatusText.text = "Kiosk mode ${if (enabled) "enabled" else "disabled"}"
                 AppLog.i(TAG, "Kiosk mode ${if (enabled) "enabled" else "disabled"}")
-                
-                if (enabled) {
-                    Toast.makeText(context, "Kiosk mode enabled - Navigation restricted", Toast.LENGTH_SHORT).show()
-                }
                 
             } catch (e: Exception) {
                 AppLog.e(TAG, "Error updating kiosk mode", e)
@@ -217,10 +209,6 @@ class SystemFragment : Fragment() {
                 binding.systemStatusText.text = "Demo mode ${if (enabled) "enabled" else "disabled"}"
                 AppLog.i(TAG, "Demo mode ${if (enabled) "enabled" else "disabled"}")
                 
-                if (enabled) {
-                    Toast.makeText(context, "Demo mode enabled - No real dispensing", Toast.LENGTH_SHORT).show()
-                }
-                
             } catch (e: Exception) {
                 AppLog.e(TAG, "Error updating demo mode", e)
                 binding.systemStatusText.text = "Error updating demo mode: ${e.message}"
@@ -238,10 +226,6 @@ class SystemFragment : Fragment() {
                 
                 binding.systemStatusText.text = "Debug mode ${if (enabled) "enabled" else "disabled"}"
                 AppLog.i(TAG, "Debug mode ${if (enabled) "enabled" else "disabled"}")
-                
-                if (enabled) {
-                    Toast.makeText(context, "Debug mode enabled - Verbose logging active", Toast.LENGTH_SHORT).show()
-                }
                 
             } catch (e: Exception) {
                 AppLog.e(TAG, "Error updating debug mode", e)
@@ -262,12 +246,6 @@ class SystemFragment : Fragment() {
                 binding.systemStatusText.text = "Serial Communicator: $modeName"
                 AppLog.i(TAG, "Serial communicator mode changed to: $modeName")
                 
-                Toast.makeText(
-                    context, 
-                    "⚠️ $modeName Mode Enabled\nRestart app to apply changes", 
-                    Toast.LENGTH_LONG
-                ).show()
-                
             } catch (e: Exception) {
                 AppLog.e(TAG, "Error updating hardware mode", e)
                 binding.systemStatusText.text = "Error updating hardware mode: ${e.message}"
@@ -286,12 +264,6 @@ class SystemFragment : Fragment() {
                 
                 binding.systemStatusText.text = "Maintenance mode ${if (enabled) "enabled" else "disabled"}"
                 AppLog.w(TAG, "Maintenance mode ${if (enabled) "enabled" else "disabled"}")
-                
-                if (enabled) {
-                    Toast.makeText(context, "⚠️ MAINTENANCE MODE ENABLED\nSystem locked for public use", Toast.LENGTH_LONG).show()
-                } else {
-                    Toast.makeText(context, "✅ Maintenance mode disabled\nSystem operational", Toast.LENGTH_SHORT).show()
-                }
                 
             } catch (e: Exception) {
                 AppLog.e(TAG, "Error updating maintenance mode", e)
@@ -317,10 +289,6 @@ class SystemFragment : Fragment() {
         
         lifecycleScope.launch {
             try {
-                Toast.makeText(context, "System will restart in 3 seconds", Toast.LENGTH_LONG).show()
-                
-                kotlinx.coroutines.delay(3000)
-                
                 AppLog.i(TAG, "Restarting application")
                 
                 // Restart the application
@@ -332,7 +300,6 @@ class SystemFragment : Fragment() {
             } catch (e: Exception) {
                 AppLog.e(TAG, "System restart failed", e)
                 binding.systemStatusText.text = "Restart failed: ${e.message}"
-                Toast.makeText(context, "Restart failed: ${e.message}", Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -377,10 +344,6 @@ class SystemFragment : Fragment() {
                 val cacheCleared = requireContext().cacheDir.deleteRecursively()
                 AppLog.i(TAG, "Cache cleared: $cacheCleared")
                 
-                Toast.makeText(context, "Factory reset complete. Restarting...", Toast.LENGTH_LONG).show()
-                
-                kotlinx.coroutines.delay(3000)
-                
                 AppLog.i(TAG, "Restarting application after factory reset")
                 
                 // Restart application
@@ -392,7 +355,6 @@ class SystemFragment : Fragment() {
             } catch (e: Exception) {
                 AppLog.e(TAG, "Factory reset failed", e)
                 binding.systemStatusText.text = "Factory reset failed: ${e.message}"
-                Toast.makeText(context, "Factory reset failed: ${e.message}", Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -414,16 +376,11 @@ class SystemFragment : Fragment() {
         
         lifecycleScope.launch {
             try {
-                Toast.makeText(context, "⚠️ EMERGENCY SHUTDOWN IN PROGRESS", Toast.LENGTH_LONG).show()
-                
-                // Log shutdown reason
                 AppLog.w(TAG, "Stopping all hardware operations")
                 
                 // TODO: Stop all hardware operations
                 // val waterFountainManager = WaterFountainManager.getInstance(requireContext())
                 // waterFountainManager.emergencyStop()
-                
-                kotlinx.coroutines.delay(2000)
                 
                 AppLog.i(TAG, "Emergency shutdown complete - Exiting application")
                 
@@ -461,8 +418,7 @@ class SystemFragment : Fragment() {
                     3 -> 12
                     4 -> 24
                     else -> {
-                        // Custom time - would need a time picker
-                        Toast.makeText(context, "Custom time picker not yet implemented", Toast.LENGTH_SHORT).show()
+                        AppLog.i(TAG, "Custom time picker not yet implemented")
                         return@setItems
                     }
                 }
@@ -477,8 +433,6 @@ class SystemFragment : Fragment() {
                 
                 val timeStr = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(Date(scheduledTime))
                 binding.systemStatusText.text = "Maintenance scheduled for $timeStr"
-                Toast.makeText(context, "Maintenance scheduled for $timeStr", Toast.LENGTH_LONG).show()
-                
                 AppLog.i(TAG, "Maintenance scheduled for $timeStr")
             }
             .setNegativeButton("Cancel", null)
@@ -501,8 +455,6 @@ class SystemFragment : Fragment() {
                 
                 val message = "Current version: $currentVersion\nNo updates available"
                 binding.systemStatusText.text = message
-                Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
-                
                 AppLog.i(TAG, "Firmware check complete: $currentVersion")
                 
             } catch (e: Exception) {
@@ -561,13 +513,11 @@ class SystemFragment : Fragment() {
                 shareBackupFile(file)
                 
                 binding.systemStatusText.text = "System backup created successfully"
-                Toast.makeText(context, "System backup created", Toast.LENGTH_SHORT).show()
                 AppLog.i(TAG, "System backup completed: $fileName")
                 
             } catch (e: Exception) {
                 AppLog.e(TAG, "System backup failed", e)
                 binding.systemStatusText.text = "Backup failed: ${e.message}"
-                Toast.makeText(context, "Backup failed: ${e.message}", Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -592,7 +542,6 @@ class SystemFragment : Fragment() {
             
         } catch (e: Exception) {
             AppLog.e(TAG, "Error sharing backup file", e)
-            Toast.makeText(context, "Error sharing backup file: ${e.message}", Toast.LENGTH_SHORT).show()
         }
     }
     

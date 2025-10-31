@@ -7,7 +7,6 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.LinearLayout
-import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
@@ -203,13 +202,11 @@ class HardwareTestingFragment : Fragment() {
                 }
                 
                 binding.testResultText.text = statusText
-                AppLog.i(TAG, "✅ Device diagnostics completed (${elapsed}ms)")
-                Toast.makeText(requireContext(), "Diagnostics completed successfully", Toast.LENGTH_SHORT).show()
+                AppLog.i(TAG, "Device diagnostics completed (${elapsed}ms)")
                 
             } catch (e: Exception) {
                 binding.testResultText.text = "❌ Error: ${e.message}"
                 AppLog.e(TAG, "Get device status error", e)
-                Toast.makeText(requireContext(), "Error: ${e.message}", Toast.LENGTH_LONG).show()
             }
         }
     }
@@ -233,15 +230,13 @@ class HardwareTestingFragment : Fragment() {
                 
                 if (success) {
                     binding.testResultText.text = "✅ Slot $slot: Test Passed\n$position\nDispensing time: ${elapsed}ms"
-                    AppLog.i(TAG, "✅ Slot $slot test passed (${elapsed}ms)")
-                    Toast.makeText(requireContext(), "Slot $slot test passed!", Toast.LENGTH_SHORT).show()
+                    AppLog.i(TAG, "Slot $slot test passed (${elapsed}ms)")
                     
                     // Highlight successful slot button
                     highlightSlotButton(slot, true)
                 } else {
                     binding.testResultText.text = "❌ Slot $slot: Test Failed\n$position\nTime: ${elapsed}ms"
-                    AppLog.e(TAG, "❌ Slot $slot test failed")
-                    Toast.makeText(requireContext(), "Slot $slot test failed!", Toast.LENGTH_SHORT).show()
+                    AppLog.e(TAG, "Slot $slot test failed")
                     
                     // Highlight failed slot button
                     highlightSlotButton(slot, false)
@@ -253,7 +248,6 @@ class HardwareTestingFragment : Fragment() {
             } catch (e: Exception) {
                 binding.testResultText.text = "❌ Slot $slot Error: ${e.message}"
                 AppLog.e(TAG, "Slot $slot test error", e)
-                Toast.makeText(requireContext(), "Error: ${e.message}", Toast.LENGTH_LONG).show()
                 setSlotButtonsEnabled(true)
             }
         }
@@ -293,19 +287,12 @@ class HardwareTestingFragment : Fragment() {
                 binding.testResultText.text = summary
                 AppLog.i(TAG, "All slots test complete: $successCount/48 passed")
                 
-                Toast.makeText(
-                    requireContext(),
-                    "$successCount out of 48 slots passed",
-                    Toast.LENGTH_LONG
-                ).show()
-                
                 setSlotButtonsEnabled(true)
                 binding.testAllSlotsButton.isEnabled = true
                 
             } catch (e: Exception) {
                 binding.testResultText.text = "❌ Error: ${e.message}"
                 AppLog.e(TAG, "Test all slots error", e)
-                Toast.makeText(requireContext(), "Error: ${e.message}", Toast.LENGTH_LONG).show()
                 setSlotButtonsEnabled(true)
                 binding.testAllSlotsButton.isEnabled = true
             }

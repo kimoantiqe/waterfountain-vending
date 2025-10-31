@@ -6,7 +6,6 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Toast
 import androidx.core.content.FileProvider
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
@@ -15,6 +14,7 @@ import com.waterfountainmachine.app.databinding.FragmentLogsBinding
 import com.waterfountainmachine.app.admin.adapters.LogEntryAdapter
 import com.waterfountainmachine.app.admin.models.LogEntry
 import com.waterfountainmachine.app.utils.LogCollector
+import com.waterfountainmachine.app.utils.AppLog
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 import java.io.File
@@ -149,7 +149,7 @@ class LogsFragment : Fragment() {
                 
             } catch (e: Exception) {
                 binding.logStatusText.text = "Error loading logs: ${e.message}"
-                Toast.makeText(context, "Error loading logs: ${e.message}", Toast.LENGTH_SHORT).show()
+                AppLog.e("LogsFragment", "Error loading logs", e)
             }
         }
     }
@@ -166,11 +166,11 @@ class LogsFragment : Fragment() {
                 logsAdapter.submitList(emptyList())
                 binding.logStatusText.text = "Logs cleared"
                 binding.logCountText.text = "0 entries"
-                Toast.makeText(context, "All logs cleared", Toast.LENGTH_SHORT).show()
+                AppLog.i("LogsFragment", "All logs cleared")
                 
             } catch (e: Exception) {
                 binding.logStatusText.text = "Error clearing logs: ${e.message}"
-                Toast.makeText(context, "Error clearing logs: ${e.message}", Toast.LENGTH_SHORT).show()
+                AppLog.e("LogsFragment", "Error clearing logs", e)
             }
         }
     }
@@ -182,14 +182,14 @@ class LogsFragment : Fragment() {
                 
                 if (file != null) {
                     shareLogFile(file)
-                    Toast.makeText(context, "Logs exported successfully", Toast.LENGTH_SHORT).show()
+                    AppLog.i("LogsFragment", "Logs exported successfully")
                 } else {
-                    Toast.makeText(context, "Failed to export logs", Toast.LENGTH_SHORT).show()
+                    AppLog.w("LogsFragment", "Failed to export logs")
                 }
                 
             } catch (e: Exception) {
                 binding.logStatusText.text = "Export error: ${e.message}"
-                Toast.makeText(context, "Export error: ${e.message}", Toast.LENGTH_SHORT).show()
+                AppLog.e("LogsFragment", "Export error", e)
             }
         }
     }
@@ -275,7 +275,7 @@ class LogsFragment : Fragment() {
             startActivity(Intent.createChooser(intent, "Export Logs"))
             
         } catch (e: Exception) {
-            Toast.makeText(context, "Error sharing log file: ${e.message}", Toast.LENGTH_SHORT).show()
+            AppLog.e("LogsFragment", "Error sharing log file", e)
         }
     }
     

@@ -1,7 +1,6 @@
 package com.waterfountainmachine.app.hardware
 
 import android.content.Context
-import android.util.Log
 import com.waterfountainmachine.app.config.WaterFountainConfig
 import com.waterfountainmachine.app.hardware.sdk.*
 import com.waterfountainmachine.app.utils.AppLog
@@ -69,7 +68,7 @@ class WaterFountainManager private constructor(
             // Create SDK adapter (real or mock) using polymorphism
             AppLog.i(TAG, "Creating Vending Machine Adapter...")
             sdk = if (useRealSerial) {
-                VendorSDKAdapter(timeoutMs = config.commandTimeoutMs)
+                VendorSDKAdapter()
             } else {
                 MockVendingMachineAdapter(simulateDelayMs = 2000L)
             }

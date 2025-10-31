@@ -1,4 +1,4 @@
-package com.waterfountainmachine.app
+package com.waterfountainmachine.app.activities
 
 import android.animation.AnimatorSet
 import android.animation.ObjectAnimator
@@ -6,14 +6,15 @@ import android.content.Intent
 import android.os.Bundle
 import android.view.View
 import android.view.animation.AccelerateDecelerateInterpolator
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
+import com.waterfountainmachine.app.R
 import com.waterfountainmachine.app.databinding.ActivitySmsBinding
 import com.waterfountainmachine.app.hardware.WaterFountainManager
 import com.waterfountainmachine.app.utils.FullScreenUtils
 import com.waterfountainmachine.app.utils.AnimationUtils
 import com.waterfountainmachine.app.utils.InactivityTimer
+import com.waterfountainmachine.app.utils.AppLog
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -375,12 +376,12 @@ class SMSActivity : AppCompatActivity() {
         lifecycleScope.launch {
             try {
                 if (waterFountainManager.initialize()) {
-                    // Hardware initialized successfully
+                    AppLog.i("SMSActivity", "Hardware initialized successfully")
                 } else {
-                    Toast.makeText(this@SMSActivity, "Hardware initialization failed", Toast.LENGTH_SHORT).show()
+                    AppLog.e("SMSActivity", "Hardware initialization failed")
                 }
             } catch (e: Exception) {
-                Toast.makeText(this@SMSActivity, "Hardware error: ${e.message}", Toast.LENGTH_SHORT).show()
+                AppLog.e("SMSActivity", "Hardware error", e)
             }
         }
     }
@@ -388,18 +389,18 @@ class SMSActivity : AppCompatActivity() {
     private fun dispenseWaterAfterVerification() {
         lifecycleScope.launch {
             try {
-                Toast.makeText(this@SMSActivity, "Verification successful! Dispensing water...", Toast.LENGTH_SHORT).show()
+                AppLog.i("SMSActivity", "Verification successful - dispensing water")
                 
                 val result = waterFountainManager.dispenseWater()
                 
                 if (result.success) {
-                    Toast.makeText(this@SMSActivity, "Water dispensed successfully!", Toast.LENGTH_SHORT).show()
+                    AppLog.i("SMSActivity", "Water dispensed successfully")
                     navigateToAnimation(result.dispensingTimeMs)
                 } else {
-                    Toast.makeText(this@SMSActivity, "Water dispensing failed", Toast.LENGTH_SHORT).show()
+                    AppLog.e("SMSActivity", "Water dispensing failed: ${result.errorMessage}")
                 }
             } catch (e: Exception) {
-                Toast.makeText(this@SMSActivity, "Dispensing error: ${e.message}", Toast.LENGTH_SHORT).show()
+                AppLog.e("SMSActivity", "Dispensing error", e)
             }
         }
     }

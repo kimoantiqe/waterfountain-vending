@@ -4,10 +4,10 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.waterfountainmachine.app.databinding.FragmentConnectionBinding
+import com.waterfountainmachine.app.utils.AppLog
 import kotlinx.coroutines.launch
 
 class ConnectionFragment : Fragment() {
@@ -78,7 +78,7 @@ class ConnectionFragment : Fragment() {
     private fun testBackendConnection() {
         val url = binding.backendUrlInput.text.toString()
         if (url.isBlank()) {
-            Toast.makeText(context, "Please enter backend URL", Toast.LENGTH_SHORT).show()
+            AppLog.w("ConnectionFragment", "Backend URL is empty")
             return
         }
         
@@ -111,7 +111,7 @@ class ConnectionFragment : Fragment() {
         saveBackendUrl(url)
         saveAdminToken(token)
         
-        Toast.makeText(context, "Settings saved", Toast.LENGTH_SHORT).show()
+        AppLog.i("ConnectionFragment", "Backend settings saved")
     }
     
     private fun scanWifiNetworks() {
@@ -134,7 +134,7 @@ class ConnectionFragment : Fragment() {
         val password = binding.wifiPasswordInput.text.toString()
         
         if (ssid.isBlank()) {
-            Toast.makeText(context, "Please enter WiFi SSID", Toast.LENGTH_SHORT).show()
+            AppLog.w("ConnectionFragment", "WiFi SSID is empty")
             return
         }
         
@@ -159,7 +159,7 @@ class ConnectionFragment : Fragment() {
         val token = binding.adminTokenInput.text.toString()
         
         if (token.isBlank()) {
-            Toast.makeText(context, "Please enter admin token", Toast.LENGTH_SHORT).show()
+            AppLog.w("ConnectionFragment", "Admin token is empty")
             return
         }
         

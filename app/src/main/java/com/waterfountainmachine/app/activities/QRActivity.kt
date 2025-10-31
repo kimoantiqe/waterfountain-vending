@@ -1,4 +1,4 @@
-package com.waterfountainmachine.app
+package com.waterfountainmachine.app.activities
 
 import android.content.Intent
 import android.graphics.Bitmap
@@ -14,6 +14,7 @@ import com.google.zxing.BarcodeFormat
 import com.google.zxing.WriterException
 import com.google.zxing.common.BitMatrix
 import com.google.zxing.qrcode.QRCodeWriter
+import com.waterfountainmachine.app.R
 import com.waterfountainmachine.app.utils.FullScreenUtils
 import com.waterfountainmachine.app.utils.InactivityTimer
 import kotlinx.coroutines.delay

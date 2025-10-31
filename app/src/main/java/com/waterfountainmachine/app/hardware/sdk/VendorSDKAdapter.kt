@@ -1,6 +1,6 @@
 package com.waterfountainmachine.app.hardware.sdk
 
-import android.util.Log
+import com.waterfountainmachine.app.utils.AppLog
 import com.yy.tools.util.CYVendingMachine
 import kotlinx.coroutines.*
 import kotlin.coroutines.resume
@@ -25,20 +25,18 @@ data class SerialConfig(
  * - The serial port stays open until closeSerialPort() is called
  * - There is NO persistent connection - each dispense is independent
  * - SerialConfig parameters are IGNORED (vendor SDK hardcodes settings)
+ * - The vendor SDK manages the complete operation lifecycle internally
  * 
  * This adapter provides:
  * - Coroutine-based API (suspend functions)
  * - Result<T> based error handling
  * - Slot validation (48 valid slots in 6×8 layout)
  * - Proper resource cleanup
- * - Timeout handling (default 30 seconds)
  * 
  * Architecture:
  * WaterFountainManager → VendorSDKAdapter → CYVendingMachine → /dev/ttyS0 → VMC Hardware
  */
-class VendorSDKAdapter(
-    private val timeoutMs: Long = 30_000L // 30 second timeout
-) : IVendingMachineAdapter {
+class VendorSDKAdapter : IVendingMachineAdapter {
     private val tag = "VendorSDKAdapter"
     
     // Track active SDK instance for cleanup
@@ -61,7 +59,7 @@ class VendorSDKAdapter(
             // Check if /dev/ttyS0 exists and is accessible
             val serialPort = java.io.File("/dev/ttyS0")
             if (!serialPort.exists()) {
-                Log.e(tag, "Serial port /dev/ttyS0 not found")
+                AppLog.e(tag, "Serial port /dev/ttyS0 not found")
                 isReadyState = false
                 return Result.failure(
                     VendingMachineException.InitializationError(
@@ -71,7 +69,7 @@ class VendorSDKAdapter(
             }
             
             if (!serialPort.canRead() || !serialPort.canWrite()) {
-                Log.e(tag, "Serial port /dev/ttyS0 not accessible (check permissions)")
+                AppLog.e(tag, "Serial port /dev/ttyS0 not accessible (check permissions)")
                 isReadyState = false
                 return Result.failure(
                     VendingMachineException.InitializationError(
@@ -80,12 +78,12 @@ class VendorSDKAdapter(
                 )
             }
             
-            Log.i(tag, "✓ Serial port /dev/ttyS0 verified and accessible")
-            Log.i(tag, "✓ Vendor SDK operates per-operation (opens/closes port automatically)")
+            AppLog.i(tag, "Serial port /dev/ttyS0 verified and accessible")
+            AppLog.i(tag, "Vendor SDK operates per-operation (opens/closes port automatically)")
             isReadyState = true
             Result.success(Unit)
         } catch (e: Exception) {
-            Log.e(tag, "Error verifying serial port", e)
+            AppLog.e(tag, "Error verifying serial port", e)
             isReadyState = false
             Result.failure(
                 VendingMachineException.InitializationError(
@@ -113,19 +111,23 @@ class VendorSDKAdapter(
      * 1. Validates slot number (must be in 48-slot layout)
      * 2. Creates CYVendingMachine instance (opens /dev/ttyS0 automatically)
      * 3. Waits for shipment callback (status 3, 4, 5, or 6)
-     * 4. Converts callback to WaterDispenseResult
-     * 5. Closes serial port (cleanup)
+     * 4. Vendor SDK auto-closes port via CancleQuery() on terminal status
+     * 5. Returns WaterDispenseResult
+     * 
+     * The vendor SDK manages the complete operation lifecycle internally,
+     * including timeouts and error handling. We trust the SDK to complete
+     * naturally without imposing artificial timeouts.
      * 
      * @param slot The slot number (1-8, 11-18, 21-28, 31-38, 41-48, 51-58)
      * @return Result with WaterDispenseResult (always success Result, check WaterDispenseResult.success flag)
      */
     override suspend fun dispenseWater(slot: Int): Result<WaterDispenseResult> {
-        Log.i(tag, "═══ DISPENSE OPERATION START ═══")
-        Log.i(tag, "Slot: $slot | Per-operation connection model")
+        AppLog.i(tag, "DISPENSE OPERATION START")
+        AppLog.i(tag, "Slot: $slot | Per-operation connection model")
         
         // Step 1: Validate slot
         if (!SlotValidator.isValidSlot(slot)) {
-            Log.e(tag, "✗ Invalid slot: $slot")
+            AppLog.e(tag, "Invalid slot: $slot")
             return Result.success(
                 WaterDispenseResult(
                     success = false,
@@ -139,7 +141,7 @@ class VendorSDKAdapter(
         
         // Step 2: Check readiness
         if (!isReadyState) {
-            Log.e(tag, "✗ Adapter not ready - serial port not verified")
+            AppLog.e(tag, "Adapter not ready - serial port not verified")
             return Result.success(
                 WaterDispenseResult(
                     success = false,
@@ -151,24 +153,10 @@ class VendorSDKAdapter(
             )
         }
         
-        // Step 3: Dispense with timeout
-        Log.i(tag, "→ Opening serial port /dev/ttyS0 (9600 baud)")
-        return withTimeoutOrNull(timeoutMs) {
-            dispenseWaterInternal(slot)
-        } ?: run {
-            Log.e(tag, "✗ Timeout after ${timeoutMs}ms for slot $slot")
-            cleanup()
-            Result.success(
-                WaterDispenseResult(
-                    success = false,
-                    slot = slot,
-                    errorCode = 0x04,
-                    errorMessage = "Timeout after ${timeoutMs}ms",
-                    dispensingTimeMs = timeoutMs
-                )
-            )
-        }.also {
-            Log.i(tag, "═══ DISPENSE OPERATION END ═══")
+        // Step 3: Dispense (no timeout - vendor SDK manages complete lifecycle)
+        AppLog.i(tag, "Opening serial port /dev/ttyS0 (9600 baud)")
+        return dispenseWaterInternal(slot).also {
+            AppLog.i(tag, "DISPENSE OPERATION END")
         }
     }
     
@@ -179,31 +167,38 @@ class VendorSDKAdapter(
      * 1. CYVendingMachine() constructor → opens /dev/ttyS0
      * 2. Sends shipment command to VMC
      * 3. Waits for callback with status
-     * 4. cleanup() → closes /dev/ttyS0
+     * 4. Vendor SDK's CancleQuery() automatically closes port on terminal status
+     * 
+     * IMPORTANT: The vendor SDK closes the port automatically when it receives
+     * a terminal status (E1 response). We should NOT call cleanup() in the callback.
+     * cleanup() is only for exception scenarios where initialization fails.
      */
     private suspend fun dispenseWaterInternal(slot: Int): Result<WaterDispenseResult> = suspendCoroutine { continuation ->
         try {
-            Log.d(tag, "→ Creating CYVendingMachine instance (opens serial port)")
+            AppLog.d(tag, "Creating CYVendingMachine instance (opens serial port)")
             
             // Create vendor SDK instance with callback
             // NOTE: Constructor is BLOCKING and opens /dev/ttyS0 immediately
             val sdk = CYVendingMachine(slot, object : CYVendingMachine.ShipmentListener {
                 override fun Shipped(status: Int) {
-                    Log.d(tag, "← Callback received: status=$status, slot=$slot")
+                    AppLog.d(tag, "Callback received: status=$status, slot=$slot")
                     
                     // Only resume for terminal status codes (3, 4, 5, 6)
                     if (status >= VendorSDKCallbackHandler.STATUS_SUCCESS) {
                         val result = VendorSDKCallbackHandler.mapStatusToResult(status, slot)
                         
-                        Log.i(tag, "→ Terminal status received, closing serial port")
+                        AppLog.i(tag, "Terminal status received (port auto-closed by vendor SDK)")
+                        
                         // Resume continuation
                         continuation.resume(result)
                         
-                        // Cleanup after completion (closes serial port)
-                        cleanup()
+                        // Clear SDK reference (port already closed by vendor SDK's CancleQuery())
+                        // The vendor SDK automatically closes the port when it receives E1 response
+                        // Calling cleanup() here would attempt to close an already-closed port
+                        activeSDK = null
                     } else {
                         // Intermediate status (0, 1, 2) - just log
-                        Log.d(tag, "  Intermediate status $status - waiting for terminal status")
+                        AppLog.d(tag, "Intermediate status $status - waiting for terminal status")
                     }
                 }
             })
@@ -211,11 +206,11 @@ class VendorSDKAdapter(
             // Store reference for cleanup
             activeSDK = sdk
             
-            Log.i(tag, "✓ Serial port opened, dispense command sent to VMC")
+            AppLog.i(tag, "Serial port opened, dispense command sent to VMC")
             
         } catch (e: Exception) {
-            Log.e(tag, "✗ Error creating CYVendingMachine (serial port issue?)", e)
-            cleanup()
+            AppLog.e(tag, "Error creating CYVendingMachine (serial port issue?)", e)
+            cleanup() // Only cleanup on exception (initialization failed)
             continuation.resume(
                 Result.failure(
                     VendingMachineException.InitializationError(
@@ -229,16 +224,20 @@ class VendorSDKAdapter(
     
     /**
      * Cleanup resources (close serial port).
-     * Called after each dispense operation or on timeout.
+     * Called only on timeout or exception - NOT on normal completion.
+     * 
+     * NOTE: The vendor SDK automatically closes the port via CancleQuery() 
+     * when it receives E1 response with terminal status. This method is only
+     * for abnormal termination (timeout, exception).
      */
     private fun cleanup() {
         activeSDK?.let { sdk ->
             try {
-                Log.d(tag, "→ Closing serial port /dev/ttyS0")
+                AppLog.d(tag, "Closing serial port /dev/ttyS0")
                 sdk.closeSerialPort()
                 activeSDK = null
             } catch (e: Exception) {
-                Log.e(tag, "✗ Error closing serial port", e)
+                AppLog.e(tag, "Error closing serial port", e)
             }
         }
     }
@@ -248,7 +247,7 @@ class VendorSDKAdapter(
      * Called when app is closing or when switching to mock mode.
      */
     override fun shutdown() {
-        Log.i(tag, "Shutting down VendorSDKAdapter")
+        AppLog.i(tag, "Shutting down VendorSDKAdapter")
         cleanup()
         isReadyState = false
     }
@@ -267,7 +266,7 @@ class VendorSDKAdapter(
             "stop_bits" to "1 (hardcoded by vendor SDK)",
             "parity" to "None (hardcoded by vendor SDK)",
             "valid_slots" to "48 slots (6 rows × 8 columns)",
-            "timeout_ms" to timeoutMs.toString(),
+            "timeout_handling" to "Managed internally by vendor SDK",
             "ready" to isReadyState.toString()
         )
     }

@@ -4,7 +4,6 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.waterfountainmachine.app.R
@@ -49,12 +48,8 @@ class ProtocolDebuggerFragment : Fragment() {
         updateStatus()
         
         // Note: The UI layout would need to be simplified for vendor SDK
-        // For now, just show a message
-        Toast.makeText(
-            requireContext(),
-            "Vendor SDK Test Panel - Coming Soon\nUse Hardware Connection tab to test dispensing",
-            Toast.LENGTH_LONG
-        ).show()
+        // Use Hardware Connection tab to test dispensing
+        AppLog.i("ProtocolDebuggerFragment", "Vendor SDK Test Panel initialized")
     }
     
     private fun updateStatus() {

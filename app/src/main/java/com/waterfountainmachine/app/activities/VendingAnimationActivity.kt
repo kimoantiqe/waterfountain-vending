@@ -1,4 +1,4 @@
-package com.waterfountainmachine.app
+package com.waterfountainmachine.app.activities
 
 import android.animation.AnimatorSet
 import android.animation.ObjectAnimator
@@ -15,6 +15,7 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.lifecycleScope
+import com.waterfountainmachine.app.R
 import com.waterfountainmachine.app.views.ProgressRingView
 import com.waterfountainmachine.app.utils.FullScreenUtils
 import nl.dionsegijn.konfetti.core.Party

@@ -4,7 +4,6 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.waterfountainmachine.app.databinding.FragmentHardwareBinding
@@ -148,13 +147,13 @@ class HardwareFragment : Fragment() {
                 val success = waterFountainManager.resetSlot(currentSlot)
                 
                 if (success) {
-                    Toast.makeText(context, "Slot $currentSlot reset successfully", Toast.LENGTH_SHORT).show()
+                    AppLog.i(TAG, "Slot $currentSlot reset successfully")
                     updateSlotDisplay()
                 } else {
-                    Toast.makeText(context, "Failed to reset slot $currentSlot", Toast.LENGTH_SHORT).show()
+                    AppLog.w(TAG, "Failed to reset slot $currentSlot")
                 }
             } catch (e: Exception) {
-                Toast.makeText(context, "Error resetting slot: ${e.message}", Toast.LENGTH_SHORT).show()
+                AppLog.e(TAG, "Error resetting slot: ${e.message}", e)
             } finally {
                 isProcessing = false
                 binding.resetSlotButton.isEnabled = true
@@ -182,13 +181,13 @@ class HardwareFragment : Fragment() {
                 }
                 
                 binding.systemStatusText.text = "Reset complete: $successCount/10 slots"
-                Toast.makeText(context, "Reset complete: $successCount/10 slots", Toast.LENGTH_SHORT).show()
+                AppLog.i(TAG, "Reset complete: $successCount/10 slots")
                 
                 updateSlotDisplay()
                 runInitialDiagnostics()
             } catch (e: Exception) {
                 binding.systemStatusText.text = "Error during reset: ${e.message}"
-                Toast.makeText(context, "Error resetting slots: ${e.message}", Toast.LENGTH_SHORT).show()
+                AppLog.e(TAG, "Error resetting slots", e)
             } finally {
                 isProcessing = false
                 binding.resetAllSlotsButton.isEnabled = true
@@ -201,7 +200,7 @@ class HardwareFragment : Fragment() {
         
         // Check if system is connected first
         if (!waterFountainManager.isConnected()) {
-            Toast.makeText(context, "Hardware not initialized. Please wait...", Toast.LENGTH_LONG).show()
+            AppLog.w(TAG, "Hardware not initialized - cannot test dispenser")
             binding.dispenserStatusText.text = "Hardware not ready"
             return
         }
@@ -224,12 +223,10 @@ class HardwareFragment : Fragment() {
                     AppLog.w(TAG, "Dispenser test on slot $currentSlot: FAILED")
                     "✗ Dispenser test failed (slot $currentSlot)"
                 }
-                Toast.makeText(context, if (success) "Test successful" else "Test failed - check hardware", Toast.LENGTH_SHORT).show()
             } catch (e: Exception) {
                 AppLog.e(TAG, "Error testing dispenser on slot $currentSlot", e)
                 binding.dispenserStatusText.text = "✗ Error: ${e.message}"
                 binding.dispenserStatusIndicator.setBackgroundResource(android.R.drawable.presence_busy)
-                Toast.makeText(context, "Test error: ${e.message}", Toast.LENGTH_SHORT).show()
             } finally {
                 isProcessing = false
                 binding.testDispenserButton.isEnabled = true
@@ -241,7 +238,7 @@ class HardwareFragment : Fragment() {
         if (isProcessing) return
         
         if (!waterFountainManager.isConnected()) {
-            Toast.makeText(context, "Hardware not initialized. Attempting to initialize...", Toast.LENGTH_LONG).show()
+            AppLog.w(TAG, "Hardware not initialized - attempting to initialize")
             initializeHardware()
             return
         }
@@ -269,12 +266,12 @@ class HardwareFragment : Fragment() {
                     else android.R.drawable.presence_online
                 )
                 
-                Toast.makeText(context, "Diagnostics complete", Toast.LENGTH_SHORT).show()
+                AppLog.i(TAG, "Diagnostics complete")
                 
             } catch (e: Exception) {
                 binding.systemStatusText.text = "Diagnostics failed: ${e.message}"
                 binding.systemStatusIndicator.setBackgroundResource(android.R.drawable.presence_busy)
-                Toast.makeText(context, "Diagnostics failed: ${e.message}", Toast.LENGTH_SHORT).show()
+                AppLog.e(TAG, "Diagnostics failed", e)
             } finally {
                 isProcessing = false
                 binding.runFullDiagnosticsButton.isEnabled = true

@@ -1,17 +1,18 @@
-package com.waterfountainmachine.app
+package com.waterfountainmachine.app.activities
 
 import android.animation.AnimatorSet
 import android.content.Intent
 import android.os.Bundle
-import android.util.Log
 import android.view.KeyEvent
 import android.view.View
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
+import com.waterfountainmachine.app.R
+import com.waterfountainmachine.app.WaterFountainApplication
 import com.waterfountainmachine.app.databinding.ActivityVendingBinding
 import com.waterfountainmachine.app.hardware.WaterFountainManager
 import com.waterfountainmachine.app.debug.WaterFountainDebug
+import com.waterfountainmachine.app.utils.AppLog
 import com.waterfountainmachine.app.utils.FullScreenUtils
 import com.waterfountainmachine.app.utils.AnimationUtils
 import com.waterfountainmachine.app.utils.InactivityTimer
@@ -212,14 +213,12 @@ class VendingActivity : AppCompatActivity() {
             isHardwareInitialized = app.isHardwareReady()
             
             if (isHardwareInitialized) {
-                Log.i("VendingActivity", "✅ Hardware ready (initialized at app launch)")
-                Toast.makeText(this, "Water fountain ready", Toast.LENGTH_SHORT).show()
+                AppLog.i("VendingActivity", "Hardware ready (initialized at app launch)")
             } else {
-                Log.w("VendingActivity", "⚠️ Hardware not ready - check admin panel")
-                Toast.makeText(this, "Hardware not ready. Please check connection.", Toast.LENGTH_LONG).show()
+                AppLog.w("VendingActivity", "Hardware not ready - check admin panel")
             }
         } catch (e: Exception) {
-            Log.e("VendingActivity", "Exception accessing hardware", e)
+            AppLog.e("VendingActivity", "Exception accessing hardware", e)
             isHardwareInitialized = false
         }
     }
@@ -229,18 +228,13 @@ class VendingActivity : AppCompatActivity() {
      */
     private fun dispenseWaterDirect() {
         if (!isHardwareInitialized) {
-            Toast.makeText(this, "Hardware not ready. Please wait...", Toast.LENGTH_SHORT).show()
+            AppLog.w("VendingActivity", "Hardware not ready - cannot dispense water")
             return
         }
 
         lifecycleScope.launch {
             try {
-                Log.i("VendingActivity", "Starting water dispensing...")
-                
-                // Show loading state
-                runOnUiThread {
-                    Toast.makeText(this@VendingActivity, "Dispensing water...", Toast.LENGTH_SHORT).show()
-                }
+                AppLog.i("VendingActivity", "Starting water dispensing...")
                 
                 // Dispense water
                 val result = waterFountainManager.dispenseWater()
@@ -248,7 +242,7 @@ class VendingActivity : AppCompatActivity() {
                 // Handle result on UI thread
                 runOnUiThread {
                     if (result.success) {
-                        Log.i("VendingActivity", "Water dispensed successfully in ${result.dispensingTimeMs}ms")
+                        AppLog.i("VendingActivity", "Water dispensed successfully in ${result.dispensingTimeMs}ms")
                         
                         // Navigate to animation activity to show success
                         val intent = Intent(this@VendingActivity, VendingAnimationActivity::class.java)
@@ -258,17 +252,12 @@ class VendingActivity : AppCompatActivity() {
                         overridePendingTransition(R.anim.zoom_in_fade, R.anim.zoom_out_fade)
                         
                     } else {
-                        Log.e("VendingActivity", "Water dispensing failed: ${result.errorMessage}")
-                        val errorMsg = result.errorMessage ?: "Unknown error occurred"
-                        Toast.makeText(this@VendingActivity, "Dispensing failed: $errorMsg", Toast.LENGTH_LONG).show()
+                        AppLog.e("VendingActivity", "Water dispensing failed: ${result.errorMessage}")
                     }
                 }
                 
             } catch (e: Exception) {
-                Log.e("VendingActivity", "Exception during water dispensing", e)
-                runOnUiThread {
-                    Toast.makeText(this@VendingActivity, "Dispensing error: ${e.message}", Toast.LENGTH_LONG).show()
-                }
+                AppLog.e("VendingActivity", "Exception during water dispensing", e)
             }
         }
     }
@@ -279,11 +268,7 @@ class VendingActivity : AppCompatActivity() {
     private fun runSystemDiagnostics() {
         lifecycleScope.launch {
             try {
-                Log.i("VendingActivity", "Starting system diagnostics...")
-                
-                runOnUiThread {
-                    Toast.makeText(this@VendingActivity, "Running system diagnostics...", Toast.LENGTH_SHORT).show()
-                }
+                AppLog.i("VendingActivity", "Starting system diagnostics...")
                 
                 // Run comprehensive system test
                 val testResult = WaterFountainDebug.runSystemTest(this@VendingActivity)
@@ -291,21 +276,15 @@ class VendingActivity : AppCompatActivity() {
                 // Print all results to log
                 testResult.printToLog()
                 
-                // Show summary to user
-                runOnUiThread {
-                    val message = if (testResult.success) {
-                        "✓ All system tests passed! Check logs for details."
-                    } else {
-                        "✗ Some tests failed. Check logs for details."
-                    }
-                    Toast.makeText(this@VendingActivity, message, Toast.LENGTH_LONG).show()
+                // Log summary
+                if (testResult.success) {
+                    AppLog.i("VendingActivity", "All system tests passed")
+                } else {
+                    AppLog.w("VendingActivity", "Some system tests failed")
                 }
                 
             } catch (e: Exception) {
-                Log.e("VendingActivity", "Exception during system diagnostics", e)
-                runOnUiThread {
-                    Toast.makeText(this@VendingActivity, "Diagnostics error: ${e.message}", Toast.LENGTH_LONG).show()
-                }
+                AppLog.e("VendingActivity", "Exception during system diagnostics", e)
             }
         }
     }
@@ -316,6 +295,6 @@ class VendingActivity : AppCompatActivity() {
         
         // Don't shutdown hardware here - it's managed by Application class
         // Hardware stays alive for the entire app lifecycle
-        Log.d("VendingActivity", "VendingActivity destroyed (hardware remains active)")
+        AppLog.d("VendingActivity", "VendingActivity destroyed (hardware remains active)")
     }
 }

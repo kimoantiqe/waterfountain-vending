@@ -1,4 +1,4 @@
-package com.waterfountainmachine.app
+package com.waterfountainmachine.app.activities
 
 import android.animation.AnimatorSet
 import android.animation.ObjectAnimator
@@ -12,6 +12,8 @@ import android.view.WindowManager
 import android.view.animation.AccelerateDecelerateInterpolator
 import android.view.animation.DecelerateInterpolator
 import androidx.appcompat.app.AppCompatActivity
+import com.waterfountainmachine.app.R
+import com.waterfountainmachine.app.WaterFountainApplication
 import com.waterfountainmachine.app.admin.AdminGestureDetector
 import com.waterfountainmachine.app.databinding.ActivityMainBinding
 import com.waterfountainmachine.app.utils.AppLog

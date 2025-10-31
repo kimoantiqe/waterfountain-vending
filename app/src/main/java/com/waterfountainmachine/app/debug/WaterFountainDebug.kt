@@ -1,7 +1,7 @@
 package com.waterfountainmachine.app.debug
 
 import android.content.Context
-import android.util.Log
+import com.waterfountainmachine.app.utils.AppLog
 import com.waterfountainmachine.app.config.WaterFountainConfig
 import com.waterfountainmachine.app.hardware.WaterFountainManager
 import kotlinx.coroutines.*
@@ -85,7 +85,7 @@ object WaterFountainDebug {
             
         } catch (e: Exception) {
             results.add("✗ System test exception: ${e.message}")
-            Log.e(TAG, "System test exception", e)
+            AppLog.e(TAG, "System test exception", e)
             allPassed = false
         }
         
@@ -108,8 +108,8 @@ object WaterFountainDebug {
         config.statusPollingIntervalMs = 200L
         config.maxPollingAttempts = 10  // Fewer for faster testing
         
-        Log.i(TAG, "Water fountain configured for testing")
-        Log.i(TAG, config.getConfigSummary())
+        AppLog.i(TAG, "Water fountain configured for testing")
+        AppLog.i(TAG, config.getConfigSummary())
     }
     
     /**
@@ -125,8 +125,8 @@ object WaterFountainDebug {
         config.statusPollingIntervalMs = 500L
         config.maxPollingAttempts = 20
         
-        Log.i(TAG, "Water fountain configured for production")
-        Log.i(TAG, config.getConfigSummary())
+        AppLog.i(TAG, "Water fountain configured for production")
+        AppLog.i(TAG, config.getConfigSummary())
     }
     
     /**
@@ -135,7 +135,7 @@ object WaterFountainDebug {
     fun resetConfiguration(context: Context) {
         val config = WaterFountainConfig.getInstance(context)
         config.resetToDefaults()
-        Log.i(TAG, "Configuration reset to defaults")
+        AppLog.i(TAG, "Configuration reset to defaults")
     }
     
     /**
@@ -196,7 +196,7 @@ object WaterFountainDebug {
             
         } catch (e: Exception) {
             results.add("✗ Lane management test exception: ${e.message}")
-            Log.e(TAG, "Lane management test exception", e)
+            AppLog.e(TAG, "Lane management test exception", e)
             allPassed = false
         }
         
@@ -217,7 +217,7 @@ data class SystemTestResult(
 ) {
     fun printToLog() {
         for (detail in details) {
-            Log.d("WaterFountainTest", detail)
+            AppLog.d("WaterFountainTest", detail)
         }
     }
 }
@@ -231,7 +231,7 @@ data class TestResult(
 ) {
     fun printToLog() {
         for (detail in details) {
-            Log.d("WaterFountainTest", detail)
+            AppLog.d("WaterFountainTest", detail)
         }
     }
 }

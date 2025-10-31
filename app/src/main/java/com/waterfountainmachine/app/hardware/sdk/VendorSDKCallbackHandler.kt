@@ -1,6 +1,6 @@
 package com.waterfountainmachine.app.hardware.sdk
 
-import android.util.Log
+import com.waterfountainmachine.app.utils.AppLog
 import kotlinx.coroutines.CancellableContinuation
 import kotlin.coroutines.resume
 
@@ -36,11 +36,11 @@ internal object VendorSDKCallbackHandler {
      * Map vendor SDK status code to Result<WaterDispenseResult>
      */
     fun mapStatusToResult(status: Int, slot: Int): Result<WaterDispenseResult> {
-        Log.d(TAG, "Mapping status $status for slot $slot")
+        AppLog.d(TAG, "Mapping status $status for slot $slot")
         
         return when (status) {
             STATUS_SUCCESS -> {
-                Log.i(TAG, "Dispense successful at slot $slot")
+                AppLog.i(TAG, "Dispense successful at slot $slot")
                 Result.success(
                     WaterDispenseResult(
                         success = true,
@@ -53,7 +53,7 @@ internal object VendorSDKCallbackHandler {
             }
             
             STATUS_MOTOR_FAILURE -> {
-                Log.e(TAG, "Motor failure at slot $slot")
+                AppLog.e(TAG, "Motor failure at slot $slot")
                 Result.success(
                     WaterDispenseResult(
                         success = false,
@@ -66,7 +66,7 @@ internal object VendorSDKCallbackHandler {
             }
             
             STATUS_OPTICAL_FAILURE -> {
-                Log.e(TAG, "Optical sensor failure at slot $slot")
+                AppLog.e(TAG, "Optical sensor failure at slot $slot")
                 Result.success(
                     WaterDispenseResult(
                         success = false,
@@ -79,7 +79,7 @@ internal object VendorSDKCallbackHandler {
             }
             
             STATUS_UNKNOWN_ERROR -> {
-                Log.e(TAG, "Unknown error at slot $slot")
+                AppLog.e(TAG, "Unknown error at slot $slot")
                 Result.success(
                     WaterDispenseResult(
                         success = false,
@@ -93,13 +93,13 @@ internal object VendorSDKCallbackHandler {
             
             STATUS_INIT, STATUS_RESET, STATUS_IN_PROGRESS -> {
                 // These are intermediate states, should not be terminal
-                Log.w(TAG, "Received intermediate status $status for slot $slot - ignoring")
+                AppLog.w(TAG, "Received intermediate status $status for slot $slot - ignoring")
                 // Return null to indicate we should continue waiting
                 throw IllegalStateException("Received non-terminal status: $status")
             }
             
             else -> {
-                Log.e(TAG, "Unexpected status code $status at slot $slot")
+                AppLog.e(TAG, "Unexpected status code $status at slot $slot")
                 Result.failure(
                     VendingMachineException.UnknownError(
                         slot = slot,
@@ -127,10 +127,10 @@ internal object VendorSDKCallbackHandler {
                 }
             } else {
                 // Intermediate states (0, 1, 2) - log but don't resume
-                Log.d(TAG, "Intermediate status $status for slot $slot - continuing to wait")
+                AppLog.d(TAG, "Intermediate status $status for slot $slot - continuing to wait")
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error resuming continuation", e)
+            AppLog.e(TAG, "Error resuming continuation", e)
             if (continuation.isActive) {
                 continuation.resume(
                     Result.failure(

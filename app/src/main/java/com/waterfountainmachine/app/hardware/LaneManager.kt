@@ -2,9 +2,9 @@ package com.waterfountainmachine.app.hardware
 
 import android.content.Context
 import android.content.SharedPreferences
-import android.util.Log
 import com.waterfountainmachine.app.hardware.sdk.SlotValidator
 import com.waterfountainmachine.app.hardware.sdk.WaterDispenseResult
+import com.waterfountainmachine.app.utils.AppLog
 
 /**
  * Smart Lane Management System for Water Fountain Vending Machine
@@ -71,7 +71,7 @@ class LaneManager private constructor(private val context: Context) {
             if (shouldSwitchForLoadBalancing(currentLane)) {
                 val nextLane = findNextAvailableLane(currentLane)
                 if (nextLane != currentLane) {
-                    Log.i(TAG, "Switching from lane $currentLane to lane $nextLane for load balancing")
+                    AppLog.i(TAG, "Switching from lane $currentLane to lane $nextLane for load balancing")
                     setCurrentLane(nextLane)
                     return nextLane
                 }
@@ -82,7 +82,7 @@ class LaneManager private constructor(private val context: Context) {
         // Current lane not usable, find next available
         val nextLane = findNextAvailableLane(currentLane)
         if (nextLane != currentLane) {
-            Log.i(TAG, "Lane $currentLane not usable, switching to lane $nextLane")
+            AppLog.i(TAG, "Lane $currentLane not usable, switching to lane $nextLane")
             setCurrentLane(nextLane)
         }
         
@@ -103,7 +103,7 @@ class LaneManager private constructor(private val context: Context) {
      * Record successful dispensing from a lane
      */
     fun recordSuccess(lane: Int, dispensingTimeMs: Long) {
-        Log.d(TAG, "Recording success for lane $lane (${dispensingTimeMs}ms)")
+        AppLog.d(TAG, "Recording success for lane $lane (${dispensingTimeMs}ms)")
         
         prefs.edit().apply {
             // Reset failure count on success
@@ -123,14 +123,14 @@ class LaneManager private constructor(private val context: Context) {
             apply()
         }
         
-        Log.i(TAG, "Lane $lane success count: ${getLaneSuccessCount(lane)}")
+        AppLog.i(TAG, "Lane $lane success count: ${getLaneSuccessCount(lane)}")
     }
     
     /**
      * Record failure for a lane
      */
     fun recordFailure(lane: Int, errorCode: Byte?, errorMessage: String?) {
-        Log.w(TAG, "Recording failure for lane $lane: $errorMessage (code: $errorCode)")
+        AppLog.w(TAG, "Recording failure for lane $lane: $errorMessage (code: $errorCode)")
         
         val currentFailures = getLaneFailureCount(lane) + 1
         
@@ -144,17 +144,17 @@ class LaneManager private constructor(private val context: Context) {
             when (errorCode) {
                 0x02.toByte() -> { // MOTOR_FAILURE
                     if (currentFailures >= MAX_CONSECUTIVE_FAILURES) {
-                        Log.w(TAG, "Lane $lane disabled due to motor failures")
+                        AppLog.w(TAG, "Lane $lane disabled due to motor failures")
                         putInt(getLaneStatusKey(lane), LANE_STATUS_FAILED)
                     }
                 }
                 0x03.toByte() -> { // OPTICAL_EYE_FAILURE
-                    Log.w(TAG, "Lane $lane marked as empty due to optical sensor")
+                    AppLog.w(TAG, "Lane $lane marked as empty due to optical sensor")
                     putInt(getLaneStatusKey(lane), LANE_STATUS_EMPTY)
                 }
                 else -> {
                     if (currentFailures >= MAX_CONSECUTIVE_FAILURES) {
-                        Log.w(TAG, "Lane $lane disabled due to repeated failures")
+                        AppLog.w(TAG, "Lane $lane disabled due to repeated failures")
                         putInt(getLaneStatusKey(lane), LANE_STATUS_FAILED)
                     }
                 }
@@ -197,7 +197,7 @@ class LaneManager private constructor(private val context: Context) {
         }
         
         // If no slots are usable, return the original slot (will fail but logged)
-        Log.e(TAG, "No usable slots available! Returning slot $startLane")
+        AppLog.e(TAG, "No usable slots available! Returning slot $startLane")
         return startLane
     }
     
@@ -275,7 +275,7 @@ class LaneManager private constructor(private val context: Context) {
      * Reset all lane statistics (for maintenance)
      */
     fun resetAllLanes() {
-        Log.i(TAG, "Resetting all lane statistics")
+        AppLog.i(TAG, "Resetting all lane statistics")
         
         prefs.edit().apply {
             enabledLanes.forEach { lane ->
@@ -293,7 +293,7 @@ class LaneManager private constructor(private val context: Context) {
      * Reset specific lane (for maintenance/refill)
      */
     fun resetLane(lane: Int) {
-        Log.i(TAG, "Resetting lane $lane")
+        AppLog.i(TAG, "Resetting lane $lane")
         
         prefs.edit().apply {
             putInt(getLaneStatusKey(lane), LANE_STATUS_ACTIVE)

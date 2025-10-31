@@ -1,6 +1,6 @@
 package com.waterfountainmachine.app.hardware.sdk
 
-import android.util.Log
+import com.waterfountainmachine.app.utils.AppLog
 import kotlinx.coroutines.delay
 
 /**
@@ -17,7 +17,7 @@ class MockVendingMachineAdapter(
     private var isReadyState = false
     
     override fun initialize(): Result<Unit> {
-        Log.i(tag, "Mock adapter initialized (no real hardware)")
+        AppLog.i(tag, "Mock adapter initialized (no real hardware)")
         isReadyState = true
         return Result.success(Unit)
     }
@@ -29,11 +29,11 @@ class MockVendingMachineAdapter(
 
     
     override suspend fun dispenseWater(slot: Int): Result<WaterDispenseResult> {
-        Log.i(tag, "Mock dispenseWater: slot=$slot")
+        AppLog.i(tag, "Mock dispenseWater: slot=$slot")
         
         // Validate slot
         if (!SlotValidator.isValidSlot(slot)) {
-            Log.w(tag, "Mock mode: Invalid slot $slot")
+            AppLog.w(tag, "Mock mode: Invalid slot $slot")
             return Result.success(
                 WaterDispenseResult(
                     success = false,
@@ -52,7 +52,7 @@ class MockVendingMachineAdapter(
         val isSuccess = (0..100).random() <= 95
         
         return if (isSuccess) {
-            Log.i(tag, "Mock mode: Water dispensed successfully from slot $slot")
+            AppLog.i(tag, "Mock mode: Water dispensed successfully from slot $slot")
             Result.success(
                 WaterDispenseResult(
                     success = true,
@@ -67,7 +67,7 @@ class MockVendingMachineAdapter(
             val errorType = (1..3).random()
             when (errorType) {
                 1 -> {
-                    Log.w(tag, "Mock mode: Simulating motor failure")
+                    AppLog.w(tag, "Mock mode: Simulating motor failure")
                     Result.success(
                         WaterDispenseResult(
                             success = false,
@@ -79,7 +79,7 @@ class MockVendingMachineAdapter(
                     )
                 }
                 2 -> {
-                    Log.w(tag, "Mock mode: Simulating optical sensor failure")
+                    AppLog.w(tag, "Mock mode: Simulating optical sensor failure")
                     Result.success(
                         WaterDispenseResult(
                             success = false,
@@ -91,7 +91,7 @@ class MockVendingMachineAdapter(
                     )
                 }
                 else -> {
-                    Log.w(tag, "Mock mode: Simulating unknown error")
+                    AppLog.w(tag, "Mock mode: Simulating unknown error")
                     Result.success(
                         WaterDispenseResult(
                             success = false,
@@ -107,7 +107,7 @@ class MockVendingMachineAdapter(
     }
     
     override fun shutdown() {
-        Log.i(tag, "Mock adapter shutdown")
+        AppLog.i(tag, "Mock adapter shutdown")
         isReadyState = false
     }
     

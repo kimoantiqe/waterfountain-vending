@@ -1,4 +1,4 @@
-package com.waterfountainmachine.app
+package com.waterfountainmachine.app.activities
 
 import android.os.Bundle
 import android.view.KeyEvent

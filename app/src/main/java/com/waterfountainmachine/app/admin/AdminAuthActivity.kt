@@ -3,7 +3,6 @@ package com.waterfountainmachine.app.admin
 import android.content.Intent
 import android.os.Bundle
 import android.view.KeyEvent
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.waterfountainmachine.app.databinding.ActivityAdminAuthBinding
 import com.waterfountainmachine.app.utils.AppLog
@@ -118,7 +117,6 @@ class AdminAuthActivity : AppCompatActivity() {
         if (pinCode == correctPin) {
             // Successful authentication
             AppLog.i(TAG, "Admin authentication successful")
-            Toast.makeText(this, "Access Granted", Toast.LENGTH_SHORT).show()
             
             // Navigate to admin panel
             val intent = Intent(this, AdminPanelActivity::class.java)
@@ -127,7 +125,6 @@ class AdminAuthActivity : AppCompatActivity() {
         } else {
             // Failed authentication
             AppLog.w(TAG, "Failed admin authentication attempt")
-            Toast.makeText(this, "Invalid PIN", Toast.LENGTH_SHORT).show()
             
             // Visual feedback for wrong PIN
             binding.pinDisplay.setTextColor(getColor(android.R.color.holo_red_dark))
