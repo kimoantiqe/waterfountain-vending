@@ -60,11 +60,10 @@
                     android:layout_height="match_parent"
                     android:layout_gravity="center"/>
 
-                <!-- HUGE Logo - 700dp for dramatic shrink effect -->
                 <ImageView
                     android:id="@+id/logoImage"
-                    android:layout_width="1200dp"
-                    android:layout_height="1200dp"
+                    android:layout_width="1400dp"
+                    android:layout_height="1400dp"
                     android:src="@drawable/logo"
                     android:contentDescription="@string/waterfountain_logo"
                     android:scaleType="fitCenter"

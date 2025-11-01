@@ -142,6 +142,13 @@ class LaneManager private constructor(private val context: Context) {
             // 0x02 = Motor failure
             // 0x03 = Optical sensor failure
             when (errorCode) {
+                null -> {
+                    // Unknown error - mark as failed after threshold
+                    if (currentFailures >= MAX_CONSECUTIVE_FAILURES) {
+                        AppLog.w(TAG, "Lane $lane disabled due to unknown repeated failures")
+                        putInt(getLaneStatusKey(lane), LANE_STATUS_FAILED)
+                    }
+                }
                 0x02.toByte() -> { // MOTOR_FAILURE
                     if (currentFailures >= MAX_CONSECUTIVE_FAILURES) {
                         AppLog.w(TAG, "Lane $lane disabled due to motor failures")
@@ -154,7 +161,7 @@ class LaneManager private constructor(private val context: Context) {
                 }
                 else -> {
                     if (currentFailures >= MAX_CONSECUTIVE_FAILURES) {
-                        AppLog.w(TAG, "Lane $lane disabled due to repeated failures")
+                        AppLog.w(TAG, "Lane $lane disabled due to repeated failures (code: $errorCode)")
                         putInt(getLaneStatusKey(lane), LANE_STATUS_FAILED)
                     }
                 }

@@ -15,44 +15,69 @@ class ProgressRingView @JvmOverloads constructor(
     defStyleAttr: Int = 0
 ) : View(context, attrs, defStyleAttr) {
 
+    companion object {
+        // Ring dimensions
+        private const val RING_STROKE_WIDTH = 50f
+        private const val INNER_GLOW_STROKE_WIDTH = 70f
+        private const val OUTER_GLOW_STROKE_WIDTH = 100f
+        private const val SOFT_EDGE_STROKE_WIDTH = 60f
+        
+        // Blur radii
+        private const val INNER_GLOW_BLUR_RADIUS = 35f
+        private const val OUTER_GLOW_BLUR_RADIUS = 60f
+        private const val SOFT_EDGE_BLUR_RADIUS = 20f
+        
+        // Alpha values
+        private const val BACKGROUND_RING_ALPHA = 30
+        private const val OUTER_GLOW_MAX_ALPHA = 140
+        private const val INNER_GLOW_MAX_ALPHA = 190
+        
+        // Padding to prevent clipping
+        private const val VIEW_PADDING = 120
+        
+        // Animation thresholds
+        private const val RADIUS_SCALE_FACTOR = 0.42f
+        private const val GLOW_RADIUS_OFFSET = 150f
+    }
+
     // Background ring - subtle and elegant
     private val ringPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
-        strokeWidth = 50f
+        strokeWidth = RING_STROKE_WIDTH
         strokeCap = Paint.Cap.ROUND
         color = Color.parseColor("#555555")
-        alpha = 30
+        alpha = BACKGROUND_RING_ALPHA
     }
 
-    // Progress ring - bold and beautiful with cream/white colors
+    // Progress ring - bold and beautiful with grayish-purple colors
     private val progressPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
-        strokeWidth = 50f
+        strokeWidth = RING_STROKE_WIDTH
         strokeCap = Paint.Cap.ROUND
     }
 
     // Inner glow layer
     private val innerGlowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
-        strokeWidth = 70f
+        strokeWidth = INNER_GLOW_STROKE_WIDTH
         strokeCap = Paint.Cap.ROUND
-        maskFilter = BlurMaskFilter(35f, BlurMaskFilter.Blur.NORMAL)
+        maskFilter = BlurMaskFilter(INNER_GLOW_BLUR_RADIUS, BlurMaskFilter.Blur.NORMAL)
     }
 
     // Outer glow layer
     private val outerGlowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
-        strokeWidth = 100f
+        strokeWidth = OUTER_GLOW_STROKE_WIDTH
         strokeCap = Paint.Cap.ROUND
-        maskFilter = BlurMaskFilter(60f, BlurMaskFilter.Blur.NORMAL)
+        maskFilter = BlurMaskFilter(OUTER_GLOW_BLUR_RADIUS, BlurMaskFilter.Blur.NORMAL)
     }
     
     // Soft edge paint for smooth transitions at start/end
     private val softEdgePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
-        strokeWidth = 60f
+        strokeWidth = SOFT_EDGE_STROKE_WIDTH
         strokeCap = Paint.Cap.ROUND
-        maskFilter = BlurMaskFilter(20f, BlurMaskFilter.Blur.NORMAL)
+        maskFilter = BlurMaskFilter(SOFT_EDGE_BLUR_RADIUS, BlurMaskFilter.Blur.NORMAL)
     }
 
     // Completion burst glow
@@ -62,6 +87,7 @@ class ProgressRingView @JvmOverloads constructor(
 
     private var progress = 0f
     private var glowAlpha = 0f
+    private var progressAlpha = 0f // Add alpha for smooth fade-in
     private val rect = RectF()
     
     init {
@@ -69,16 +95,28 @@ class ProgressRingView @JvmOverloads constructor(
         setLayerType(LAYER_TYPE_HARDWARE, null)
         
         // Add padding to prevent clipping of glows and effects
-        setPadding(120, 120, 120, 120)
+        setPadding(VIEW_PADDING, VIEW_PADDING, VIEW_PADDING, VIEW_PADDING)
     }
 
     fun animateProgress(duration: Long = 5000) {
+        // Animate progress from 0 to 100
         ValueAnimator.ofFloat(0f, 100f).apply {
             this.duration = duration
             // Use a smoother interpolator for buttery animation
             interpolator = android.view.animation.AccelerateDecelerateInterpolator()
             addUpdateListener { animator ->
                 progress = animator.animatedValue as Float
+                invalidate()
+            }
+            start()
+        }
+        
+        // Simultaneously fade in the progress ring over first 2.5 seconds (longer fade)
+        ValueAnimator.ofFloat(0f, 1f).apply {
+            this.duration = 2500
+            interpolator = DecelerateInterpolator(3f) // Even smoother curve
+            addUpdateListener { animator ->
+                progressAlpha = animator.animatedValue as Float
                 invalidate()
             }
             start()
@@ -107,7 +145,7 @@ class ProgressRingView @JvmOverloads constructor(
         val centerY = paddingTop + availableHeight / 2f
         
         // Use smaller radius to account for padding and prevent clipping
-        val radius = (availableWidth.coerceAtMost(availableHeight) * 0.42f)
+        val radius = (availableWidth.coerceAtMost(availableHeight) * RADIUS_SCALE_FACTOR)
 
         rect.set(
             centerX - radius,
@@ -122,7 +160,7 @@ class ProgressRingView @JvmOverloads constructor(
             val saveCount = canvas.save()
             
             // Create circular clipping path for burst glow
-            val glowRadius = radius + 150f
+            val glowRadius = radius + GLOW_RADIUS_OFFSET
             
             burstGlowPaint.shader = RadialGradient(
                 centerX, centerY, glowRadius,
@@ -167,83 +205,62 @@ class ProgressRingView @JvmOverloads constructor(
             val gradient = SweepGradient(centerX, centerY, colors, positions)
             gradient.setLocalMatrix(matrix)
             
-            // Draw outer glow (most diffuse)
-            if (progress > 5) {
-                outerGlowPaint.shader = gradient
-                outerGlowPaint.alpha = (140 * (progress / 100f)).toInt()
-                canvas.drawArc(rect, -90f, sweepAngle, false, outerGlowPaint)
-            }
+            // Calculate fade-in for start and end based on progress
+            // First 15% of progress: fade in the start point
+            val startFadeProgress = (progress / 15f).coerceIn(0f, 1f)
+            val startFadeAlpha = startFadeProgress * progressAlpha
             
-            // Draw inner glow (brighter)
-            if (progress > 3) {
-                innerGlowPaint.shader = gradient
-                innerGlowPaint.alpha = (190 * (progress / 100f)).toInt()
-                canvas.drawArc(rect, -90f, sweepAngle, false, innerGlowPaint)
-            }
+            // Draw outer glow (most diffuse) - with smooth fade-in
+            outerGlowPaint.shader = gradient
+            outerGlowPaint.alpha = (OUTER_GLOW_MAX_ALPHA * startFadeAlpha).toInt()
+            canvas.drawArc(rect, -90f, sweepAngle, false, outerGlowPaint)
             
-            // Draw main progress ring (crisp and bold)
+            // Draw inner glow (brighter) - with smooth fade-in
+            innerGlowPaint.shader = gradient
+            innerGlowPaint.alpha = (INNER_GLOW_MAX_ALPHA * startFadeAlpha).toInt()
+            canvas.drawArc(rect, -90f, sweepAngle, false, innerGlowPaint)
+            
+            // Draw main progress ring (crisp and bold) - with smooth fade-in
             progressPaint.shader = gradient
-            progressPaint.alpha = 255
+            progressPaint.alpha = (255 * progressAlpha).toInt()
             canvas.drawArc(rect, -90f, sweepAngle, false, progressPaint)
             
-            // Smooth out the START point (top of ring) with extra fade - BUTTER SMOOTH
-            if (progress > 0.5f && progress < 20f) {
-                // Create a very smooth fade-in over first 20% of animation
-                val fadeProgress = (progress / 20f).coerceIn(0f, 1f)
-                // Use easeOut curve for extra smoothness
-                val smoothAlpha = (Math.pow(fadeProgress.toDouble(), 0.5) * 255).toInt().coerceIn(0, 255)
-                
-                softEdgePaint.shader = gradient
-                softEdgePaint.alpha = smoothAlpha
-                canvas.drawArc(rect, -90f, 10f, false, softEdgePaint)
-            }
-            
-            // Smooth out the END point (leading edge) with multi-layer fade - NO HARD LINES
-            if (progress > 5f && progress < 99.5f) {
-                val endEdgeSweep = 15f.coerceAtMost(sweepAngle)
-                
-                // Layer 1: Soft outer fade
-                softEdgePaint.shader = gradient
-                softEdgePaint.alpha = 60
-                softEdgePaint.strokeWidth = 80f
-                canvas.drawArc(rect, -90f + sweepAngle - endEdgeSweep, endEdgeSweep, false, softEdgePaint)
-                
-                // Layer 2: Medium fade
-                softEdgePaint.alpha = 120
-                softEdgePaint.strokeWidth = 65f
-                canvas.drawArc(rect, -90f + sweepAngle - (endEdgeSweep * 0.6f), endEdgeSweep * 0.6f, false, softEdgePaint)
-                
-                // Layer 3: Inner fade
-                softEdgePaint.alpha = 200
-                softEdgePaint.strokeWidth = 50f
-                canvas.drawArc(rect, -90f + sweepAngle - (endEdgeSweep * 0.3f), endEdgeSweep * 0.3f, false, softEdgePaint)
-            }
-            
-            // Add shimmering white highlight at the leading edge - ULTRA SMOOTH
-            if (progress < 99.5f && progress > 10f) {
+            // Add subtle highlight at the leading edge for depth - with smooth fade-in and fade-out
+            if (progress > 0.5f && progress < 99.5f) {
                 val highlightAngle = -90f + sweepAngle
                 val highlightRad = Math.toRadians(highlightAngle.toDouble())
                 val highlightX = centerX + (radius * cos(highlightRad)).toFloat()
                 val highlightY = centerY + (radius * sin(highlightRad)).toFloat()
                 
-                // Pulsing effect - subtle breathing animation
-                val pulseAlpha = (0.85f + 0.15f * Math.sin(System.currentTimeMillis() / 400.0)).toFloat()
+                // Fade in the highlight over first 20% of progress (0.5% to 20%)
+                val highlightFadeInProgress = ((progress - 0.5f) / 19.5f).coerceIn(0f, 1f)
+                
+                // Fade out the highlight over last 10% of progress (90% to 99.5%)
+                val highlightFadeOutProgress = if (progress > 90f) {
+                    (1f - ((progress - 90f) / 9.5f)).coerceIn(0f, 1f)
+                } else {
+                    1f
+                }
+                
+                // Subtle pulsing effect combined with fade-in and fade-out
+                val pulseAlpha = (0.9f + 0.1f * Math.sin(System.currentTimeMillis() / 400.0)).toFloat()
+                val finalAlpha = pulseAlpha * progressAlpha * highlightFadeInProgress * highlightFadeOutProgress
                 
                 val highlightPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                     style = Paint.Style.FILL
                     shader = RadialGradient(
-                        highlightX, highlightY, 90f,
+                        highlightX, highlightY, 70f,
                         intArrayOf(
-                            Color.argb((240 * pulseAlpha).toInt(), 216, 207, 255),  // Very light lavender
-                            Color.argb((160 * pulseAlpha).toInt(), 196, 181, 242),  // Lavender glow
-                            Color.argb((60 * pulseAlpha).toInt(), 175, 160, 238),   // Soft lavender
+                            Color.argb((200 * finalAlpha).toInt(), 216, 207, 255),  // Very light lavender
+                            Color.argb((120 * finalAlpha).toInt(), 196, 181, 242),  // Lavender glow
+                            Color.argb((40 * finalAlpha).toInt(), 175, 160, 238),   // Soft lavender
                             Color.argb(0, 175, 160, 238)
                         ),
-                        floatArrayOf(0f, 0.3f, 0.6f, 1f),
+                        floatArrayOf(0f, 0.4f, 0.7f, 1f),
                         Shader.TileMode.CLAMP
                     )
                 }
-                canvas.drawCircle(highlightX, highlightY, 90f, highlightPaint)
+                canvas.drawCircle(highlightX, highlightY, 70f, highlightPaint)
                 
                 // Trigger continuous redraw for pulsing effect
                 postInvalidateOnAnimation()

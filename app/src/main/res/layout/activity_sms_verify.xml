@@ -1,0 +1,422 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/background2">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:padding="@dimen/main_screen_padding"
+        android:gravity="center">
+
+        <!-- Header with Back Button and Centered Wordmark -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:layout_marginBottom="32dp"
+            android:gravity="center_vertical">
+
+            <!-- Back Button - positioned to not affect centering -->
+            <FrameLayout
+                android:layout_width="@dimen/back_button_size"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical">
+
+                <ImageButton
+                    android:id="@+id/backButton"
+                    android:layout_width="@dimen/back_button_size"
+                    android:layout_height="@dimen/back_button_size"
+                    android:background="?android:attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="@string/back_button"
+                    android:src="@drawable/ic_arrow_back"
+                    android:alpha="0.9"
+                    android:padding="@dimen/back_button_padding"
+                    android:scaleType="fitCenter"
+                    app:tint="@android:color/white" />
+
+            </FrameLayout>
+
+            <!-- Centered Wordmark Only (matching main activity) -->
+            <TextView
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:text="@string/wordmark_text"
+                android:contentDescription="@string/waterfountain_wordmark"
+                android:textSize="72sp"
+                android:textColor="@android:color/white"
+                android:fontFamily="@font/century_gothic_bold"
+                android:maxLines="1"
+                android:singleLine="true"
+                android:ellipsize="end"
+                android:gravity="center"
+                android:letterSpacing="-0.09"
+                android:includeFontPadding="false"
+                android:paddingHorizontal="16dp" />
+
+            <!-- Empty space to balance the back button -->
+            <View
+                android:layout_width="@dimen/back_button_size"
+                android:layout_height="match_parent" />
+
+        </LinearLayout>
+
+        <!-- Main Content Area - OTP Verification -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:clipChildren="false"
+            android:clipToPadding="false">
+
+            <!-- Title -->
+            <TextView
+                android:id="@+id/titleText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Enter verification code"
+                android:textSize="@dimen/text_size_title"
+                android:textColor="#555555"
+                android:fontFamily="sans-serif-medium"
+                android:textStyle="bold"
+                android:gravity="center"
+                android:layout_marginBottom="@dimen/margin_medium"/>
+
+            <!-- Timer Display (initially visible) -->
+            <LinearLayout
+                android:id="@+id/timerLayout"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/glass_phone_display_background"
+                android:gravity="center"
+                android:paddingHorizontal="40dp"
+                android:paddingVertical="20dp"
+                android:layout_marginBottom="30dp"
+                android:elevation="8dp"
+                android:visibility="visible"
+                android:orientation="horizontal">
+
+                <ImageView
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:src="@android:drawable/ic_lock_idle_alarm"
+                    app:tint="#555555"
+                    android:alpha="0.9"
+                    android:layout_marginEnd="16dp"/>
+
+                <TextView
+                    android:id="@+id/timerText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="2:00"
+                    android:textSize="48sp"
+                    android:textColor="#555555"
+                    android:fontFamily="sans-serif-medium"
+                    android:letterSpacing="0.1"/>
+
+            </LinearLayout>
+
+            <!-- Resend Button in Timer Position (initially hidden, replaces timer) -->
+            <androidx.appcompat.widget.AppCompatButton
+                android:id="@+id/resendCodeButton"
+                style="@style/GlassKeypadButtonStyle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Resend Code"
+                android:textSize="36sp"
+                android:paddingHorizontal="40dp"
+                android:paddingVertical="20dp"
+                android:layout_marginBottom="30dp"
+                android:visibility="gone"
+                android:elevation="8dp"/>
+
+            <!-- OTP Display in a Glass Box -->
+            <FrameLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="@dimen/phone_display_margin_bottom">
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:minWidth="480dp"
+                    android:background="@drawable/glass_phone_display_background"
+                    android:gravity="center"
+                    android:paddingHorizontal="@dimen/margin_xlarge"
+                    android:paddingVertical="@dimen/margin_large"
+                    android:elevation="8dp">
+
+                    <TextView
+                        android:id="@+id/otpDisplay"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text=""
+                        android:textSize="@dimen/phone_display_text_size"
+                        android:textColor="#555555"
+                        android:fontFamily="sans-serif-light"
+                        android:gravity="center"
+                        android:letterSpacing="0.08"
+                        android:minWidth="380dp"/>
+
+                </LinearLayout>
+
+            </FrameLayout>
+
+            <!-- Subtitle -->
+            <TextView
+                android:id="@+id/subtitleText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="We sent a code to your phone"
+                android:textSize="@dimen/text_size_subtitle"
+                android:textColor="#555555"
+                android:alpha="0.7"
+                android:fontFamily="sans-serif-light"
+                android:gravity="center"
+                android:layout_marginBottom="@dimen/margin_xlarge"/>
+
+            <!-- Bigger On-Screen Keypad with Glass Effect -->
+            <LinearLayout
+                android:id="@+id/keypadLayout"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:layout_marginBottom="30dp">
+
+                <!-- Row 1: 1, 2, 3 -->
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="24dp">
+
+                    <androidx.appcompat.widget.AppCompatButton
+                        android:id="@+id/btn1"
+                        style="@style/GlassKeypadButtonStyle"
+                        android:text="1"
+                        android:layout_marginEnd="24dp"/>
+
+                    <androidx.appcompat.widget.AppCompatButton
+                        android:id="@+id/btn2"
+                        style="@style/GlassKeypadButtonStyle"
+                        android:text="2"
+                        android:layout_marginEnd="24dp"/>
+
+                    <androidx.appcompat.widget.AppCompatButton
+                        android:id="@+id/btn3"
+                        style="@style/GlassKeypadButtonStyle"
+                        android:text="3"/>
+
+                </LinearLayout>
+
+                <!-- Row 2: 4, 5, 6 -->
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="24dp">
+
+                    <androidx.appcompat.widget.AppCompatButton
+                        android:id="@+id/btn4"
+                        style="@style/GlassKeypadButtonStyle"
+                        android:text="4"
+                        android:layout_marginEnd="24dp"/>
+
+                    <androidx.appcompat.widget.AppCompatButton
+                        android:id="@+id/btn5"
+                        style="@style/GlassKeypadButtonStyle"
+                        android:text="5"
+                        android:layout_marginEnd="24dp"/>
+
+                    <androidx.appcompat.widget.AppCompatButton
+                        android:id="@+id/btn6"
+                        style="@style/GlassKeypadButtonStyle"
+                        android:text="6"/>
+
+                </LinearLayout>
+
+                <!-- Row 3: 7, 8, 9 -->
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="24dp">
+
+                    <androidx.appcompat.widget.AppCompatButton
+                        android:id="@+id/btn7"
+                        style="@style/GlassKeypadButtonStyle"
+                        android:text="7"
+                        android:layout_marginEnd="24dp"/>
+
+                    <androidx.appcompat.widget.AppCompatButton
+                        android:id="@+id/btn8"
+                        style="@style/GlassKeypadButtonStyle"
+                        android:text="8"
+                        android:layout_marginEnd="24dp"/>
+
+                    <androidx.appcompat.widget.AppCompatButton
+                        android:id="@+id/btn9"
+                        style="@style/GlassKeypadButtonStyle"
+                        android:text="9"/>
+
+                </LinearLayout>
+
+                <!-- Row 4: Clear, 0, Backspace -->
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <androidx.appcompat.widget.AppCompatButton
+                        android:id="@+id/btnClear"
+                        style="@style/GlassKeypadButtonStyle"
+                        android:text="C"
+                        android:layout_marginEnd="24dp"/>
+
+                    <androidx.appcompat.widget.AppCompatButton
+                        android:id="@+id/btn0"
+                        style="@style/GlassKeypadButtonStyle"
+                        android:text="0"
+                        android:layout_marginEnd="24dp"/>
+
+                    <androidx.appcompat.widget.AppCompatButton
+                        android:id="@+id/btnBackspace"
+                        style="@style/GlassKeypadButtonStyle"
+                        android:text="⌫"/>
+
+                </LinearLayout>
+
+            </LinearLayout>
+
+            <!-- Verify Button -->
+            <androidx.appcompat.widget.AppCompatButton
+                android:id="@+id/verifyOtpButton"
+                style="@style/GlassActionButtonStyle"
+                android:layout_width="@dimen/action_button_width"
+                android:layout_height="@dimen/action_button_height"
+                android:text="Verify"
+                android:textSize="@dimen/action_button_text_size"
+                android:enabled="false"
+                android:layout_marginTop="@dimen/margin_medium"/>
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+    <!-- Centered Question Mark Button at Bottom with Glass Effect -->
+    <FrameLayout
+        android:id="@+id/questionMarkButton"
+        android:layout_width="@dimen/question_button_size"
+        android:layout_height="@dimen/question_button_size"
+        android:layout_gravity="bottom|center_horizontal"
+        android:layout_marginBottom="@dimen/question_button_bottom_margin"
+        android:padding="@dimen/margin_medium"
+        android:clipToPadding="false"
+        android:clipChildren="false"
+        android:clickable="true"
+        android:focusable="true"
+        android:elevation="12dp">
+
+        <!-- 3D Sphere background with pressed state -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_gravity="center"
+            android:background="@drawable/sphere_button_selector"
+            android:duplicateParentState="true"/>
+
+        <TextView
+            android:id="@+id/questionMarkIcon"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:text="?"
+            android:textSize="@dimen/question_icon_size"
+            android:textColor="@android:color/white"
+            android:fontFamily="sans-serif-medium"
+            android:shadowColor="#40000000"
+            android:shadowDx="0"
+            android:shadowDy="2"
+            android:shadowRadius="4"/>
+
+    </FrameLayout>
+
+    <!-- Modal Overlay (initially hidden) -->
+    <FrameLayout
+        android:id="@+id/modalOverlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#C0000000"
+        android:visibility="gone"
+        android:clickable="true">
+
+        <!-- Modal Content -->
+        <LinearLayout
+            android:id="@+id/modalContent"
+            android:layout_width="@dimen/modal_width"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:background="@drawable/modal_background"
+            android:orientation="vertical"
+            android:padding="@dimen/modal_padding"
+            android:gravity="center"
+            android:elevation="16dp">
+
+            <!-- Close X Button - Top Right -->
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+                
+                <ImageButton
+                    android:id="@+id/closeModalButton"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:layout_gravity="end"
+                    android:background="?android:attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="Close"
+                    android:src="@android:drawable/ic_menu_close_clear_cancel"
+                    android:tint="#555555"
+                    android:padding="12dp"/>
+                
+            </FrameLayout>
+
+            <!-- Modal Title -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Verification Code"
+                android:textSize="@dimen/modal_title_size"
+                android:textColor="#555555"
+                android:fontFamily="sans-serif-medium"
+                android:textStyle="bold"
+                android:gravity="center"
+                android:letterSpacing="0.00"
+                android:layout_marginTop="8dp"
+                android:layout_marginBottom="@dimen/margin_large"/>
+
+            <!-- Modal Message -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Enter the 6-digit verification code we sent to your phone.\n\nIf you don't receive the code within 2 minutes, you can tap 'Resend Code' to get a new one.\n\nMake sure to check your messages and enter the code before it expires."
+                android:textSize="@dimen/modal_text_size"
+                android:textColor="#555555"
+                android:fontFamily="sans-serif"
+                android:gravity="center"
+                android:lineSpacingExtra="8dp"
+                android:lineSpacingMultiplier="1.2"
+                android:paddingHorizontal="16dp"
+                android:layout_marginBottom="@dimen/margin_large"/>
+
+        </LinearLayout>
+
+    </FrameLayout>
+
+</FrameLayout>

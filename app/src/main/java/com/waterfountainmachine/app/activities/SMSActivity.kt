@@ -22,32 +22,18 @@ import kotlinx.coroutines.delay
 class SMSActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivitySmsBinding
-    private var currentStep = 1
     private var phoneNumber = ""
-    private var otpCode = ""
     
     // Phone number masking
     private var isPhoneNumberVisible = false
-    private var isOtpVisible = false
 
     private lateinit var inactivityTimer: InactivityTimer
     private var questionMarkAnimator: AnimatorSet? = null
-
-    // Timer for OTP resend - using coroutines instead of Handler to prevent memory leaks
-    private var otpTimerJob: Job? = null
-    private var otpTimeRemaining = OTP_TIMEOUT_SECONDS
-
-    // Water fountain hardware manager
-    private lateinit var waterFountainManager: WaterFountainManager
     
     companion object {
         private const val TAG = "SMSActivity"
         private const val MAX_PHONE_LENGTH = 10
-        private const val MAX_OTP_LENGTH = 6
-        private const val OTP_TIMEOUT_SECONDS = 120
-        private const val INACTIVITY_TIMEOUT_MS = 360_000L // 6 minutes
-        private const val ANIMATION_DURATION_MS = 300L
-        private const val SHAKE_ANIMATION_DURATION_MS = 500L
+        private const val INACTIVITY_TIMEOUT_MS = 60_000L // 1 minute
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -62,11 +48,8 @@ class SMSActivity : AppCompatActivity() {
         setupQuestionMarkAnimation()
         setupModalFunctionality()
         
-        inactivityTimer = InactivityTimer(INACTIVITY_TIMEOUT_MS) { finish() }
+        inactivityTimer = InactivityTimer(INACTIVITY_TIMEOUT_MS) { returnToMainScreen() }
         inactivityTimer.start()
-        
-        // Initialize water fountain hardware
-        setupHardware()
     }
 
     private fun initializeViews() {
@@ -76,11 +59,14 @@ class SMSActivity : AppCompatActivity() {
 
     private fun setupBackButton() {
         binding.backButton.setOnClickListener {
-            returnToVendingScreen()
+            returnToMainScreen()
         }
     }
 
-    private fun returnToVendingScreen() {
+    private fun returnToMainScreen() {
+        val intent = Intent(this, MainActivity::class.java)
+        intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK
+        startActivity(intent)
         finish()
         overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
     }
@@ -130,7 +116,6 @@ class SMSActivity : AppCompatActivity() {
     }
 
     private fun setupPhoneNumberStep() {
-        currentStep = 1
         phoneNumber = ""
         
         // Reset visibility state
@@ -139,354 +124,100 @@ class SMSActivity : AppCompatActivity() {
         binding.togglePhoneVisibility.visibility = View.VISIBLE
         updateToggleIcon()
         
-        // Smooth fade transition for text changes
-        binding.titleText.animate()
-            .alpha(0f)
-            .setDuration(150)
-            .withEndAction {
-                binding.titleText.text = getString(R.string.enter_phone_number)
-                binding.titleText.animate().alpha(1f).setDuration(300).start()
-            }
-            .start()
-        
-        binding.subtitleText.animate()
-            .alpha(0f)
-            .setDuration(150)
-            .withEndAction {
-                binding.subtitleText.text = getString(R.string.verification_code_message)
-                binding.subtitleText.animate().alpha(1f).setDuration(300).start()
-            }
-            .start()
+        // Initialize button
+        binding.verifyButton.visibility = View.VISIBLE
+        binding.verifyButton.isEnabled = false
+        binding.verifyButton.text = "Send Code"
+        updateButtonDisabledState(binding.verifyButton, false)
+        binding.verifyButton.alpha = 1f
 
-        // Smooth transition for buttons
-        if (binding.otpButtonsLayout.visibility == View.VISIBLE) {
-            binding.otpButtonsLayout.animate()
-                .alpha(0f)
-                .setDuration(200)
-                .withEndAction {
-                    binding.otpButtonsLayout.visibility = View.GONE
-                    
-                    // Fade in Send Code button
-                    binding.verifyButton.alpha = 0f
-                    binding.verifyButton.visibility = View.VISIBLE
-                    binding.verifyButton.isEnabled = false
-                    binding.verifyButton.text = "Send Code"
-                    binding.verifyButton.animate()
-                        .alpha(1f)
-                        .setDuration(300)
-                        .start()
-                }
-                .start()
-        } else {
-            binding.verifyButton.visibility = View.VISIBLE
-            binding.verifyButton.isEnabled = false
-            binding.verifyButton.text = "Send Code"
-            binding.verifyButton.alpha = 1f
-        }
+        // Hide OTP-related UI
+        binding.otpButtonsLayout.visibility = View.GONE
+        binding.timerLayout.visibility = View.GONE
+        binding.resendCodeButton.visibility = View.GONE
 
         updatePhoneDisplay()
         
         // Setup toggle phone visibility button
         binding.togglePhoneVisibility.setOnClickListener {
             inactivityTimer.reset()
-            if (currentStep == 1) {
-                isPhoneNumberVisible = !isPhoneNumberVisible
-                updatePhoneDisplay()
-                updateToggleIcon()
-            }
+            isPhoneNumberVisible = !isPhoneNumberVisible
+            updatePhoneDisplay()
+            updateToggleIcon()
         }
     }
 
-    private fun setupOTPStep() {
-        currentStep = 2
-        otpCode = ""
-        
-        // Smoothly fade out phone entry button
-        binding.verifyButton.animate()
-            .alpha(0f)
-            .setDuration(200)
-            .withEndAction {
-                binding.verifyButton.visibility = View.GONE
-                
-                // Fade out title and subtitle for content change
-                val titleFade = binding.titleText.animate()
-                    .alpha(0f)
-                    .setDuration(150)
-                    
-                val subtitleFade = binding.subtitleText.animate()
-                    .alpha(0f)
-                    .setDuration(150)
-                    
-                // Wait for both to fade out
-                subtitleFade.withEndAction {
-                    // Update content
-                    binding.titleText.text = "Enter verification code"
-                    // Show masked phone number in subtitle (only show last 4 digits)
-                    val maskedPhone = "••• •••-${phoneNumber.substring(6)}"
-                    binding.subtitleText.text = "We sent a code to $maskedPhone"
-                    
-                    // Reset visibility state for OTP - no masking for OTP input
-                    isOtpVisible = true
-                    // Hide the toggle button on verification screen
-                    binding.togglePhoneVisibility.visibility = View.GONE
-                    
-                    // Prepare OTP UI (hidden initially)
-                    binding.otpButtonsLayout.alpha = 0f
-                    binding.otpButtonsLayout.visibility = View.VISIBLE
-                    binding.verifyOtpButton.isEnabled = false
-                    
-                    // Ensure resend button is hidden initially
-                    binding.resendCodeButton.visibility = View.GONE
-                    binding.resendCodeButton.alpha = 1f
-                    
-                    // Clear phone display for OTP entry
-                    updateOtpDisplay()
-                    
-                    // Smooth cascading fade-in animation
-                    binding.titleText.animate()
-                        .alpha(1f)
-                        .setDuration(400)
-                        .setInterpolator(AccelerateDecelerateInterpolator())
-                        .start()
-                    
-                    binding.subtitleText.animate()
-                        .alpha(1f)
-                        .setDuration(400)
-                        .setStartDelay(100)
-                        .setInterpolator(AccelerateDecelerateInterpolator())
-                        .start()
-                    
-                    // Fade in OTP verify button with slight delay
-                    binding.otpButtonsLayout.animate()
-                        .alpha(1f)
-                        .setDuration(400)
-                        .setStartDelay(200)
-                        .setInterpolator(AccelerateDecelerateInterpolator())
-                        .start()
-                    
-                    // Show and start the timer with fade (after other elements)
-                    lifecycleScope.launch {
-                        delay(ANIMATION_DURATION_MS)
-                        startOtpTimer()
-                    }
-                    
-                    // Simulate sending SMS (in real app, integrate with SMS service)
-                    simulateSendSMS()
-                }
-                
-                titleFade.start()
-                subtitleFade.start()
-            }
-            .start()
-    }
-
-    private fun startOtpTimer() {
-        // Cancel any existing timer
-        otpTimerJob?.cancel()
-        otpTimeRemaining = OTP_TIMEOUT_SECONDS // Reset to 2 minutes
-        
-        // Fade out resend button if visible, fade in timer
-        if (binding.resendCodeButton.visibility == View.VISIBLE) {
-            binding.resendCodeButton.animate()
-                .alpha(0f)
-                .setDuration(200)
-                .withEndAction {
-                    binding.resendCodeButton.visibility = View.GONE
-                    binding.resendCodeButton.alpha = 1f
-                    
-                    // Now fade in timer
-                    binding.timerLayout.alpha = 0f
-                    binding.timerLayout.visibility = View.VISIBLE
-                    binding.timerLayout.animate()
-                        .alpha(1f)
-                        .setDuration(ANIMATION_DURATION_MS)
-                        .start()
-                }
-                .start()
-        } else {
-            // Just show timer
-            binding.timerLayout.alpha = 0f
-            binding.timerLayout.visibility = View.VISIBLE
-            binding.timerLayout.animate()
-                .alpha(1f)
-                .setDuration(ANIMATION_DURATION_MS)
-                .start()
-        }
-        
-        // Start coroutine-based timer to prevent memory leaks
-        otpTimerJob = lifecycleScope.launch {
-            while (otpTimeRemaining > 0) {
-                // Update timer display
-                val minutes = otpTimeRemaining / 60
-                val seconds = otpTimeRemaining % 60
-                binding.timerText.text = String.format("%d:%02d", minutes, seconds)
-                
-                delay(1000) // Wait 1 second
-                otpTimeRemaining--
-            }
-            
-            // Timer expired - fade out timer, fade in resend button
-            binding.timerLayout.animate()
-                .alpha(0f)
-                .setDuration(200)
-                .withEndAction {
-                    binding.timerLayout.visibility = View.GONE
-                    binding.timerLayout.alpha = 1f
-                    
-                    // Now fade in resend button
-                    binding.resendCodeButton.alpha = 0f
-                    binding.resendCodeButton.visibility = View.VISIBLE
-                    binding.resendCodeButton.animate()
-                        .alpha(1f)
-                        .setDuration(ANIMATION_DURATION_MS)
-                        .start()
-                }
-                .start()
+    private fun sendCodeAndNavigate() {
+        if (phoneNumber.length == MAX_PHONE_LENGTH) {
+            // Navigate to verification activity
+            val intent = Intent(this, SMSVerifyActivity::class.java)
+            intent.putExtra(SMSVerifyActivity.EXTRA_PHONE_NUMBER, phoneNumber)
+            startActivity(intent)
+            overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
+            // Don't finish() here - let user come back if needed
         }
     }
-
-    private fun simulateSendSMS() {
-        // In a real implementation, integrate with SMS service like Twilio
-        // For demo purposes, we'll just show a simulated code
-        // val demoCode = "123456" // Commented out to avoid unused variable warning
-
-        // Auto-fill for demo (remove in production)
-        // Removed Handler - would use coroutines if needed:
-        // lifecycleScope.launch {
-        //     delay(2000)
-        //     otpCode = demoCode
-        //     updateOtpDisplay()
-        //     binding.verifyOtpButton.isEnabled = true
-        // }
-    }
-
-    private fun verifyAndProceed() {
-        // In real implementation, verify OTP with SMS service
-        // For demo, we'll accept any 6-digit code
-
-        if (otpCode.length == MAX_OTP_LENGTH) {
-            // SMS verification successful - now dispense water
-            dispenseWaterAfterVerification()
-        }
-    }
-    
-    private fun setupHardware() {
-        waterFountainManager = WaterFountainManager.getInstance(this)
-        
-        lifecycleScope.launch {
-            try {
-                if (waterFountainManager.initialize()) {
-                    AppLog.i("SMSActivity", "Hardware initialized successfully")
-                } else {
-                    AppLog.e("SMSActivity", "Hardware initialization failed")
-                }
-            } catch (e: Exception) {
-                AppLog.e("SMSActivity", "Hardware error", e)
-            }
-        }
-    }
-    
-    private fun dispenseWaterAfterVerification() {
-        lifecycleScope.launch {
-            try {
-                AppLog.i("SMSActivity", "Verification successful - dispensing water")
-                
-                val result = waterFountainManager.dispenseWater()
-                
-                if (result.success) {
-                    AppLog.i("SMSActivity", "Water dispensed successfully")
-                    navigateToAnimation(result.dispensingTimeMs)
-                } else {
-                    AppLog.e("SMSActivity", "Water dispensing failed: ${result.errorMessage}")
-                }
-            } catch (e: Exception) {
-                AppLog.e("SMSActivity", "Dispensing error", e)
-            }
-        }
-    }
-    
-    private fun navigateToAnimation(dispensingTime: Long) {
-        // Create transition intent
-        val intent = Intent(this, VendingAnimationActivity::class.java)
-        intent.putExtra("phoneNumber", phoneNumber)
-        intent.putExtra("dispensingTime", dispensingTime)
-        intent.putExtra("slot", waterFountainManager.getCurrentSlot())
-
-        // Use standard fade transition (same as other screens)
-        startActivity(intent)
-        overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
-        finish()
-    }
-
-
 
     private fun addDigit(digit: String) {
-        when (currentStep) {
-            1 -> {
-                if (phoneNumber.length < MAX_PHONE_LENGTH) {
-                    phoneNumber += digit
-                    updatePhoneDisplayWithAnimation()
-                    binding.verifyButton.isEnabled = phoneNumber.length == MAX_PHONE_LENGTH
-                }
-            }
-            2 -> {
-                if (otpCode.length < MAX_OTP_LENGTH) {
-                    otpCode += digit
-                    updateOtpDisplayWithAnimation()
-                    binding.verifyOtpButton.isEnabled = otpCode.length == MAX_OTP_LENGTH
-                }
-            }
+        if (phoneNumber.length < MAX_PHONE_LENGTH) {
+            phoneNumber += digit
+            updatePhoneDisplayWithAnimation()
+            val isComplete = phoneNumber.length == MAX_PHONE_LENGTH
+            binding.verifyButton.isEnabled = isComplete
+            updateButtonDisabledState(binding.verifyButton, isComplete)
         }
     }
 
     private fun removeLastDigit() {
-        when (currentStep) {
-            1 -> {
-                if (phoneNumber.isNotEmpty()) {
-                    // Animate disappear
-                    binding.phoneDisplay.startAnimation(
-                        android.view.animation.AnimationUtils.loadAnimation(this, R.anim.number_disappear)
-                    )
-                    
-                    lifecycleScope.launch {
-                        delay(100)
-                        phoneNumber = phoneNumber.dropLast(1)
-                        updatePhoneDisplay()
-                        binding.verifyButton.isEnabled = phoneNumber.length == MAX_PHONE_LENGTH
-                    }
-                }
-            }
-            2 -> {
-                if (otpCode.isNotEmpty()) {
-                    // Animate disappear
-                    binding.phoneDisplay.startAnimation(
-                        android.view.animation.AnimationUtils.loadAnimation(this, R.anim.number_disappear)
-                    )
-                    
-                    lifecycleScope.launch {
-                        delay(100)
-                        otpCode = otpCode.dropLast(1)
-                        updateOtpDisplay()
-                        binding.verifyOtpButton.isEnabled = otpCode.length == MAX_OTP_LENGTH
-                    }
-                }
+        if (phoneNumber.isNotEmpty()) {
+            // Animate disappear
+            binding.phoneDisplay.startAnimation(
+                android.view.animation.AnimationUtils.loadAnimation(this, R.anim.number_disappear)
+            )
+            
+            lifecycleScope.launch {
+                delay(100)
+                phoneNumber = phoneNumber.dropLast(1)
+                updatePhoneDisplay()
+                val isComplete = phoneNumber.length == MAX_PHONE_LENGTH
+                binding.verifyButton.isEnabled = isComplete
+                updateButtonDisabledState(binding.verifyButton, isComplete)
             }
         }
     }
 
     private fun clearInput() {
-        when (currentStep) {
-            1 -> {
-                phoneNumber = ""
-                updatePhoneDisplay()
-                binding.verifyButton.isEnabled = false
-            }
-            2 -> {
-                otpCode = ""
-                updateOtpDisplay()
-                binding.verifyOtpButton.isEnabled = false
-            }
+        phoneNumber = ""
+        updatePhoneDisplay()
+        binding.verifyButton.isEnabled = false
+        updateButtonDisabledState(binding.verifyButton, false)
+    }
+    
+    /**
+     * Update button appearance to make disabled state very obvious with smooth fade
+     */
+    private fun updateButtonDisabledState(button: androidx.appcompat.widget.AppCompatButton, isEnabled: Boolean) {
+        // Smooth alpha transition
+        button.animate()
+            .alpha(if (isEnabled) 1.0f else 0.6f)
+            .setDuration(200)
+            .start()
+        
+        // Smooth color transition
+        val startColor = button.currentTextColor
+        val endColor = if (isEnabled) {
+            0xFF888888.toInt()  // Lighter gray when enabled (more visible on glass background)
+        } else {
+            0xFF555555.toInt()  // Dark gray when disabled (less prominent)
         }
+        
+        // Animate color change
+        val colorAnimator = android.animation.ValueAnimator.ofArgb(startColor, endColor)
+        colorAnimator.duration = 200
+        colorAnimator.addUpdateListener { animator ->
+            button.setTextColor(animator.animatedValue as Int)
+        }
+        colorAnimator.start()
     }
 
     private fun updatePhoneDisplay() {
@@ -504,33 +235,6 @@ class SMSActivity : AppCompatActivity() {
         } else {
             maskPhoneNumber(phoneNumber)
         }
-        
-        // Animate the text change
-        binding.phoneDisplay.startAnimation(
-            android.view.animation.AnimationUtils.loadAnimation(this, R.anim.number_appear)
-        )
-        binding.phoneDisplay.text = formatted
-    }
-
-    private fun updateOtpDisplay() {
-        // Smooth transition when display updates - no masking for OTP
-        val formatted = formatOtpCode(otpCode)
-        binding.phoneDisplay.animate()
-            .alpha(0.7f)
-            .setDuration(100)
-            .withEndAction {
-                binding.phoneDisplay.text = formatted
-                binding.phoneDisplay.animate()
-                    .alpha(1f)
-                    .setDuration(150)
-                    .start()
-            }
-            .start()
-    }
-
-    private fun updateOtpDisplayWithAnimation() {
-        // No masking for OTP
-        val formatted = formatOtpCode(otpCode)
         
         // Animate the text change
         binding.phoneDisplay.startAnimation(
@@ -574,47 +278,14 @@ class SMSActivity : AppCompatActivity() {
         }
     }
 
-    private fun formatOtpCode(code: String): String {
-        // Smart formatting: just show the digits with spaces, no underscores
-        if (code.isEmpty()) return ""
-        
-        val digits = code.toCharArray()
-        val formatted = StringBuilder()
-
-        for (i in digits.indices) {
-            formatted.append(digits[i])
-            if (i < digits.size - 1) formatted.append(" ")
-        }
-
-        return formatted.toString()
-    }
-
     private fun setupKeypadListeners() {
-        // Set up send code button listener (step 1)
+        // Set up send code button listener
         binding.verifyButton.setOnClickListener {
             inactivityTimer.reset()
             performButtonAnimation(binding.verifyButton) {
                 if (phoneNumber.length == MAX_PHONE_LENGTH) {
-                    setupOTPStep()
+                    sendCodeAndNavigate()
                 }
-            }
-        }
-
-        // Set up verify OTP button listener (step 2)
-        binding.verifyOtpButton.setOnClickListener {
-            inactivityTimer.reset()
-            performButtonAnimation(binding.verifyOtpButton) {
-                if (otpCode.length == MAX_OTP_LENGTH) {
-                    verifyAndProceed()
-                }
-            }
-        }
-
-        // Set up resend code button listener with proper animation
-        binding.resendCodeButton.setOnClickListener {
-            inactivityTimer.reset()
-            performKeypadAnimation(binding.resendCodeButton) {
-                resendVerificationCode()
             }
         }
 
@@ -707,33 +378,16 @@ class SMSActivity : AppCompatActivity() {
         fullAnimation.start()
     }
 
-    private fun resendVerificationCode() {
-        // Logic to resend the verification code
-        // This could involve calling the SMS service again and updating the UI accordingly
-
-        // For demo, we'll just reset the OTP field
-        otpCode = ""
-        updateOtpDisplay()
-        binding.verifyOtpButton.isEnabled = false
-
-        // Restart the timer
-        startOtpTimer()
-
-        // Simulate resend SMS (in real app, integrate with SMS service)
-        simulateSendSMS()
-    }
-
     override fun onDestroy() {
         super.onDestroy()
         inactivityTimer.cleanup()
-        otpTimerJob?.cancel()
         
-        // Clean up hardware resources
-        if (::waterFountainManager.isInitialized) {
-            lifecycleScope.launch {
-                waterFountainManager.shutdown()
-            }
+        // Clean up animations
+        questionMarkAnimator?.apply {
+            removeAllListeners()
+            cancel()
         }
+        questionMarkAnimator = null
     }
 
     override fun onResume() {
@@ -745,6 +399,5 @@ class SMSActivity : AppCompatActivity() {
     override fun onPause() {
         super.onPause()
         inactivityTimer.stop()
-        otpTimerJob?.cancel()
     }
 }

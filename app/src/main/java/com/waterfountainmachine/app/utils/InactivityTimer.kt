@@ -22,7 +22,7 @@ class InactivityTimer(
     fun start() {
         stop()
         runnable = Runnable { onTimeout() }
-        handler.postDelayed(runnable!!, timeoutMillis)
+        runnable?.let { handler.postDelayed(it, timeoutMillis) }
     }
     
     /**
@@ -46,5 +46,6 @@ class InactivityTimer(
      */
     fun cleanup() {
         stop()
+        handler.removeCallbacksAndMessages(null)
     }
 }

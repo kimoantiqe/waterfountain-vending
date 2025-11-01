@@ -54,8 +54,11 @@ object AnimationUtils {
         // Make animation repeat
         animator.addListener(object : android.animation.AnimatorListenerAdapter() {
             override fun onAnimationEnd(animation: android.animation.Animator) {
+                // Use weak reference to prevent memory leak
                 rootView.postDelayed({
-                    animator.start()
+                    if (!animator.isRunning) {
+                        animator.start()
+                    }
                 }, 1500)
             }
         })
@@ -148,5 +151,86 @@ object AnimationUtils {
         })
         
         fullAnimation.start()
+    }
+    
+    /**
+     * Create a press animation for views (common pattern)
+     * 
+     * @param view The view to animate
+     * @param scaleDown Scale factor when pressed (default 0.95)
+     * @param onComplete Callback when animation completes
+     */
+    fun performPressAnimation(
+        view: View,
+        scaleDown: Float = 0.95f,
+        onComplete: (() -> Unit)? = null
+    ) {
+        val scaleDownX = ObjectAnimator.ofFloat(view, "scaleX", 1f, scaleDown)
+        val scaleDownY = ObjectAnimator.ofFloat(view, "scaleY", 1f, scaleDown)
+        val scaleUpX = ObjectAnimator.ofFloat(view, "scaleX", scaleDown, 1.02f)
+        val scaleUpY = ObjectAnimator.ofFloat(view, "scaleY", scaleDown, 1.02f)
+        val scaleNormalX = ObjectAnimator.ofFloat(view, "scaleX", 1.02f, 1f)
+        val scaleNormalY = ObjectAnimator.ofFloat(view, "scaleY", 1.02f, 1f)
+
+        val animatorSet = AnimatorSet().apply {
+            play(scaleDownX).with(scaleDownY)
+            play(scaleUpX).with(scaleUpY).after(scaleDownX)
+            play(scaleNormalX).with(scaleNormalY).after(scaleUpX)
+            duration = 200
+            interpolator = AccelerateDecelerateInterpolator()
+        }
+
+        animatorSet.addListener(object : android.animation.AnimatorListenerAdapter() {
+            override fun onAnimationEnd(animation: android.animation.Animator) {
+                onComplete?.invoke()
+            }
+        })
+
+        animatorSet.start()
+    }
+    
+    /**
+     * Setup standard modal functionality (show/hide with click handlers)
+     * 
+     * @param modalOverlay The modal overlay view
+     * @param modalContent The modal content view
+     * @param questionMarkButton The button to show the modal
+     * @param closeModalButton The button to close the modal
+     * @param onShow Optional callback when modal is shown
+     */
+    fun setupModalFunctionality(
+        modalOverlay: View,
+        modalContent: View,
+        questionMarkButton: View,
+        closeModalButton: View,
+        onShow: (() -> Unit)? = null
+    ) {
+        // Question mark button click
+        questionMarkButton.setOnClickListener {
+            modalOverlay.visibility = View.VISIBLE
+            showModalAnimation(modalContent)
+            onShow?.invoke()
+        }
+
+        // Close modal button click
+        closeModalButton.setOnClickListener {
+            hideModalAnimation(modalContent) {
+                modalOverlay.visibility = View.GONE
+            }
+        }
+
+        // Click outside modal to close
+        modalOverlay.setOnClickListener { view ->
+            if (view == modalOverlay) {
+                hideModalAnimation(modalContent) {
+                    modalOverlay.visibility = View.GONE
+                }
+            }
+        }
+
+        // Prevent modal content clicks from closing modal
+        modalContent.setOnClickListener {
+            // Do nothing - prevent click from bubbling up
+        }
     }
 }

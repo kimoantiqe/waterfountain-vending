@@ -29,7 +29,13 @@ class MainActivity : AppCompatActivity() {
     private var questionMarkAnimator: AnimatorSet? = null
     private var canBobbingAnimator: AnimatorSet? = null
     private lateinit var adminGestureDetector: AdminGestureDetector
-    private var isNavigating = false // Prevent multiple launches
+    
+    // Prevent multiple launches - FLAG_ACTIVITY_SINGLE_TOP provides primary protection
+    // This flag provides additional UI feedback during navigation
+    private var isNavigating = false
+    
+    // Runnable references for proper cleanup
+    private val navigationResetRunnable = Runnable { isNavigating = false }
 
     companion object {
         private const val TAG = "MainActivity"
@@ -101,9 +107,7 @@ class MainActivity : AppCompatActivity() {
                     overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
                     
                     // Reset flag after delay
-                    binding.root.postDelayed({
-                        isNavigating = false
-                    }, 1000)
+                    binding.root.postDelayed(navigationResetRunnable, 1000)
                 }
             }
         }
@@ -367,9 +371,23 @@ class MainActivity : AppCompatActivity() {
     
     override fun onDestroy() {
         super.onDestroy()
+        
         // Clean up animations
-        questionMarkAnimator?.cancel()
-        canBobbingAnimator?.cancel()
+        questionMarkAnimator?.apply {
+            removeAllListeners()
+            cancel()
+        }
+        questionMarkAnimator = null
+        
+        canBobbingAnimator?.apply {
+            removeAllListeners()
+            cancel()
+        }
+        canBobbingAnimator = null
+        
+        // Clean up pending callbacks
+        binding.root.removeCallbacks(navigationResetRunnable)
+        
         AppLog.d(TAG, "MainActivity destroyed")
     }
 

@@ -28,7 +28,6 @@ object WaterFountainDebug {
             results.add("✓ Config loaded successfully")
             results.add("  - Water Slot: ${config.waterSlot}")
             results.add("  - Serial Baud Rate: ${config.serialBaudRate}")
-            results.add("  - Command Timeout: ${config.commandTimeoutMs}ms")
             results.add("  - Status Polling Interval: ${config.statusPollingIntervalMs}ms")
             results.add("  - Max Polling Attempts: ${config.maxPollingAttempts}")
             
@@ -104,7 +103,6 @@ object WaterFountainDebug {
         // Set testing-friendly values
         config.waterSlot = 1
         config.serialBaudRate = 9600
-        config.commandTimeoutMs = 3000L  // Shorter for testing
         config.statusPollingIntervalMs = 200L
         config.maxPollingAttempts = 10  // Fewer for faster testing
         
@@ -121,7 +119,6 @@ object WaterFountainDebug {
         // Set production values
         config.waterSlot = 1
         config.serialBaudRate = 9600
-        config.commandTimeoutMs = 5000L
         config.statusPollingIntervalMs = 500L
         config.maxPollingAttempts = 20
         

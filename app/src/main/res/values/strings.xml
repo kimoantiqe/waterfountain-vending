@@ -37,4 +37,21 @@
     <string name="generating_qr">Generating your QR code...</string>
     <string name="refresh_code">Generate New Code</string>
     <string name="qr_footer_instruction">Scan with your phone camera or QR app</string>
+    
+    <!-- Vending Animation Messages -->
+    <string-array name="magic_messages">
+        <item>Magic is happening...</item>
+        <item>Crafting your moment...</item>
+        <item>Hydration incoming...</item>
+        <item>Good things take time...</item>
+        <item>Almost there...</item>
+    </string-array>
+    
+    <string-array name="completion_messages">
+        <item>Your water is ready!</item>
+        <item>Grab your refreshment!</item>
+        <item>Enjoy! On the house.</item>
+        <item>Stay hydrated!</item>
+        <item>Freshly dispensed!</item>
+    </string-array>
 </resources>

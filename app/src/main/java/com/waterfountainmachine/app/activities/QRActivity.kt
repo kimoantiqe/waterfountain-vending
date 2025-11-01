@@ -40,7 +40,7 @@ class QRActivity : AppCompatActivity() {
         FullScreenUtils.setupFullScreen(window, findViewById(android.R.id.content))
         setupClickListeners()
 
-        inactivityTimer = InactivityTimer(60000L) { finish() }
+        inactivityTimer = InactivityTimer(60000L) { returnToMainScreen() }
         inactivityTimer.start()
 
         // Show spinner for 2 seconds then display mock QR code
@@ -55,7 +55,7 @@ class QRActivity : AppCompatActivity() {
 
     private fun setupClickListeners() {
         findViewById<View>(R.id.backButton).setOnClickListener {
-            finish()
+            returnToMainScreen()
         }
 
         findViewById<View>(R.id.refreshButton).setOnClickListener {
@@ -64,6 +64,14 @@ class QRActivity : AppCompatActivity() {
             showLoadingState()
             generateMockQRCode()
         }
+    }
+
+    private fun returnToMainScreen() {
+        val intent = Intent(this, MainActivity::class.java)
+        intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK
+        startActivity(intent)
+        finish()
+        overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
     }
 
     private fun generateMockQRCode() {

@@ -1,20 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
     
-    <!-- Disabled state - darker and more subdued -->
+    <!-- Disabled state - very obvious grayed out appearance -->
     <item android:state_enabled="false">
         <layer-list>
+            <!-- Dark background with heavy gray tint -->
             <item>
                 <shape android:shape="rectangle">
                     <corners android:radius="20dp"/>
-                    <solid android:color="#1A000000"/>
-                    <stroke android:width="1dp" android:color="#26FFFFFF"/>
+                    <solid android:color="#40000000"/>
+                    <stroke android:width="2dp" android:color="#40555555"/>
                 </shape>
             </item>
+            <!-- Subtle top highlight (very dim) -->
             <item android:top="1dp" android:bottom="999dp">
                 <shape android:shape="rectangle">
                     <corners android:topLeftRadius="20dp" android:topRightRadius="20dp"/>
-                    <solid android:color="#0DFFFFFF"/>
+                    <solid android:color="#10FFFFFF"/>
                 </shape>
             </item>
         </layer-list>

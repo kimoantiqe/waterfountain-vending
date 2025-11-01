@@ -13,13 +13,20 @@ import com.google.zxing.qrcode.QRCodeWriter
 import com.waterfountainmachine.app.databinding.ActivityPrivacyExplanationBinding
 import com.waterfountainmachine.app.utils.AppLog
 import com.waterfountainmachine.app.utils.FullScreenUtils
+import com.waterfountainmachine.app.utils.InactivityTimer
 
 class PrivacyExplanationActivity : AppCompatActivity() {
     private lateinit var binding: ActivityPrivacyExplanationBinding
+    private lateinit var inactivityTimer: InactivityTimer
     private var isNavigating = false // Prevent multiple launches
+    private var questionMarkAnimator: AnimatorSet? = null
+    
+    // Runnable references for proper cleanup
+    private val navigationResetRunnable = Runnable { isNavigating = false }
 
     companion object {
         private const val TAG = "PrivacyExplanationActivity"
+        private const val INACTIVITY_TIMEOUT_MS = 120_000L // 2 minutes
         
         // URLs for each privacy topic
         private const val URL_FREE_WATER = "https://waterfountain.com/how-it-works"
@@ -38,6 +45,9 @@ class PrivacyExplanationActivity : AppCompatActivity() {
         setupFullScreen()
         setupClickListeners()
         setupFadingAnimation()
+        
+        inactivityTimer = InactivityTimer(INACTIVITY_TIMEOUT_MS) { returnToMainScreen() }
+        inactivityTimer.start()
     }
 
     private fun setupFullScreen() {
@@ -69,13 +79,14 @@ class PrivacyExplanationActivity : AppCompatActivity() {
     private fun setupClickListeners() {
         // Close button - go back to main screen
         binding.closeButton.setOnClickListener {
+            inactivityTimer.reset()
             AppLog.d(TAG, "Close button clicked - returning to main screen")
-            finish()
-            overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
+            returnToMainScreen()
         }
 
         // Root view click listener - tap anywhere to continue (excluding cards and buttons)
         binding.root.setOnClickListener {
+            inactivityTimer.reset()
             // Only navigate if modal is not visible and not already navigating
             if (binding.modalOverlay.visibility == View.GONE && !isNavigating) {
                 AppLog.d(TAG, "Screen tapped - launching SMSActivity")
@@ -88,14 +99,13 @@ class PrivacyExplanationActivity : AppCompatActivity() {
                 finish()
                 
                 // Reset flag after delay
-                binding.root.postDelayed({
-                    isNavigating = false
-                }, 1000)
+                binding.root.postDelayed(navigationResetRunnable, 1000)
             }
         }
 
         // Got It button - proceed to SMS activity
         binding.gotItButton.setOnClickListener {
+            inactivityTimer.reset()
             if (!isNavigating) {
                 AppLog.d(TAG, "Got It button clicked - launching SMSActivity")
                 isNavigating = true
@@ -107,9 +117,7 @@ class PrivacyExplanationActivity : AppCompatActivity() {
                 finish()
                 
                 // Reset flag after delay
-                binding.root.postDelayed({
-                    isNavigating = false
-                }, 1000)
+                binding.root.postDelayed(navigationResetRunnable, 1000)
             }
         }
 
@@ -137,15 +145,18 @@ class PrivacyExplanationActivity : AppCompatActivity() {
 
         // Close modal button and overlay click
         binding.closeModalButton.setOnClickListener {
+            inactivityTimer.reset()
             hideModal()
         }
 
         binding.modalOverlay.setOnClickListener {
+            inactivityTimer.reset()
             hideModal()
         }
 
         // Question mark button - show help information (consume click)
         binding.questionMarkButton.setOnClickListener {
+            inactivityTimer.reset()
             AppLog.d(TAG, "Question mark button clicked - showing help modal")
             showModal(
                 "Need Help?",
@@ -158,6 +169,7 @@ class PrivacyExplanationActivity : AppCompatActivity() {
 
     private fun setupCardClickListener(card: View, title: String, description: String, url: String) {
         card.setOnClickListener {
+            inactivityTimer.reset()
             // Animate card press
             animateCardPress(card) {
                 showModal(title, description, url)
@@ -261,6 +273,14 @@ class PrivacyExplanationActivity : AppCompatActivity() {
         return bitmap
     }
 
+    private fun returnToMainScreen() {
+        val intent = android.content.Intent(this, MainActivity::class.java)
+        intent.flags = android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP or android.content.Intent.FLAG_ACTIVITY_NEW_TASK
+        startActivity(intent)
+        finish()
+        overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
+    }
+
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
         if (hasFocus) {
@@ -268,12 +288,40 @@ class PrivacyExplanationActivity : AppCompatActivity() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        inactivityTimer.reset()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        inactivityTimer.stop()
+    }
+
     override fun onBackPressed() {
         // If modal is showing, close it instead of activity
         if (binding.modalOverlay.visibility == View.VISIBLE) {
             hideModal()
         } else {
-            super.onBackPressed()
+            returnToMainScreen()
         }
+    }
+    
+    override fun onDestroy() {
+        super.onDestroy()
+        
+        inactivityTimer.cleanup()
+        
+        // Clean up animations
+        questionMarkAnimator?.apply {
+            removeAllListeners()
+            cancel()
+        }
+        questionMarkAnimator = null
+        
+        // Clean up pending callbacks
+        binding.root.removeCallbacks(navigationResetRunnable)
+        
+        AppLog.d(TAG, "PrivacyExplanationActivity destroyed")
     }
 }

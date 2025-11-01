@@ -16,6 +16,7 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.lifecycleScope
 import com.waterfountainmachine.app.R
+import com.waterfountainmachine.app.databinding.ActivityVendingAnimationBinding
 import com.waterfountainmachine.app.views.ProgressRingView
 import com.waterfountainmachine.app.utils.FullScreenUtils
 import nl.dionsegijn.konfetti.core.Party
@@ -29,41 +30,45 @@ import java.util.concurrent.TimeUnit
 
 class VendingAnimationActivity : AppCompatActivity() {
 
-    private lateinit var statusText: TextView
-    private lateinit var completionText: TextView
-    private lateinit var progressRing: ProgressRingView
-    private lateinit var logoImage: ImageView
-    private lateinit var ringContainer: FrameLayout
-    private lateinit var konfettiView: KonfettiView
+    private lateinit var binding: ActivityVendingAnimationBinding
 
     private var phoneNumber: String? = null
     private var dispensingTime: Long = 0
     private var slot: Int = 1
-
-    private val magicMessages = listOf(
-        "Magic is happening...",
-        "Crafting your moment...",
-        "Hydration incoming...",
-        "Good things take time...",
-        "Almost there..."
-    )
-
-    private val completionMessages = listOf(
-        "Your water is ready!",
-        "Grab your refreshment!",
-        "Enjoy! On the house.",
-        "Stay hydrated!",
-        "Freshly dispensed!"
-    )
+    
+    // Runnable references for cleanup
+    private val logoDelayedRunnable = Runnable {
+        binding.logoImage.animate()
+            .alpha(1f)
+            .scaleX(1f)
+            .scaleY(1f)
+            .rotation(0f)
+            .setDuration(900)
+            .setInterpolator(OvershootInterpolator(1.2f))
+            .withLayer()  // Use hardware layer during animation for smooth 60fps
+            .start()
+    }
+    
+    private val confettiDelayedRunnable = Runnable {
+        launchConfetti()
+    }
     
     companion object {
-        private const val FADE_IN_DELAY_MS = 200L
+        private const val FADE_IN_DELAY_MS = 50L  // Start almost immediately for smooth page transition
         private const val PROGRESS_START_DELAY_MS = 1000L
-        private const val PROGRESS_DURATION_MS = 14000L  // Extended from 6s to 14s
-        private const val RING_COMPLETION_DELAY_MS = 15000L  // Extended from 7s to 15s
-        private const val MORPH_TO_LOGO_DELAY_MS = 15500L  // Extended from 7.5s to 15.5s
-        private const val SHOW_COMPLETION_DELAY_MS = 16500L  // Extended from 8.5s to 16.5s
-        private const val RETURN_TO_MAIN_DELAY_MS = 21000L  // Extended from 12s to 21s
+        private const val PROGRESS_DURATION_MS = 14000L
+        private const val RING_COMPLETION_DELAY_MS = 15000L
+        private const val MORPH_TO_LOGO_DELAY_MS = 15500L
+        private const val SHOW_COMPLETION_DELAY_MS = 16500L
+        private const val RETURN_TO_MAIN_DELAY_MS = 21000L
+        
+        // Confetti configuration
+        private const val CONFETTI_SPEED = 20f
+        private const val CONFETTI_MAX_SPEED = 40f
+        private const val CONFETTI_DAMPING = 0.9f
+        private const val CONFETTI_SPREAD = 90
+        private const val CONFETTI_DURATION_MS = 4500L
+        private const val CONFETTI_PARTICLES_PER_SECOND = 30
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -72,7 +77,8 @@ class VendingAnimationActivity : AppCompatActivity() {
         // Set window background to match gradient BEFORE setContentView to prevent black flash
         window.setBackgroundDrawableResource(R.drawable.gradient_background_main)
         
-        setContentView(R.layout.activity_vending_animation)
+        binding = ActivityVendingAnimationBinding.inflate(layoutInflater)
+        setContentView(binding.root)
 
         phoneNumber = intent.getStringExtra("phoneNumber")
         dispensingTime = intent.getLongExtra("dispensingTime", 8000)
@@ -80,20 +86,24 @@ class VendingAnimationActivity : AppCompatActivity() {
 
         initializeViews()
         setupFullscreen()
+        
+        // Start all views invisible to prevent "boop in" effect
+        binding.statusText.alpha = 0f
+        binding.ringContainer.alpha = 0f
+        binding.completionText.alpha = 0f
+        binding.logoImage.alpha = 0f
+        
         startRingAnimation()
     }
 
     private fun initializeViews() {
-        statusText = findViewById(R.id.statusText)
-        completionText = findViewById(R.id.completionText)
-        progressRing = findViewById(R.id.progressRing)
-        logoImage = findViewById(R.id.logoImage)
-        ringContainer = findViewById(R.id.ringContainer)
-        konfettiView = findViewById(R.id.konfettiView)
-
+        // Load random messages from resources
+        val magicMessages = resources.getStringArray(R.array.magic_messages)
+        val completionMessages = resources.getStringArray(R.array.completion_messages)
+        
         // Set random messages
-        statusText.text = magicMessages.random()
-        completionText.text = completionMessages.random()
+        binding.statusText.text = magicMessages.random()
+        binding.completionText.text = completionMessages.random()
     }
 
     private fun setupFullscreen() {
@@ -109,7 +119,7 @@ class VendingAnimationActivity : AppCompatActivity() {
 
             // Phase 2: Start ring progress (1-7s)
             delay(PROGRESS_START_DELAY_MS - FADE_IN_DELAY_MS)
-            progressRing.animateProgress(PROGRESS_DURATION_MS)
+            binding.progressRing.animateProgress(PROGRESS_DURATION_MS)
 
             // Phase 3: Ring completion snap (7s)
             delay(RING_COMPLETION_DELAY_MS - PROGRESS_START_DELAY_MS)
@@ -130,36 +140,37 @@ class VendingAnimationActivity : AppCompatActivity() {
     }
 
     private fun fadeInElements() {
-        // Fade in status text with elegant rise
-        statusText.translationY = 30f
-        statusText.animate()
+        // Fade in status text with elegant rise - slower and smoother
+        binding.statusText.alpha = 0f
+        binding.statusText.translationY = 40f
+        binding.statusText.animate()
             .alpha(1f)
             .translationY(0f)
-            .setDuration(1000)
-            .setInterpolator(DecelerateInterpolator(2f))
+            .setDuration(1500)  // Slower fade
+            .setInterpolator(DecelerateInterpolator(3f))  // Much smoother
             .start()
 
-        // Fade in ring container with slight scale and rotation hint
-        ringContainer.scaleX = 0.7f
-        ringContainer.scaleY = 0.7f
-        ringContainer.alpha = 0f
-        ringContainer.animate()
+        // Fade in ring container with slight scale - slower and more subtle
+        binding.ringContainer.scaleX = 0.90f
+        binding.ringContainer.scaleY = 0.90f
+        binding.ringContainer.alpha = 0f
+        binding.ringContainer.animate()
             .alpha(1f)
             .scaleX(1f)
             .scaleY(1f)
-            .setDuration(1000)
-            .setInterpolator(DecelerateInterpolator(2f))
+            .setDuration(1500)  // Slower fade
+            .setInterpolator(DecelerateInterpolator(3f))  // Much smoother
             .start()
     }
 
     private fun ringCompletionSnap() {
         // Glow effect
-        progressRing.animateGlow()
+        binding.progressRing.animateGlow()
 
         // More dramatic "snap" animation with rotation pulse
-        val scaleX = ObjectAnimator.ofFloat(ringContainer, "scaleX", 1f, 1.12f, 0.98f, 1.02f, 1f)
-        val scaleY = ObjectAnimator.ofFloat(ringContainer, "scaleY", 1f, 1.12f, 0.98f, 1.02f, 1f)
-        val rotation = ObjectAnimator.ofFloat(ringContainer, "rotation", 0f, 5f, -3f, 0f)
+        val scaleX = ObjectAnimator.ofFloat(binding.ringContainer, "scaleX", 1f, 1.12f, 0.98f, 1.02f, 1f)
+        val scaleY = ObjectAnimator.ofFloat(binding.ringContainer, "scaleY", 1f, 1.12f, 0.98f, 1.02f, 1f)
+        val rotation = ObjectAnimator.ofFloat(binding.ringContainer, "rotation", 0f, 5f, -3f, 0f)
 
         AnimatorSet().apply {
             playTogether(scaleX, scaleY, rotation)
@@ -171,49 +182,47 @@ class VendingAnimationActivity : AppCompatActivity() {
 
     private fun morphToLogo() {
         // Fade out status text with elegant fall
-        statusText.animate()
+        binding.statusText.animate()
             .alpha(0f)
             .translationY(-30f)
-            .setDuration(500)
+            .setDuration(600)
+            .setInterpolator(DecelerateInterpolator(2f))
             .start()
 
         // Shrink the entire ring container dramatically as ring fades
-        ringContainer.animate()
+        binding.ringContainer.animate()
             .scaleX(0.65f)
             .scaleY(0.65f)
-            .setDuration(700)
-            .setInterpolator(DecelerateInterpolator(2f))
+            .setDuration(800)
+            .setInterpolator(DecelerateInterpolator(2.5f))
             .start()
 
-        // Fade out ring with rotation
-        progressRing.animate()
+        // Fade out ring with REDUCED rotation for smoother animation
+        binding.progressRing.animate()
             .alpha(0f)
             .scaleX(0.7f)
             .scaleY(0.7f)
-            .rotation(180f)
-            .setDuration(700)
-            .setInterpolator(DecelerateInterpolator(2f))
+            .rotation(90f)  // Reduced from 180f to 90f
+            .setDuration(800)
+            .setInterpolator(DecelerateInterpolator(2.5f))
+            .withLayer()  // Use hardware layer during animation
             .start()
 
-        // Fade in logo with dramatic entrance from tiny scale
-        logoImage.scaleX = 0.2f
-        logoImage.scaleY = 0.2f
-        logoImage.rotation = -180f
-        logoImage.animate()
-            .alpha(1f)
-            .scaleX(1f)
-            .scaleY(1f)
-            .rotation(0f)
-            .setDuration(800)
-            .setInterpolator(OvershootInterpolator(1.5f))
-            .start()
+        // Fade in logo with dramatic entrance - REDUCED rotation for smooth 60fps
+        binding.logoImage.alpha = 0f
+        binding.logoImage.scaleX = 0.3f
+        binding.logoImage.scaleY = 0.3f
+        binding.logoImage.rotation = -45f  // Reduced from -180f to -45f
+        
+        // Delay logo appearance slightly so ring fades first
+        binding.logoImage.postDelayed(logoDelayedRunnable, 200)
     }
 
     private fun showCompletion() {
         // Dramatic logo pulse with glow effect, then shrink significantly
-        val scaleX = ObjectAnimator.ofFloat(logoImage, "scaleX", 1f, 1.15f, 1.05f, 1f, 0.85f, 0.7f)
-        val scaleY = ObjectAnimator.ofFloat(logoImage, "scaleY", 1f, 1.15f, 1.05f, 1f, 0.85f, 0.7f)
-        val rotation = ObjectAnimator.ofFloat(logoImage, "rotation", 0f, -5f, 5f, 0f, 0f, 0f)
+        val scaleX = ObjectAnimator.ofFloat(binding.logoImage, "scaleX", 1f, 1.15f, 1.05f, 1f, 0.85f, 0.7f)
+        val scaleY = ObjectAnimator.ofFloat(binding.logoImage, "scaleY", 1f, 1.15f, 1.05f, 1f, 0.85f, 0.7f)
+        val rotation = ObjectAnimator.ofFloat(binding.logoImage, "rotation", 0f, -5f, 5f, 0f, 0f, 0f)
 
         AnimatorSet().apply {
             playTogether(scaleX, scaleY, rotation)
@@ -222,17 +231,19 @@ class VendingAnimationActivity : AppCompatActivity() {
             start()
         }
 
-        // Fade in completion text with elegant rise
-        completionText.translationY = 40f
-        completionText.animate()
+        // Fade in completion text with elegant rise - start from fully transparent
+        binding.completionText.alpha = 0f
+        binding.completionText.translationY = 50f
+        binding.completionText.animate()
             .alpha(1f)
             .translationY(0f)
-            .setDuration(800)
-            .setInterpolator(DecelerateInterpolator(2f))
+            .setStartDelay(300) // Delay to let logo settle first
+            .setDuration(1000)
+            .setInterpolator(DecelerateInterpolator(2.5f))
             .start()
 
-        // Trigger konfetti
-        launchConfetti()
+        // Trigger konfetti with slight delay for better timing
+        binding.root.postDelayed(confettiDelayedRunnable, 200)
     }
 
     private fun launchConfetti() {
@@ -337,7 +348,7 @@ class VendingAnimationActivity : AppCompatActivity() {
         )
 
         // Start all parties simultaneously for full-screen effect
-        konfettiView.start(parties)
+        binding.konfettiView.start(parties)
     }
 
     private fun returnToMainScreen() {
@@ -354,5 +365,12 @@ class VendingAnimationActivity : AppCompatActivity() {
     override fun onBackPressed() {
         // Disable back button during animation - do nothing
         // Intentionally not calling super.onBackPressed() to prevent user from interrupting animation
+    }
+    
+    override fun onDestroy() {
+        // Clean up any pending callbacks to prevent memory leaks
+        binding.logoImage.removeCallbacks(logoDelayedRunnable)
+        binding.root.removeCallbacks(confettiDelayedRunnable)
+        super.onDestroy()
     }
 }

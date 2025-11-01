@@ -25,6 +25,9 @@ class VendingActivity : AppCompatActivity() {
     private var questionMarkAnimator: AnimatorSet? = null
     private var isNavigating = false // Prevent multiple activity launches
     
+    // Runnable references for proper cleanup
+    private val navigationResetRunnable = Runnable { isNavigating = false }
+    
     // Water Fountain Hardware Integration
     private lateinit var waterFountainManager: WaterFountainManager
     private var isHardwareInitialized = false
@@ -63,7 +66,7 @@ class VendingActivity : AppCompatActivity() {
                     overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
                     
                     // Reset flag after delay
-                    binding.root.postDelayed({ isNavigating = false }, 1000)
+                    binding.root.postDelayed(navigationResetRunnable, 1000)
                 }
             }
         }
@@ -80,7 +83,7 @@ class VendingActivity : AppCompatActivity() {
                     dispenseWaterDirect()
                     
                     // Reset flag after delay
-                    binding.root.postDelayed({ isNavigating = false }, 1000)
+                    binding.root.postDelayed(navigationResetRunnable, 1000)
                 }
             }
         }
@@ -97,7 +100,7 @@ class VendingActivity : AppCompatActivity() {
                     runSystemDiagnostics()
                     
                     // Reset flag after delay
-                    binding.root.postDelayed({ isNavigating = false }, 2000) // Longer for diagnostics
+                    binding.root.postDelayed(navigationResetRunnable, 2000) // Longer for diagnostics
                 }
             }
         }
@@ -235,7 +238,8 @@ class VendingActivity : AppCompatActivity() {
                         intent.putExtra("dispensingTime", result.dispensingTimeMs)
                         intent.putExtra("slot", result.slot)
                         startActivity(intent)
-                        overridePendingTransition(R.anim.zoom_in_fade, R.anim.zoom_out_fade)
+                        @Suppress("DEPRECATION")
+                        overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
                         
                     } else {
                         AppLog.e("VendingActivity", "Water dispensing failed: ${result.errorMessage}")
@@ -278,6 +282,16 @@ class VendingActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         inactivityTimer.cleanup()
+        
+        // Clean up animations
+        questionMarkAnimator?.apply {
+            removeAllListeners()
+            cancel()
+        }
+        questionMarkAnimator = null
+        
+        // Clean up pending callbacks
+        binding.root.removeCallbacks(navigationResetRunnable)
         
         // Don't shutdown hardware here - it's managed by Application class
         // Hardware stays alive for the entire app lifecycle

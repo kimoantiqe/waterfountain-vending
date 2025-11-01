@@ -17,14 +17,12 @@ class WaterFountainConfig private constructor(context: Context) {
         private const val PREFS_NAME = "water_fountain_config"
         private const val KEY_WATER_SLOT = "water_slot"
         private const val KEY_SERIAL_BAUD_RATE = "serial_baud_rate"
-        private const val KEY_COMMAND_TIMEOUT = "command_timeout_ms"
         private const val KEY_STATUS_POLLING_INTERVAL = "status_polling_interval_ms"
         private const val KEY_MAX_POLLING_ATTEMPTS = "max_polling_attempts"
         
         // Default values
         private const val DEFAULT_WATER_SLOT = 1
-        private const val DEFAULT_BAUD_RATE = 9600  // VMC uses 9600 baud
-        private const val DEFAULT_COMMAND_TIMEOUT = 25000L  // UNUSED: Vendor SDK manages timeouts internally
+        private const val DEFAULT_BAUD_RATE = 9600  // VMC uses 9600 baud (informational only)
         private const val DEFAULT_STATUS_POLLING_INTERVAL = 500L
         private const val DEFAULT_MAX_POLLING_ATTEMPTS = 20
         
@@ -50,18 +48,11 @@ class WaterFountainConfig private constructor(context: Context) {
         }
     
     /**
-     * Serial communication baud rate
+     * Serial communication baud rate (informational only - vendor SDK hardcodes this)
      */
     var serialBaudRate: Int
         get() = prefs.getInt(KEY_SERIAL_BAUD_RATE, DEFAULT_BAUD_RATE)
         set(value) = prefs.edit().putInt(KEY_SERIAL_BAUD_RATE, value).apply()
-    
-    /**
-     * Command timeout in milliseconds
-     */
-    var commandTimeoutMs: Long
-        get() = prefs.getLong(KEY_COMMAND_TIMEOUT, DEFAULT_COMMAND_TIMEOUT)
-        set(value) = prefs.edit().putLong(KEY_COMMAND_TIMEOUT, value).apply()
     
     /**
      * Status polling interval in milliseconds
@@ -91,8 +82,7 @@ class WaterFountainConfig private constructor(context: Context) {
         return """
             Water Fountain Configuration:
             - Water Slot: $waterSlot
-            - Serial Baud Rate: $serialBaudRate
-            - Command Timeout: ${commandTimeoutMs}ms
+            - Serial Baud Rate: $serialBaudRate (informational - SDK manages actual value)
             - Status Polling Interval: ${statusPollingIntervalMs}ms
             - Max Polling Attempts: $maxPollingAttempts
         """.trimIndent()
