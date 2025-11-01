@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/gradient_background_main">
+    android:background="@drawable/background2">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -12,54 +12,54 @@
         android:padding="80dp"
         android:gravity="center">
 
-        <!-- Header with Back Button and Centered Logo/Wordmark -->
+        <!-- Header with Back Button and Centered Wordmark -->
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="100dp"
-            android:gravity="center_vertical"
-            android:layout_marginBottom="60dp">
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:layout_marginBottom="32dp"
+            android:gravity="center_vertical">
 
-            <ImageButton
-                android:id="@+id/backButton"
+            <!-- Back Button -->
+            <FrameLayout
                 android:layout_width="80dp"
-                android:layout_height="80dp"
-                android:background="?android:attr/selectableItemBackgroundBorderless"
-                android:contentDescription="@string/back_button"
-                android:src="@drawable/ic_arrow_back"
-                android:alpha="0.9"
-                app:tint="@android:color/white" />
-
-            <View
-                android:layout_width="0dp"
-                android:layout_height="1dp"
-                android:layout_weight="1" />
-
-            <!-- Centered Logo and Wordmark -->
-            <LinearLayout
-                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:gravity="center_vertical"
-                android:orientation="horizontal">
+                android:gravity="center_vertical">
 
-                <ImageView
-                    android:layout_width="100dp"
-                    android:layout_height="100dp"
-                    android:layout_marginEnd="20dp"
-                    android:src="@drawable/logo"
-                    android:contentDescription="@string/waterfountain_logo"
-                    android:scaleType="fitCenter" />
+                <ImageButton
+                    android:id="@+id/backButton"
+                    android:layout_width="80dp"
+                    android:layout_height="80dp"
+                    android:background="?android:attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="@string/back_button"
+                    android:src="@drawable/ic_arrow_back"
+                    android:alpha="0.9"
+                    app:tint="@android:color/white" />
 
-                <TextView
-                    android:text="@string/wordmark_text"
-                    android:contentDescription="@string/waterfountain_wordmark"
-                    style="@style/WordmarkTextStyle.Small" />
+            </FrameLayout>
 
-            </LinearLayout>
-
-            <View
+            <!-- Centered Wordmark Only (matching main activity) -->
+            <TextView
                 android:layout_width="0dp"
-                android:layout_height="1dp"
-                android:layout_weight="1" />
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:text="@string/wordmark_text"
+                android:contentDescription="@string/waterfountain_wordmark"
+                android:textSize="72sp"
+                android:textColor="@android:color/white"
+                android:fontFamily="@font/century_gothic_bold"
+                android:maxLines="1"
+                android:singleLine="true"
+                android:ellipsize="end"
+                android:gravity="center"
+                android:letterSpacing="-0.09"
+                android:includeFontPadding="false"
+                android:paddingHorizontal="16dp" />
+
+            <!-- Empty space to balance the back button -->
+            <View
+                android:layout_width="80dp"
+                android:layout_height="match_parent" />
 
         </LinearLayout>
 

@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/gradient_background_main"
+    android:background="@drawable/background2"
     android:clipChildren="false"
     android:clipToPadding="false">
 
@@ -39,15 +39,11 @@
                 android:layout_height="wrap_content"
                 android:text="Magic is happening..."
                 android:textSize="72sp"
-                android:textColor="@android:color/white"
+                android:textColor="#555555"
                 android:fontFamily="sans-serif-light"
                 android:gravity="center"
                 android:alpha="0"
-                android:layout_marginBottom="120dp"
-                android:shadowColor="#4064A9FF"
-                android:shadowDx="0"
-                android:shadowDy="0"
-                android:shadowRadius="20"/>
+                android:layout_marginBottom="120dp"/>
 
             <!-- Progress Ring and HUGE Logo Container -->
             <FrameLayout
@@ -84,16 +80,12 @@
                 android:layout_height="wrap_content"
                 android:text="Your water is ready!"
                 android:textSize="68sp"
-                android:textColor="@android:color/white"
+                android:textColor="#555555"
                 android:fontFamily="sans-serif-medium"
                 android:gravity="center"
                 android:alpha="0"
                 android:layout_marginTop="120dp"
-                android:letterSpacing="0.02"
-                android:shadowColor="#4064A9FF"
-                android:shadowDx="0"
-                android:shadowDy="0"
-                android:shadowRadius="25"/>
+                android:letterSpacing="0.02"/>
 
         </LinearLayout>
 

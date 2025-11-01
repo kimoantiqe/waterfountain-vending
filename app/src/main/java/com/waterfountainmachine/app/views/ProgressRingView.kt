@@ -20,7 +20,7 @@ class ProgressRingView @JvmOverloads constructor(
         style = Paint.Style.STROKE
         strokeWidth = 50f
         strokeCap = Paint.Cap.ROUND
-        color = Color.WHITE
+        color = Color.parseColor("#555555")
         alpha = 30
     }
 
@@ -127,10 +127,10 @@ class ProgressRingView @JvmOverloads constructor(
             burstGlowPaint.shader = RadialGradient(
                 centerX, centerY, glowRadius,
                 intArrayOf(
-                    Color.argb((glowAlpha * 200).toInt(), 255, 253, 245),  // Warm cream
-                    Color.argb((glowAlpha * 150).toInt(), 245, 243, 235),  // Light cream
-                    Color.argb((glowAlpha * 80).toInt(), 230, 230, 230),   // Silver
-                    Color.argb(0, 255, 255, 255)
+                    Color.argb((glowAlpha * 200).toInt(), 196, 181, 242),  // Lavender purple #C4B5F2
+                    Color.argb((glowAlpha * 150).toInt(), 175, 160, 238),  // Medium lavender #AFA0EE
+                    Color.argb((glowAlpha * 80).toInt(), 155, 138, 196),   // Muted purple-gray
+                    Color.argb(0, 123, 107, 168)
                 ),
                 floatArrayOf(0f, 0.4f, 0.7f, 1f),
                 Shader.TileMode.CLAMP
@@ -150,13 +150,13 @@ class ProgressRingView @JvmOverloads constructor(
         if (progress > 0) {
             val sweepAngle = (progress / 100f) * 360f
             
-            // Create smooth cream-to-white gradient matching background aesthetic
+            // Create smooth grayish-purple gradient
             val colors = intArrayOf(
-                Color.argb(255, 189, 195, 199),  // Start with background light gray
-                Color.argb(255, 210, 210, 210),  // Warm silver
-                Color.argb(255, 230, 230, 230),  // Bright silver
-                Color.argb(255, 245, 243, 235),  // Cream white
-                Color.argb(255, 255, 253, 245)   // Pure warm white
+                Color.parseColor("#7B6BA8"),  // Start with darker purple-gray
+                Color.parseColor("#9B8AC4"),  // Medium purple-gray
+                Color.parseColor("#AFA0EE"),  // Lavender purple (matches buttons)
+                Color.parseColor("#C4B5F2"),  // Light lavender
+                Color.parseColor("#D8CFFF")   // Very light lavender
             )
             val positions = floatArrayOf(0f, 0.25f, 0.5f, 0.75f, 1f)
             
@@ -234,10 +234,10 @@ class ProgressRingView @JvmOverloads constructor(
                     shader = RadialGradient(
                         highlightX, highlightY, 90f,
                         intArrayOf(
-                            Color.argb((240 * pulseAlpha).toInt(), 255, 255, 255),  // Bright white
-                            Color.argb((160 * pulseAlpha).toInt(), 255, 253, 245),  // Cream glow
-                            Color.argb((60 * pulseAlpha).toInt(), 245, 243, 235),   // Soft cream
-                            Color.argb(0, 255, 255, 255)
+                            Color.argb((240 * pulseAlpha).toInt(), 216, 207, 255),  // Very light lavender
+                            Color.argb((160 * pulseAlpha).toInt(), 196, 181, 242),  // Lavender glow
+                            Color.argb((60 * pulseAlpha).toInt(), 175, 160, 238),   // Soft lavender
+                            Color.argb(0, 175, 160, 238)
                         ),
                         floatArrayOf(0f, 0.3f, 0.6f, 1f),
                         Shader.TileMode.CLAMP

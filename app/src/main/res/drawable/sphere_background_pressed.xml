@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- 1) Brighter ambient outer glow (stronger white halo when pressed) -->
+    <!-- 1) Brighter ambient outer glow (light lavender halo when pressed) -->
     <item
         android:left="-14dp"
         android:top="-14dp"
@@ -11,22 +11,22 @@
             <gradient
                 android:type="radial"
                 android:gradientRadius="96dp"
-                android:startColor="#4DFFFFFF"
-                android:endColor="#00FFFFFF" />
+                android:startColor="#50AFA0EE"
+                android:endColor="#00AFA0EE" />
         </shape>
     </item>
 
-    <!-- 2) Brighter glass sphere (more intense glow) -->
+    <!-- 2) Brighter lavender sphere (more intense glow when pressed) -->
     <item>
         <shape android:shape="oval">
             <gradient
                 android:type="radial"
                 android:gradientRadius="56dp"
-                android:startColor="#99FFFFFF"
-                android:endColor="#26FFFFFF" />
+                android:startColor="#E8E0F8"
+                android:endColor="#C4B5F2" />
             <stroke
                 android:width="1dp"
-                android:color="#66FFFFFF" />
+                android:color="#80FFFFFF" />
         </shape>
     </item>
 

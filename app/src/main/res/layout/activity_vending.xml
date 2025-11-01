@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/gradient_background_main"
+    android:background="@drawable/background2"
     android:clipChildren="false"
     android:clipToPadding="false">
 
@@ -16,17 +16,18 @@
         android:orientation="vertical"
         android:padding="@dimen/main_screen_padding">
 
-        <!-- Header with Back Button and Centered Logo/Wordmark -->
+        <!-- Header with Back Button and Centered Wordmark -->
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="@dimen/header_height"
-            android:layout_marginBottom="@dimen/header_margin_bottom"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:layout_marginBottom="32dp"
             android:gravity="center_vertical">
 
-            <!-- Back Button - positioned absolutely to not affect centering -->
+            <!-- Back Button - positioned to not affect centering -->
             <FrameLayout
                 android:layout_width="@dimen/back_button_size"
-                android:layout_height="match_parent"
+                android:layout_height="wrap_content"
                 android:gravity="center_vertical">
 
                 <ImageButton
@@ -43,28 +44,23 @@
 
             </FrameLayout>
 
-            <!-- Centered Logo and Wordmark - this will be truly centered now -->
-            <LinearLayout
+            <!-- Centered Wordmark Only (matching main activity) -->
+            <TextView
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
                 android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:text="@string/wordmark_text"
+                android:contentDescription="@string/waterfountain_wordmark"
+                android:textSize="72sp"
+                android:textColor="@android:color/white"
+                android:fontFamily="@font/century_gothic_bold"
+                android:maxLines="1"
+                android:singleLine="true"
+                android:ellipsize="end"
                 android:gravity="center"
-                android:orientation="horizontal">
-
-                <ImageView
-                    android:layout_width="@dimen/header_logo_size"
-                    android:layout_height="@dimen/header_logo_size"
-                    android:layout_marginEnd="20dp"
-                    android:contentDescription="@string/waterfountain_logo"
-                    android:scaleType="fitCenter"
-                    android:src="@drawable/logo" />
-
-                <TextView
-                    android:text="@string/wordmark_text"
-                    android:contentDescription="@string/waterfountain_wordmark"
-                    style="@style/WordmarkTextStyle.Small" />
-
-            </LinearLayout>
+                android:letterSpacing="-0.09"
+                android:includeFontPadding="false"
+                android:paddingHorizontal="16dp" />
 
             <!-- Empty space to balance the back button -->
             <View
@@ -449,79 +445,54 @@
             android:orientation="vertical"
             android:padding="@dimen/modal_padding">
 
-            <!-- Icon -->
-            <ImageView
-                android:layout_width="80dp"
-                android:layout_height="80dp"
-                android:layout_marginBottom="@dimen/margin_large"
-                android:alpha="0.95"
-                android:contentDescription="WaterFountain logo"
-                android:src="@drawable/logo" />
+            <!-- Close X Button - Top Right -->
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+                
+                <ImageButton
+                    android:id="@+id/closeModalButton"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:layout_gravity="end"
+                    android:background="?android:attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="Close"
+                    android:src="@android:drawable/ic_menu_close_clear_cancel"
+                    android:tint="#555555"
+                    android:padding="12dp"/>
+                
+            </FrameLayout>
 
             <!-- Modal Title -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="@dimen/margin_medium"
+                android:text="How to Use"
+                android:textSize="@dimen/modal_title_size"
+                android:textColor="#555555"
                 android:fontFamily="sans-serif-medium"
+                android:textStyle="bold"
                 android:gravity="center"
-                android:letterSpacing="0.02"
-                android:text="Why is this free?"
-                android:textColor="@android:color/white"
-                android:textSize="@dimen/modal_title_size" />
-
-            <!-- Decorative line -->
-            <View
-                android:layout_width="60dp"
-                android:layout_height="3dp"
-                android:layout_marginBottom="@dimen/margin_large"
-                android:alpha="0.4"
-                android:background="@android:color/white" />
+                android:letterSpacing="0.00"
+                android:layout_marginTop="8dp"
+                android:layout_marginBottom="@dimen/margin_large"/>
 
             <!-- Modal Message -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="@dimen/margin_xlarge"
-                android:alpha="0.95"
-                android:fontFamily="sans-serif-light"
+                android:text="Choose how you want to get your free water:\n\n• Tap 'Phone Number' to verify with SMS\n• Tap 'QR Code' to scan from your mobile app\n• Tap 'PIN Code' for quick access (coming soon)\n\nEach method is free and takes less than a minute. Your privacy is protected - we never store or sell your data."
+                android:textSize="@dimen/modal_text_size"
+                android:textColor="#555555"
+                android:fontFamily="sans-serif"
                 android:gravity="center"
-                android:lineSpacingExtra="10dp"
-                android:lineSpacingMultiplier="1.3"
-                android:text="Our spring water is completely free. Nature doesn't charge, so neither do we. Instead, we partner with local businesses who cover the cost to keep you hydrated.\n\nGet one every single day with your phone number"
-                android:textColor="#FFFFFF"
-                android:textSize="@dimen/modal_text_size" />
-
-            <!-- Close Button -->
-            <TextView
-                android:id="@+id/closeModalButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:background="@drawable/modal_button_background"
-                android:clickable="true"
-                android:elevation="4dp"
-                android:focusable="true"
-                android:fontFamily="sans-serif-medium"
-                android:gravity="center"
-                android:letterSpacing="0.05"
-                android:paddingHorizontal="50dp"
-                android:paddingVertical="20dp"
-                android:text="Got it!"
-                android:textColor="#263238"
-                android:textSize="@dimen/modal_button_text_size" />
+                android:lineSpacingExtra="8dp"
+                android:lineSpacingMultiplier="1.2"
+                android:paddingHorizontal="16dp"
+                android:layout_marginBottom="@dimen/margin_large"/>
 
         </LinearLayout>
 
     </FrameLayout>
-
-    <!-- Mock Mode Indicator (top-right corner) -->
-    <include
-        android:id="@+id/mockModeIndicator"
-        layout="@layout/mock_mode_indicator"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="top|end"
-        android:layout_margin="16dp"
-        android:visibility="gone" />
 
 </FrameLayout>

@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/gradient_background_main">
+    android:background="@drawable/background2">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -12,17 +12,18 @@
         android:padding="@dimen/main_screen_padding"
         android:gravity="center">
 
-        <!-- Header with Back Button and Centered Logo/Wordmark -->
+        <!-- Header with Back Button and Centered Wordmark -->
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="@dimen/header_height"
-            android:gravity="center_vertical"
-            android:layout_marginBottom="@dimen/header_margin_bottom">
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:layout_marginBottom="32dp"
+            android:gravity="center_vertical">
 
-            <!-- Back Button - positioned absolutely to not affect centering -->
+            <!-- Back Button - positioned to not affect centering -->
             <FrameLayout
                 android:layout_width="@dimen/back_button_size"
-                android:layout_height="match_parent"
+                android:layout_height="wrap_content"
                 android:gravity="center_vertical">
 
                 <ImageButton
@@ -39,28 +40,23 @@
 
             </FrameLayout>
 
-            <!-- Centered Logo and Wordmark - this will be truly centered now -->
-            <LinearLayout
+            <!-- Centered Wordmark Only (matching main activity) -->
+            <TextView
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
                 android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:text="@string/wordmark_text"
+                android:contentDescription="@string/waterfountain_wordmark"
+                android:textSize="72sp"
+                android:textColor="@android:color/white"
+                android:fontFamily="@font/century_gothic_bold"
+                android:maxLines="1"
+                android:singleLine="true"
+                android:ellipsize="end"
                 android:gravity="center"
-                android:orientation="horizontal">
-
-                <ImageView
-                    android:layout_width="@dimen/header_logo_size"
-                    android:layout_height="@dimen/header_logo_size"
-                    android:layout_marginEnd="@dimen/margin_large"
-                    android:src="@drawable/logo"
-                    android:contentDescription="@string/waterfountain_logo"
-                    android:scaleType="fitCenter" />
-
-                <TextView
-                    android:text="@string/wordmark_text"
-                    android:contentDescription="@string/waterfountain_wordmark"
-                    style="@style/WordmarkTextStyle.Small" />
-
-            </LinearLayout>
+                android:letterSpacing="-0.09"
+                android:includeFontPadding="false"
+                android:paddingHorizontal="16dp" />
 
             <!-- Empty space to balance the back button -->
             <View
@@ -86,8 +82,9 @@
                 android:layout_height="wrap_content"
                 android:text="Enter Phone Number"
                 android:textSize="@dimen/text_size_title"
-                android:textColor="@android:color/white"
+                android:textColor="#555555"
                 android:fontFamily="sans-serif-medium"
+                android:textStyle="bold"
                 android:gravity="center"
                 android:layout_marginBottom="@dimen/margin_medium"/>
 
@@ -109,7 +106,7 @@
                     android:layout_width="32dp"
                     android:layout_height="32dp"
                     android:src="@android:drawable/ic_lock_idle_alarm"
-                    app:tint="@android:color/white"
+                    app:tint="#555555"
                     android:alpha="0.9"
                     android:layout_marginEnd="16dp"/>
 
@@ -119,7 +116,7 @@
                     android:layout_height="wrap_content"
                     android:text="2:00"
                     android:textSize="48sp"
-                    android:textColor="@android:color/white"
+                    android:textColor="#555555"
                     android:fontFamily="sans-serif-medium"
                     android:letterSpacing="0.1"/>
 
@@ -161,7 +158,7 @@
                         android:layout_height="wrap_content"
                         android:text=""
                         android:textSize="@dimen/phone_display_text_size"
-                        android:textColor="@android:color/white"
+                        android:textColor="#555555"
                         android:fontFamily="sans-serif-light"
                         android:gravity="center"
                         android:letterSpacing="0.08"
@@ -182,7 +179,7 @@
                     android:alpha="0.7"
                     android:padding="8dp"
                     android:scaleType="fitCenter"
-                    app:tint="@android:color/white"/>
+                    app:tint="#555555"/>
 
             </FrameLayout>
 
@@ -193,7 +190,8 @@
                 android:layout_height="wrap_content"
                 android:text="We'll send you a verification code"
                 android:textSize="@dimen/text_size_subtitle"
-                android:textColor="#CCFFFFFF"
+                android:textColor="#555555"
+                android:alpha="0.7"
                 android:fontFamily="sans-serif-light"
                 android:gravity="center"
                 android:layout_marginBottom="@dimen/margin_xlarge"/>
@@ -410,66 +408,51 @@
             android:gravity="center"
             android:elevation="16dp">
 
-            <!-- Icon -->
-            <ImageView
-                android:layout_width="80dp"
-                android:layout_height="80dp"
-                android:src="@drawable/logo"
-                android:contentDescription="WaterFountain logo"
-                android:layout_marginBottom="@dimen/margin_large"
-                android:alpha="0.95"/>
+            <!-- Close X Button - Top Right -->
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+                
+                <ImageButton
+                    android:id="@+id/closeModalButton"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:layout_gravity="end"
+                    android:background="?android:attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="Close"
+                    android:src="@android:drawable/ic_menu_close_clear_cancel"
+                    android:tint="#555555"
+                    android:padding="12dp"/>
+                
+            </FrameLayout>
 
             <!-- Modal Title -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Why is this free?"
+                android:text="How to Use"
                 android:textSize="@dimen/modal_title_size"
-                android:textColor="@android:color/white"
+                android:textColor="#555555"
                 android:fontFamily="sans-serif-medium"
+                android:textStyle="bold"
                 android:gravity="center"
-                android:letterSpacing="0.02"
-                android:layout_marginBottom="@dimen/margin_medium"/>
-
-            <!-- Decorative line -->
-            <View
-                android:layout_width="60dp"
-                android:layout_height="3dp"
-                android:background="@android:color/white"
-                android:alpha="0.4"
+                android:letterSpacing="0.00"
+                android:layout_marginTop="8dp"
                 android:layout_marginBottom="@dimen/margin_large"/>
 
             <!-- Modal Message -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Our spring water is completely free. Nature doesn't charge, so neither do we. Instead, we partner with local businesses who cover the cost to keep you hydrated.\n\nGet one every single day with your phone number"
+                android:text="1. Enter your 10-digit phone number using the keypad\n\n2. Tap 'Send Code' to receive a verification code via SMS\n\n3. Enter the 6-digit code when it arrives\n\n4. Tap 'Verify' to confirm and get your free water\n\nTip: Use the eye icon to show or hide your phone number. You can resend the code if it doesn't arrive within 2 minutes."
                 android:textSize="@dimen/modal_text_size"
-                android:textColor="#FFFFFF"
-                android:fontFamily="sans-serif-light"
+                android:textColor="#555555"
+                android:fontFamily="sans-serif"
                 android:gravity="center"
-                android:lineSpacingExtra="10dp"
-                android:lineSpacingMultiplier="1.3"
-                android:alpha="0.95"
-                android:layout_marginBottom="@dimen/margin_xlarge"/>
-
-            <!-- Close Button -->
-            <TextView
-                android:id="@+id/closeModalButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Got it!"
-                android:textSize="@dimen/modal_button_text_size"
-                android:textColor="#263238"
-                android:fontFamily="sans-serif-medium"
-                android:background="@drawable/modal_button_background"
-                android:paddingHorizontal="50dp"
-                android:paddingVertical="20dp"
-                android:clickable="true"
-                android:focusable="true"
-                android:gravity="center"
-                android:letterSpacing="0.05"
-                android:elevation="4dp"/>
+                android:lineSpacingExtra="8dp"
+                android:lineSpacingMultiplier="1.2"
+                android:paddingHorizontal="16dp"
+                android:layout_marginBottom="@dimen/margin_large"/>
 
         </LinearLayout>
 

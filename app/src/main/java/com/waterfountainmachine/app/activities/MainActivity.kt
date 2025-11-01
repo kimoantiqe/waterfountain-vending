@@ -1,9 +1,12 @@
 package com.waterfountainmachine.app.activities
 
 import android.animation.AnimatorSet
+import android.animation.ArgbEvaluator
 import android.animation.ObjectAnimator
+import android.animation.ValueAnimator
 import android.content.Context
 import android.content.Intent
+import android.graphics.Color
 import android.os.Bundle
 import android.view.KeyEvent
 import android.view.MotionEvent
@@ -24,6 +27,7 @@ import com.waterfountainmachine.app.utils.HardwareKeyHandler
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private var questionMarkAnimator: AnimatorSet? = null
+    private var canBobbingAnimator: AnimatorSet? = null
     private lateinit var adminGestureDetector: AdminGestureDetector
     private var isNavigating = false // Prevent multiple launches
 
@@ -51,26 +55,8 @@ class MainActivity : AppCompatActivity() {
         
         // Initialize hardware on app launch
         initializeHardware()
-        
-        // Update mock mode indicator visibility
-        updateMockModeIndicator()
     }
     
-    /**
-     * Show/hide mock mode indicator based on hardware mode
-     */
-    private fun updateMockModeIndicator() {
-        val prefs = getSharedPreferences("system_settings", Context.MODE_PRIVATE)
-        val useRealSerial = prefs.getBoolean("use_real_serial", false)
-        
-        // Show indicator only if in mock mode (not using real hardware)
-        binding.mockModeIndicator.root.visibility = if (!useRealSerial) View.VISIBLE else View.GONE
-        
-        if (!useRealSerial) {
-            AppLog.d(TAG, "Mock mode indicator displayed (hardware in test mode)")
-        }
-    }
-
     private fun setupKioskMode() {
         // Check if kiosk mode is enabled in settings
         val prefs = getSharedPreferences("system_settings", Context.MODE_PRIVATE)
@@ -106,10 +92,10 @@ class MainActivity : AppCompatActivity() {
             // This will be handled by dispatchTouchEvent and AdminGestureDetector
             // Only navigate if modal is not visible and not already navigating
             if (binding.modalOverlay.visibility == View.GONE && !isNavigating) {
-                AppLog.d(TAG, "Screen tapped, launching VendingActivity")
+                AppLog.d(TAG, "Screen tapped, launching PrivacyExplanationActivity")
                 isNavigating = true
                 performPressAnimation {
-                    val intent = Intent(this, VendingActivity::class.java)
+                    val intent = Intent(this, PrivacyExplanationActivity::class.java)
                     intent.flags = Intent.FLAG_ACTIVITY_SINGLE_TOP // Prevent multiple instances
                     startActivity(intent)
                     overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
@@ -164,50 +150,29 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupBreathingAnimation() {
-        // Create a more engaging "pulse glow" animation instead of just breathing
-        val glowIn = ObjectAnimator.ofFloat(binding.instructionText, "alpha", 0.7f, 1f)
-        glowIn.duration = 1200
-
-        val glowOut = ObjectAnimator.ofFloat(binding.instructionText, "alpha", 1f, 0.7f)
-        glowOut.duration = 1200
-
-        // Add a subtle color shift effect by changing text shadow/elevation
-        val elevateIn = ObjectAnimator.ofFloat(binding.instructionText, "translationZ", 0f, 8f)
-        elevateIn.duration = 1200
-
-        val elevateOut = ObjectAnimator.ofFloat(binding.instructionText, "translationZ", 8f, 0f)
-        elevateOut.duration = 1200
-
-        // Add a gentle wave-like scale effect
-        val scaleInX = ObjectAnimator.ofFloat(binding.instructionText, "scaleX", 1f, 1.03f)
-        scaleInX.duration = 1200
-
-        val scaleInY = ObjectAnimator.ofFloat(binding.instructionText, "scaleY", 1f, 1.03f)
-        scaleInY.duration = 1200
-
-        val scaleOutX = ObjectAnimator.ofFloat(binding.instructionText, "scaleX", 1.03f, 1f)
-        scaleOutX.duration = 1200
-
-        val scaleOutY = ObjectAnimator.ofFloat(binding.instructionText, "scaleY", 1.03f, 1f)
-        scaleOutY.duration = 1200
-
-        val pulseSet = AnimatorSet().apply {
-            play(glowIn).with(elevateIn).with(scaleInX).with(scaleInY)
-            play(glowOut).with(elevateOut).with(scaleOutX).with(scaleOutY).after(glowIn)
+        // Create a smooth color glow animation - gray to light lavender
+        // Elegant subtle glow that complements the purple/blue background
+        
+        val colorFrom = Color.parseColor("#888888") // Medium Gray
+        val colorTo = Color.parseColor("#E0E0FF")   // Light Lavender/White glow
+        
+        val colorAnimator = ValueAnimator.ofObject(
+            ArgbEvaluator(),
+            colorFrom,
+            colorTo,
+            colorFrom
+        ).apply {
+            duration = 6500L // Much slower 4.5-second cycle for very subtle, elegant pulsing
             interpolator = AccelerateDecelerateInterpolator()
-        }
-
-        // Make it repeat continuously with shorter intervals
-        pulseSet.addListener(object : android.animation.AnimatorListenerAdapter() {
-            override fun onAnimationEnd(animation: android.animation.Animator) {
-                // Shorter pause between pulses for more engagement
-                binding.root.postDelayed({
-                    pulseSet.start()
-                }, 500) // Only 0.5 second pause
+            repeatCount = ValueAnimator.INFINITE
+            repeatMode = ValueAnimator.RESTART
+            
+            addUpdateListener { animator ->
+                binding.instructionText.setTextColor(animator.animatedValue as Int)
             }
-        })
-
-        pulseSet.start()
+        }
+        
+        colorAnimator.start()
     }
 
     private fun createRippleEffect(x: Float, y: Float) {
@@ -402,6 +367,9 @@ class MainActivity : AppCompatActivity() {
     
     override fun onDestroy() {
         super.onDestroy()
+        // Clean up animations
+        questionMarkAnimator?.cancel()
+        canBobbingAnimator?.cancel()
         AppLog.d(TAG, "MainActivity destroyed")
     }
 

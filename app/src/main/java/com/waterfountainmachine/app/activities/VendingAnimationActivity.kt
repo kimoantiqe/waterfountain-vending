@@ -59,11 +59,11 @@ class VendingAnimationActivity : AppCompatActivity() {
     companion object {
         private const val FADE_IN_DELAY_MS = 200L
         private const val PROGRESS_START_DELAY_MS = 1000L
-        private const val PROGRESS_DURATION_MS = 6000L
-        private const val RING_COMPLETION_DELAY_MS = 7000L
-        private const val MORPH_TO_LOGO_DELAY_MS = 7500L
-        private const val SHOW_COMPLETION_DELAY_MS = 8500L
-        private const val RETURN_TO_MAIN_DELAY_MS = 12000L
+        private const val PROGRESS_DURATION_MS = 14000L  // Extended from 6s to 14s
+        private const val RING_COMPLETION_DELAY_MS = 15000L  // Extended from 7s to 15s
+        private const val MORPH_TO_LOGO_DELAY_MS = 15500L  // Extended from 7.5s to 15.5s
+        private const val SHOW_COMPLETION_DELAY_MS = 16500L  // Extended from 8.5s to 16.5s
+        private const val RETURN_TO_MAIN_DELAY_MS = 21000L  // Extended from 12s to 21s
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -236,7 +236,7 @@ class VendingAnimationActivity : AppCompatActivity() {
     }
 
     private fun launchConfetti() {
-        // Create multiple konfetti parties across the entire screen with BIGGER particles
+        // Create multiple konfetti parties across the entire screen with MUCH BIGGER particles
         val parties = listOf(
             // Top left
             Party(
@@ -246,8 +246,8 @@ class VendingAnimationActivity : AppCompatActivity() {
                 angle = 270,
                 spread = 90,
                 colors = listOf(0xFFFFFF, 0xF5F3EB, 0xE6E6E6, 0xBDC3C7).map { it.toInt() },
-                size = listOf(Size.LARGE, Size.LARGE, Size.LARGE), // Make particles bigger
-                emitter = Emitter(duration = 2500, TimeUnit.MILLISECONDS).perSecond(25),
+                size = listOf(Size(12), Size(16), Size(20), Size(24)), // Much bigger custom sizes
+                emitter = Emitter(duration = 4500, TimeUnit.MILLISECONDS).perSecond(30),
                 position = Position.Relative(0.0, 0.0)
             ),
             // Top center
@@ -258,8 +258,8 @@ class VendingAnimationActivity : AppCompatActivity() {
                 angle = 270,
                 spread = 90,
                 colors = listOf(0xFFFFFF, 0xF5F3EB, 0xE6E6E6, 0xBDC3C7).map { it.toInt() },
-                size = listOf(Size.LARGE, Size.LARGE, Size.LARGE),
-                emitter = Emitter(duration = 2500, TimeUnit.MILLISECONDS).perSecond(25),
+                size = listOf(Size(12), Size(16), Size(20), Size(24)),
+                emitter = Emitter(duration = 4500, TimeUnit.MILLISECONDS).perSecond(30),
                 position = Position.Relative(0.5, 0.0)
             ),
             // Top right
@@ -270,8 +270,8 @@ class VendingAnimationActivity : AppCompatActivity() {
                 angle = 270,
                 spread = 90,
                 colors = listOf(0xFFFFFF, 0xF5F3EB, 0xE6E6E6, 0xBDC3C7).map { it.toInt() },
-                size = listOf(Size.LARGE, Size.LARGE, Size.LARGE),
-                emitter = Emitter(duration = 2500, TimeUnit.MILLISECONDS).perSecond(25),
+                size = listOf(Size(12), Size(16), Size(20), Size(24)),
+                emitter = Emitter(duration = 4500, TimeUnit.MILLISECONDS).perSecond(30),
                 position = Position.Relative(1.0, 0.0)
             ),
             // Center left
@@ -282,8 +282,8 @@ class VendingAnimationActivity : AppCompatActivity() {
                 angle = 0,
                 spread = 180,
                 colors = listOf(0xFFFFFF, 0xF5F3EB, 0xE6E6E6, 0xBDC3C7).map { it.toInt() },
-                size = listOf(Size.LARGE, Size.LARGE, Size.LARGE),
-                emitter = Emitter(duration = 2500, TimeUnit.MILLISECONDS).perSecond(20),
+                size = listOf(Size(12), Size(16), Size(20), Size(24)),
+                emitter = Emitter(duration = 4500, TimeUnit.MILLISECONDS).perSecond(25),
                 position = Position.Relative(0.0, 0.5)
             ),
             // Center right
@@ -294,8 +294,8 @@ class VendingAnimationActivity : AppCompatActivity() {
                 angle = 180,
                 spread = 180,
                 colors = listOf(0xFFFFFF, 0xF5F3EB, 0xE6E6E6, 0xBDC3C7).map { it.toInt() },
-                size = listOf(Size.LARGE, Size.LARGE, Size.LARGE),
-                emitter = Emitter(duration = 2500, TimeUnit.MILLISECONDS).perSecond(20),
+                size = listOf(Size(12), Size(16), Size(20), Size(24)),
+                emitter = Emitter(duration = 4500, TimeUnit.MILLISECONDS).perSecond(25),
                 position = Position.Relative(1.0, 0.5)
             ),
             // Bottom left
@@ -306,8 +306,8 @@ class VendingAnimationActivity : AppCompatActivity() {
                 angle = 90,
                 spread = 90,
                 colors = listOf(0xFFFFFF, 0xF5F3EB, 0xE6E6E6, 0xBDC3C7).map { it.toInt() },
-                size = listOf(Size.LARGE, Size.LARGE, Size.LARGE),
-                emitter = Emitter(duration = 2500, TimeUnit.MILLISECONDS).perSecond(25),
+                size = listOf(Size(12), Size(16), Size(20), Size(24)),
+                emitter = Emitter(duration = 4500, TimeUnit.MILLISECONDS).perSecond(30),
                 position = Position.Relative(0.0, 1.0)
             ),
             // Bottom center
@@ -318,8 +318,8 @@ class VendingAnimationActivity : AppCompatActivity() {
                 angle = 90,
                 spread = 90,
                 colors = listOf(0xFFFFFF, 0xF5F3EB, 0xE6E6E6, 0xBDC3C7).map { it.toInt() },
-                size = listOf(Size.LARGE, Size.LARGE, Size.LARGE),
-                emitter = Emitter(duration = 2500, TimeUnit.MILLISECONDS).perSecond(25),
+                size = listOf(Size(12), Size(16), Size(20), Size(24)),
+                emitter = Emitter(duration = 4500, TimeUnit.MILLISECONDS).perSecond(30),
                 position = Position.Relative(0.5, 1.0)
             ),
             // Bottom right
@@ -330,8 +330,8 @@ class VendingAnimationActivity : AppCompatActivity() {
                 angle = 90,
                 spread = 90,
                 colors = listOf(0xFFFFFF, 0xF5F3EB, 0xE6E6E6, 0xBDC3C7).map { it.toInt() },
-                size = listOf(Size.LARGE, Size.LARGE, Size.LARGE),
-                emitter = Emitter(duration = 2500, TimeUnit.MILLISECONDS).perSecond(25),
+                size = listOf(Size(12), Size(16), Size(20), Size(24)),
+                emitter = Emitter(duration = 4500, TimeUnit.MILLISECONDS).perSecond(30),
                 position = Position.Relative(1.0, 1.0)
             )
         )

@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    
+    <!-- Pressed state - slightly more opaque -->
+    <item android:state_pressed="true">
+        <layer-list>
+            <!-- Subtle outer glow when pressed -->
+            <item android:left="-2dp" android:top="-2dp" android:right="-2dp" android:bottom="-2dp">
+                <shape android:shape="rectangle">
+                    <corners android:radius="18dp"/>
+                    <solid android:color="#20FFFFFF"/>
+                </shape>
+            </item>
+            
+            <!-- Brighter semi-transparent white when pressed -->
+            <item>
+                <shape android:shape="rectangle">
+                    <corners android:radius="16dp"/>
+                    <solid android:color="#55FFFFFF"/>
+                    <stroke android:width="1.5dp" android:color="#80FFFFFF"/>
+                </shape>
+            </item>
+            
+            <!-- Top highlight -->
+            <item android:height="1dp" android:gravity="top">
+                <shape android:shape="rectangle">
+                    <corners android:topLeftRadius="16dp" android:topRightRadius="16dp"/>
+                    <solid android:color="#30FFFFFF"/>
+                </shape>
+            </item>
+        </layer-list>
+    </item>
+    
+    <!-- Normal state - semi-transparent white -->
+    <item>
+        <layer-list>
+            <!-- Base semi-transparent white -->
+            <item>
+                <shape android:shape="rectangle">
+                    <corners android:radius="16dp"/>
+                    <solid android:color="#40FFFFFF"/>
+                    <stroke android:width="1dp" android:color="#60FFFFFF"/>
+                </shape>
+            </item>
+
+            <!-- Subtle top highlight -->
+            <item android:height="1dp" android:gravity="top">
+                <shape android:shape="rectangle">
+                    <corners android:topLeftRadius="16dp" android:topRightRadius="16dp"/>
+                    <solid android:color="#20FFFFFF"/>
+                </shape>
+            </item>
+
+            <!-- Gentle bottom shadow for depth -->
+            <item>
+                <shape android:shape="rectangle">
+                    <corners android:radius="16dp"/>
+                    <gradient
+                        android:type="linear"
+                        android:angle="270"
+                        android:startColor="#00000000"
+                        android:endColor="#0A000000"/>
+                </shape>
+            </item>
+        </layer-list>
+    </item>
+    
+</selector>

@@ -42,20 +42,6 @@ class VendingActivity : AppCompatActivity() {
         
         inactivityTimer = InactivityTimer(30000L) { returnToMainScreen() }
         inactivityTimer.start()
-        
-        // Update mock mode indicator visibility
-        updateMockModeIndicator()
-    }
-    
-    /**
-     * Show/hide mock mode indicator based on hardware mode
-     */
-    private fun updateMockModeIndicator() {
-        val prefs = getSharedPreferences("system_settings", android.content.Context.MODE_PRIVATE)
-        val useRealSerial = prefs.getBoolean("use_real_serial", false)
-        
-        // Show indicator only if in mock mode (not using real hardware)
-        binding.mockModeIndicator.root.visibility = if (!useRealSerial) View.VISIBLE else View.GONE
     }
 
     private fun setupFullScreen() {

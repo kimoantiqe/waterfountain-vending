@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- CSS-inspired gradient: White base with orange, peach, and purple accents at top -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    
+    <!-- Base white background: hsla(204, 0%, 100%, 1) -->
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="#FFFFFF"/>
+        </shape>
+    </item>
+    
+    <!-- 
+        Radial gradient 1: circle at 0% 0% (top-left corner)
+        hsla(19.33, 86%, 53%, 0.35) = #F26722 with 35% opacity = #59F26722
+        3.12% size with 40% fade
+    -->
+    <item 
+        android:top="-900dp"
+        android:left="-900dp">
+        <shape android:shape="oval">
+            <gradient
+                android:type="radial"
+                android:gradientRadius="1000dp"
+                android:centerX="0.5"
+                android:centerY="0.5"
+                android:startColor="#59F26722"
+                android:centerColor="#40F26722"
+                android:endColor="#00F26722"/>
+        </shape>
+    </item>
+    
+    <!-- 
+        Radial gradient 2: circle at 100% 0% (top-right corner)
+        hsla(23.82, 77%, 74%, 0.35) = #F0B993 with 35% opacity = #59F0B993
+        3% size with 40% fade
+    -->
+    <item 
+        android:top="-900dp"
+        android:right="-900dp">
+        <shape android:shape="oval">
+            <gradient
+                android:type="radial"
+                android:gradientRadius="1000dp"
+                android:centerX="0.5"
+                android:centerY="0.5"
+                android:startColor="#59F0B993"
+                android:centerColor="#40F0B993"
+                android:endColor="#00F0B993"/>
+        </shape>
+    </item>
+    
+    <!-- 
+        Radial gradient 3: circle at 50% 0% (top-center)
+        hsla(236.91, 77%, 74%, 0.24) = #A09CF0 with 24% opacity = #3DA09CF0
+        4% size with 40% fade
+    -->
+    <item 
+        android:top="-850dp"
+        android:left="0dp"
+        android:right="0dp">
+        <shape android:shape="oval">
+            <gradient
+                android:type="radial"
+                android:gradientRadius="1100dp"
+                android:centerX="0.5"
+                android:centerY="0.5"
+                android:startColor="#3DA09CF0"
+                android:centerColor="#28A09CF0"
+                android:endColor="#00A09CF0"/>
+        </shape>
+    </item>
+    
+</layer-list>
