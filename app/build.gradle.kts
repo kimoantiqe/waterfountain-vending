@@ -67,6 +67,9 @@ dependencies {
 
     // Material Design
     implementation("com.google.android.material:material:1.11.0")
+    
+    // Security - for EncryptedSharedPreferences
+    implementation("androidx.security:security-crypto:1.1.0-alpha06")
 
     // QR Code dependencies
     implementation("com.google.zxing:core:3.5.2")

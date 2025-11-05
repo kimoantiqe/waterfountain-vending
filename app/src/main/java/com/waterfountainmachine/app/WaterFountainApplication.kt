@@ -1,6 +1,8 @@
 package com.waterfountainmachine.app
 
 import android.app.Application
+import com.waterfountainmachine.app.auth.AuthModule
+import com.waterfountainmachine.app.security.SecurityModule
 import com.waterfountainmachine.app.hardware.WaterFountainManager
 import com.waterfountainmachine.app.utils.AppLog
 import kotlinx.coroutines.CoroutineScope
@@ -47,11 +49,61 @@ class WaterFountainApplication : Application() {
         AppLog.i(TAG, "Water Fountain Vending Machine Application Starting")
         AppLog.i(TAG, "═══════════════════════════════════════════════")
         
+        // Initialize security module
+        initializeSecurityModule()
+        
+        // Initialize authentication module
+        initializeAuthModule()
+        
         // Initialize hardware manager (but don't connect yet)
         hardwareManager = WaterFountainManager.getInstance(this)
         
         AppLog.i(TAG, "Hardware manager created")
         AppLog.i(TAG, "Initial state: ${hardwareState.name}")
+    }
+    
+    /**
+     * Initialize the security module for certificate management
+     */
+    private fun initializeSecurityModule() {
+        try {
+            SecurityModule.initialize(this)
+            
+            if (SecurityModule.isEnrolled()) {
+                val machineId = SecurityModule.getMachineId()
+                AppLog.i(TAG, "SecurityModule initialized - Machine enrolled: ****${machineId?.takeLast(4)}")
+                
+                // Check certificate expiry
+                if (SecurityModule.isCertificateExpiringSoon()) {
+                    val daysRemaining = SecurityModule.getDaysUntilExpiry()
+                    AppLog.w(TAG, "Certificate expiring in $daysRemaining days!")
+                }
+            } else {
+                AppLog.i(TAG, "SecurityModule initialized - Machine not enrolled")
+            }
+        } catch (e: Exception) {
+            AppLog.e(TAG, "Error initializing SecurityModule", e)
+        }
+    }
+    
+    /**
+     * Initialize the authentication module with saved preferences
+     */
+    private fun initializeAuthModule() {
+        try {
+            // Load saved API mode preference (default to mock mode for development)
+            val useMockMode = AuthModule.loadApiModePreference(this)
+            
+            // Initialize AuthModule
+            AuthModule.initialize(this, useMockMode)
+            
+            val mode = if (useMockMode) "MOCK" else "REAL"
+            AppLog.i(TAG, "AuthModule initialized in $mode mode")
+        } catch (e: Exception) {
+            // Fallback to mock mode if initialization fails
+            AppLog.e(TAG, "Error initializing AuthModule, falling back to mock mode", e)
+            AuthModule.initialize(this, useMockMode = true)
+        }
     }
     
     /**

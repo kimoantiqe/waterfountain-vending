@@ -9,6 +9,8 @@ import android.view.animation.AccelerateDecelerateInterpolator
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.waterfountainmachine.app.R
+import com.waterfountainmachine.app.auth.AuthModule
+import com.waterfountainmachine.app.auth.IAuthenticationRepository
 import com.waterfountainmachine.app.databinding.ActivitySmsVerifyBinding
 import com.waterfountainmachine.app.hardware.WaterFountainManager
 import com.waterfountainmachine.app.utils.FullScreenUtils
@@ -24,6 +26,9 @@ class SMSVerifyActivity : AppCompatActivity() {
     private lateinit var binding: ActivitySmsVerifyBinding
     private var phoneNumber = ""
     private var otpCode = ""
+    
+    // Authentication repository
+    private lateinit var authRepository: IAuthenticationRepository
 
     private lateinit var inactivityTimer: InactivityTimer
     private var questionMarkAnimator: AnimatorSet? = null
@@ -46,7 +51,7 @@ class SMSVerifyActivity : AppCompatActivity() {
         private const val INACTIVITY_TIMEOUT_MS = 300_000L // 5 minutes
         private const val ANIMATION_DURATION_MS = 300L
         private const val MAX_FAILED_ATTEMPTS = 3
-        private const val CORRECT_OTP = "111111"
+        private const val CORRECT_OTP = "111111" // Deprecated - now using AuthModule
         const val EXTRA_PHONE_NUMBER = "phoneNumber"
     }
 
@@ -59,6 +64,18 @@ class SMSVerifyActivity : AppCompatActivity() {
         phoneNumber = intent.getStringExtra(EXTRA_PHONE_NUMBER) ?: ""
 
         FullScreenUtils.setupFullScreen(window, binding.root)
+        
+        // Initialize authentication repository
+        try {
+            authRepository = AuthModule.getRepository()
+            AppLog.d(TAG, "AuthRepository initialized")
+        } catch (e: Exception) {
+            AppLog.e(TAG, "Failed to initialize AuthRepository", e)
+            showError("Authentication system not available")
+            finish()
+            return
+        }
+        
         initializeViews()
         setupKeypadListeners()
         setupQuestionMarkAnimation()
@@ -244,24 +261,28 @@ class SMSVerifyActivity : AppCompatActivity() {
         isVerifying = true
         setLoadingState(true)
         
-        // Simulate verification with delay
+        // Format phone with country code (+1 for US)
+        val formattedPhone = "+1$phoneNumber"
+        
         lifecycleScope.launch {
             try {
-                // Simulate network delay
-                delay(1500)
+                AppLog.d(TAG, "Verifying OTP for phone: +1***-***-${phoneNumber.takeLast(4)}")
                 
-                // Check if OTP is correct
-                if (otpCode == CORRECT_OTP) {
-                    AppLog.i(TAG, "OTP verification successful")
+                // Verify OTP via repository
+                val result = authRepository.verifyOtp(formattedPhone, otpCode)
+                
+                result.onSuccess { response ->
+                    AppLog.i(TAG, "OTP verification successful: ${response.message}")
                     // SMS verification successful - now dispense water
                     dispenseWaterAfterVerification()
-                } else {
-                    AppLog.w(TAG, "OTP verification failed. Attempt ${failedAttempts + 1}/$MAX_FAILED_ATTEMPTS")
-                    handleVerificationError()
+                }.onFailure { error ->
+                    val errorMessage = error.message ?: "Verification failed"
+                    AppLog.w(TAG, "OTP verification failed: $errorMessage", error)
+                    handleVerificationError(errorMessage)
                 }
             } catch (e: Exception) {
-                AppLog.e(TAG, "Verification error", e)
-                handleVerificationError()
+                AppLog.e(TAG, "Unexpected verification error", e)
+                handleVerificationError("An unexpected error occurred")
             }
         }
     }
@@ -350,22 +371,22 @@ class SMSVerifyActivity : AppCompatActivity() {
         binding.btnClear.alpha = alpha
     }
     
-    private fun handleVerificationError() {
+    private fun handleVerificationError(errorMessage: String = "Incorrect PIN") {
         isVerifying = false
         failedAttempts++
         
         if (failedAttempts >= MAX_FAILED_ATTEMPTS) {
             // Max attempts reached - show error and return to main screen
-            showErrorAndReturnToMain()
+            showErrorAndReturnToMain(errorMessage)
         } else {
             // Show error and allow retry
-            showVerificationError()
+            showVerificationError(errorMessage)
         }
     }
     
-    private fun showVerificationError() {
-        // Update subtitle to show error - simplified message
-        binding.subtitleText.text = "Incorrect PIN"
+    private fun showVerificationError(errorMessage: String = "Incorrect PIN") {
+        // Update subtitle to show error
+        binding.subtitleText.text = errorMessage
         
         // Animate subtitle to red
         val originalColor = binding.subtitleText.currentTextColor
@@ -411,6 +432,32 @@ class SMSVerifyActivity : AppCompatActivity() {
         }
     }
     
+    private fun showErrorAndReturnToMain(errorMessage: String = "Too many failed attempts") {
+        // Update subtitle
+        binding.subtitleText.text = errorMessage
+        binding.subtitleText.setTextColor(0xFFFF4444.toInt()) // Red color
+        
+        // Shake animation for OTP display
+        val shake = android.view.animation.AnimationUtils.loadAnimation(this, R.anim.shake)
+        binding.otpDisplay.startAnimation(shake)
+        
+        // Return to main screen after brief delay
+        lifecycleScope.launch {
+            delay(2000) // Show error message for 2 seconds
+            returnToMainScreen()
+        }
+    }
+    
+    /**
+     * Show error message to user
+     */
+    private fun showError(message: String) {
+        // TODO: Show a proper error dialog or toast
+        // For now, use a toast
+        android.widget.Toast.makeText(this, message, android.widget.Toast.LENGTH_LONG).show()
+        AppLog.e(TAG, "Error shown to user: $message")
+    }
+
     private fun showErrorAndReturnToMain() {
         // Shake animation for OTP display
         val shake = android.view.animation.AnimationUtils.loadAnimation(this, R.anim.shake)
@@ -706,13 +753,10 @@ class SMSVerifyActivity : AppCompatActivity() {
     }
 
     private fun resendVerificationCode() {
-        // Logic to resend the verification code
-        // This could involve calling the SMS service again and updating the UI accordingly
-
         // Reset failed attempts on resend
         failedAttempts = 0
         
-        // For demo, we'll just reset the OTP field
+        // Clear the OTP field
         otpCode = ""
         updateOtpDisplay()
         binding.verifyOtpButton.isEnabled = false
@@ -720,15 +764,40 @@ class SMSVerifyActivity : AppCompatActivity() {
         
         // Reset subtitle if showing error
         val maskedPhone = "••• •••-${phoneNumber.substring(6)}"
-        binding.subtitleText.text = "We sent a code to $maskedPhone"
+        binding.subtitleText.text = "Sending new code..."
         binding.subtitleText.setTextColor(0xB3555555.toInt()) // Reset to original color with alpha
         binding.subtitleText.alpha = 0.7f
 
-        // Restart the timer
-        startOtpTimer()
-
-        // Simulate resend SMS (in real app, integrate with SMS service)
-        simulateSendSMS()
+        // Format phone with country code (+1 for US)
+        val formattedPhone = "+1$phoneNumber"
+        
+        lifecycleScope.launch {
+            try {
+                AppLog.d(TAG, "Resending OTP for phone: +1***-***-${phoneNumber.takeLast(4)}")
+                
+                // Request OTP via repository
+                val result = authRepository.requestOtp(formattedPhone)
+                
+                result.onSuccess { response ->
+                    AppLog.i(TAG, "OTP resent successfully: ${response.message}")
+                    
+                    // Update subtitle
+                    binding.subtitleText.text = "We sent a code to $maskedPhone"
+                    
+                    // Restart the timer
+                    startOtpTimer()
+                }.onFailure { error ->
+                    val errorMessage = error.message ?: "Failed to resend code"
+                    AppLog.e(TAG, "OTP resend failed: $errorMessage", error)
+                    binding.subtitleText.text = errorMessage
+                    binding.subtitleText.setTextColor(0xFFFF4444.toInt()) // Red
+                }
+            } catch (e: Exception) {
+                AppLog.e(TAG, "Unexpected error resending OTP", e)
+                binding.subtitleText.text = "Failed to resend code"
+                binding.subtitleText.setTextColor(0xFFFF4444.toInt()) // Red
+            }
+        }
     }
 
     override fun onDestroy() {

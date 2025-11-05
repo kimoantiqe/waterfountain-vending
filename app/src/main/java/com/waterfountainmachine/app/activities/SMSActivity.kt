@@ -9,6 +9,8 @@ import android.view.animation.AccelerateDecelerateInterpolator
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.waterfountainmachine.app.R
+import com.waterfountainmachine.app.auth.AuthModule
+import com.waterfountainmachine.app.auth.IAuthenticationRepository
 import com.waterfountainmachine.app.databinding.ActivitySmsBinding
 import com.waterfountainmachine.app.hardware.WaterFountainManager
 import com.waterfountainmachine.app.utils.FullScreenUtils
@@ -24,11 +26,17 @@ class SMSActivity : AppCompatActivity() {
     private lateinit var binding: ActivitySmsBinding
     private var phoneNumber = ""
     
+    // Authentication repository
+    private lateinit var authRepository: IAuthenticationRepository
+    
     // Phone number masking
     private var isPhoneNumberVisible = false
 
     private lateinit var inactivityTimer: InactivityTimer
     private var questionMarkAnimator: AnimatorSet? = null
+    
+    // Loading state for API calls
+    private var isLoading = false
     
     companion object {
         private const val TAG = "SMSActivity"
@@ -42,6 +50,17 @@ class SMSActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         FullScreenUtils.setupFullScreen(window, binding.root)
+        
+        // Initialize authentication repository
+        try {
+            authRepository = AuthModule.getRepository()
+            AppLog.d(TAG, "AuthRepository initialized")
+        } catch (e: Exception) {
+            AppLog.e(TAG, "Failed to initialize AuthRepository", e)
+            showError("Authentication system not available")
+            return
+        }
+        
         initializeViews()
         setupKeypadListeners()
         setupPhoneNumberStep()
@@ -148,14 +167,88 @@ class SMSActivity : AppCompatActivity() {
     }
 
     private fun sendCodeAndNavigate() {
-        if (phoneNumber.length == MAX_PHONE_LENGTH) {
-            // Navigate to verification activity
-            val intent = Intent(this, SMSVerifyActivity::class.java)
-            intent.putExtra(SMSVerifyActivity.EXTRA_PHONE_NUMBER, phoneNumber)
-            startActivity(intent)
-            overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
-            // Don't finish() here - let user come back if needed
+        if (phoneNumber.length == MAX_PHONE_LENGTH && !isLoading) {
+            // Show loading state
+            showLoading()
+            
+            // Format phone with country code (+1 for US)
+            val formattedPhone = "+1$phoneNumber"
+            
+            lifecycleScope.launch {
+                try {
+                    AppLog.d(TAG, "Requesting OTP for phone: +1***-***-${phoneNumber.takeLast(4)}")
+                    
+                    // Request OTP via repository
+                    val result = authRepository.requestOtp(formattedPhone)
+                    
+                    result.onSuccess { response ->
+                        hideLoading()
+                        AppLog.i(TAG, "OTP requested successfully: ${response.message}")
+                        
+                        // Navigate to verification activity
+                        val intent = Intent(this@SMSActivity, SMSVerifyActivity::class.java)
+                        intent.putExtra(SMSVerifyActivity.EXTRA_PHONE_NUMBER, phoneNumber)
+                        startActivity(intent)
+                        overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
+                        // Don't finish() here - let user come back if needed
+                    }.onFailure { error ->
+                        hideLoading()
+                        val errorMessage = error.message ?: "Failed to send verification code"
+                        AppLog.e(TAG, "OTP request failed: $errorMessage", error)
+                        showError(errorMessage)
+                    }
+                } catch (e: Exception) {
+                    hideLoading()
+                    AppLog.e(TAG, "Unexpected error requesting OTP", e)
+                    showError("An unexpected error occurred. Please try again.")
+                }
+            }
         }
+    }
+    
+    /**
+     * Show loading state (disable inputs, show progress)
+     */
+    private fun showLoading() {
+        isLoading = true
+        binding.verifyButton.isEnabled = false
+        binding.verifyButton.text = "Sending..."
+        // Disable keypad during loading
+        setKeypadEnabled(false)
+        AppLog.d(TAG, "Loading state: enabled")
+    }
+    
+    /**
+     * Hide loading state (enable inputs, hide progress)
+     */
+    private fun hideLoading() {
+        isLoading = false
+        binding.verifyButton.text = "Send Code"
+        val isComplete = phoneNumber.length == MAX_PHONE_LENGTH
+        binding.verifyButton.isEnabled = isComplete
+        updateButtonDisabledState(binding.verifyButton, isComplete)
+        // Re-enable keypad
+        setKeypadEnabled(true)
+        AppLog.d(TAG, "Loading state: disabled")
+    }
+    
+    /**
+     * Enable or disable all keypad buttons
+     */
+    private fun setKeypadEnabled(enabled: Boolean) {
+        // This will be implemented when we add keypad listeners
+        // For now, just log
+        AppLog.d(TAG, "Keypad enabled: $enabled")
+    }
+    
+    /**
+     * Show error message to user
+     */
+    private fun showError(message: String) {
+        // TODO: Show a proper error dialog or toast
+        // For now, use a toast
+        android.widget.Toast.makeText(this, message, android.widget.Toast.LENGTH_LONG).show()
+        AppLog.e(TAG, "Error shown to user: $message")
     }
 
     private fun addDigit(digit: String) {

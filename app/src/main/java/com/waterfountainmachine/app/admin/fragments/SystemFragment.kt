@@ -15,6 +15,7 @@ import androidx.core.content.FileProvider
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.waterfountainmachine.app.activities.MainActivity
+import com.waterfountainmachine.app.auth.AuthModule
 import com.waterfountainmachine.app.databinding.FragmentSystemBinding
 import com.waterfountainmachine.app.utils.AppLog
 import com.waterfountainmachine.app.utils.LogCollector
@@ -93,6 +94,11 @@ class SystemFragment : Fragment() {
             updateKioskMode(isChecked)
         }
         
+        // API mode toggle (for SMS authentication)
+        binding.apiModeToggle.setOnCheckedChangeListener { _, isChecked ->
+            updateApiMode(isChecked)
+        }
+        
         // Demo mode toggle
         binding.demoModeToggle.setOnCheckedChangeListener { _, isChecked ->
             updateDemoMode(isChecked)
@@ -140,6 +146,11 @@ class SystemFragment : Fragment() {
         
         // Load toggle states
         binding.kioskModeToggle.isChecked = prefs.getBoolean("kiosk_mode", true)
+        
+        // Load API mode (default to mock mode for safety)
+        val useMockMode = AuthModule.loadApiModePreference(requireContext())
+        binding.apiModeToggle.isChecked = !useMockMode // Toggle shows "Use Real API"
+        
         binding.demoModeToggle.isChecked = prefs.getBoolean("demo_mode", false)
         binding.debugModeToggle.isChecked = prefs.getBoolean("debug_mode", false)
         binding.maintenanceModeToggle.isChecked = prefs.getBoolean("maintenance_mode", false)
@@ -196,6 +207,43 @@ class SystemFragment : Fragment() {
                 binding.systemStatusText.text = "Error updating kiosk mode: ${e.message}"
             }
         }
+    }
+    
+    private fun updateApiMode(useRealApi: Boolean) {
+        lifecycleScope.launch {
+            try {
+                // useRealApi = true means Real API mode
+                // useMockMode = false means Real API mode
+                val useMockMode = !useRealApi
+                
+                // Reinitialize AuthModule with new mode
+                AuthModule.initialize(requireContext(), useMockMode)
+                
+                val modeName = if (useRealApi) "Real API" else "Mock Mode"
+                binding.systemStatusText.text = "SMS Authentication: $modeName"
+                AppLog.i(TAG, "API mode changed to: $modeName")
+                
+                // Show warning if switching to real API
+                if (useRealApi) {
+                    showApiModeWarning()
+                }
+                
+            } catch (e: Exception) {
+                AppLog.e(TAG, "Error updating API mode", e)
+                binding.systemStatusText.text = "Error updating API mode: ${e.message}"
+                
+                // Revert toggle on error
+                binding.apiModeToggle.isChecked = !useRealApi
+            }
+        }
+    }
+    
+    private fun showApiModeWarning() {
+        android.app.AlertDialog.Builder(requireContext())
+            .setTitle("Real API Mode Enabled")
+            .setMessage("SMS messages will be sent via Twilio and will incur costs. Make sure the machine is properly enrolled with a valid certificate.\n\nMock code (123456) will no longer work.")
+            .setPositiveButton("OK", null)
+            .show()
     }
     
     private fun updateDemoMode(enabled: Boolean) {
