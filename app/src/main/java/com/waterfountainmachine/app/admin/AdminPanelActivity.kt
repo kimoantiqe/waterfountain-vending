@@ -44,6 +44,11 @@ class AdminPanelActivity : AppCompatActivity() {
             updateNavigationState(binding.connectionButton)
         }
         
+        binding.certificateButton.setOnClickListener {
+            navigateToFragment(CertificateStatusFragment(), "Certificate Status")
+            updateNavigationState(binding.certificateButton)
+        }
+        
         binding.hardwareButton.setOnClickListener {
             navigateToFragment(HardwareTabsFragment(), "Hardware Diagnostics")
             updateNavigationState(binding.hardwareButton)
@@ -74,7 +79,13 @@ class AdminPanelActivity : AppCompatActivity() {
     
     private fun updateNavigationState(selectedButton: View) {
         // Reset all buttons
-        listOf(binding.connectionButton, binding.hardwareButton, binding.logsButton, binding.systemButton).forEach { button ->
+        listOf(
+            binding.connectionButton, 
+            binding.certificateButton,
+            binding.hardwareButton, 
+            binding.logsButton, 
+            binding.systemButton
+        ).forEach { button ->
             button.isSelected = false
             button.alpha = 0.6f
         }

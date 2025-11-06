@@ -47,39 +47,51 @@
     </LinearLayout>
 
     <!-- Navigation Bar -->
-    <LinearLayout
+    <HorizontalScrollView
         android:id="@+id/navigationBar"
         android:layout_width="match_parent"
         android:layout_height="60dp"
-        android:orientation="horizontal"
         android:background="@color/black_60"
+        android:scrollbars="none"
         app:layout_constraintTop_toBottomOf="@id/header">
 
-        <Button
-            android:id="@+id/connectionButton"
-            style="@style/NavButtonStyle"
-            android:text="Connection"
-            android:drawableTop="@drawable/ic_wifi" />
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:orientation="horizontal">
 
-        <Button
-            android:id="@+id/hardwareButton"
-            style="@style/NavButtonStyle"
-            android:text="Hardware"
-            android:drawableTop="@drawable/ic_settings" />
+            <Button
+                android:id="@+id/connectionButton"
+                style="@style/NavButtonStyle"
+                android:text="Connection"
+                android:drawableTop="@drawable/ic_wifi" />
 
-        <Button
-            android:id="@+id/logsButton"
-            style="@style/NavButtonStyle"
-            android:text="Logs"
-            android:drawableTop="@drawable/ic_list" />
+            <Button
+                android:id="@+id/certificateButton"
+                style="@style/NavButtonStyle"
+                android:text="Certificate"
+                android:drawableTop="@drawable/ic_lock" />
 
-        <Button
-            android:id="@+id/systemButton"
-            style="@style/NavButtonStyle"
-            android:text="System"
-            android:drawableTop="@drawable/ic_system" />
+            <Button
+                android:id="@+id/hardwareButton"
+                style="@style/NavButtonStyle"
+                android:text="Hardware"
+                android:drawableTop="@drawable/ic_settings" />
 
-    </LinearLayout>
+            <Button
+                android:id="@+id/logsButton"
+                style="@style/NavButtonStyle"
+                android:text="Logs"
+                android:drawableTop="@drawable/ic_list" />
+
+            <Button
+                android:id="@+id/systemButton"
+                style="@style/NavButtonStyle"
+                android:text="System"
+                android:drawableTop="@drawable/ic_system" />
+
+        </LinearLayout>
+    </HorizontalScrollView>
 
     <!-- Fragment Container -->
     <FrameLayout

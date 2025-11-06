@@ -171,15 +171,16 @@ object SecurityModule {
     }
 
     /**
-     * Generate CSR (Certificate Signing Request) for enrollment.
+     * Generate key pair and return public key in PEM format for enrollment.
      *
-     * This creates a new key pair and CSR that can be displayed as QR code.
+     * This creates a new RSA key pair in Android Keystore and returns the
+     * public key in PEM format (PKCS#8) for submission to the backend.
      *
      * @param machineId Unique machine identifier
-     * @return CSR in PEM format
+     * @return Public key in PEM format (-----BEGIN PUBLIC KEY-----)
      * @throws Exception if key generation fails
      */
-    fun generateCSR(machineId: String): String {
+    fun generatePublicKeyPem(machineId: String): String {
         // Generate key pair in Android Keystore
         val keyAlias = CertificateManager.getKeyAlias(machineId)
 
@@ -190,24 +191,17 @@ object SecurityModule {
 
         val keyPair = KeystoreManager.generateKeyPair(keyAlias)
 
-        // Create CSR (Certificate Signing Request)
-        // For now, we'll create a simple JSON with public key and machine ID
-        // In production, use proper PKCS#10 CSR format
-        val publicKeyBase64 = java.util.Base64.getEncoder().encodeToString(
-            keyPair.public.encoded
-        )
+        // Convert public key to PEM format (PKCS#8)
+        val publicKeyBytes = keyPair.public.encoded
+        val publicKeyBase64 = java.util.Base64.getEncoder().encodeToString(publicKeyBytes)
+        
+        // Format as PEM with line breaks every 64 characters
+        val pemBody = publicKeyBase64.chunked(64).joinToString("\n")
+        val publicKeyPem = "-----BEGIN PUBLIC KEY-----\n$pemBody\n-----END PUBLIC KEY-----"
 
-        val csrJson = JSONObject().apply {
-            put("machineId", machineId)
-            put("publicKey", publicKeyBase64)
-            put("keyAlgorithm", "RSA")
-            put("keySize", 2048)
-            put("timestamp", System.currentTimeMillis())
-        }
+        Log.d(TAG, "Generated public key PEM for machine: $machineId")
 
-        Log.d(TAG, "Generated CSR for machine: $machineId")
-
-        return csrJson.toString()
+        return publicKeyPem
     }
 
     /**

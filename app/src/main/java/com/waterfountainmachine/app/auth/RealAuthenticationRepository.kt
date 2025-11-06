@@ -68,9 +68,10 @@ class RealAuthenticationRepository(
             }
             
             // Prepare request payload
-            val timestamp = System.currentTimeMillis().toString()
+            val timestamp = System.currentTimeMillis()
             val nonce = nonceGenerator.generate()
-            val certificate = certificateManager.getCertificate()!!
+            val certificate = certificateManager.getCertificatePem()!!
+            val privateKey = certificateManager.getPrivateKey()!!
             
             val payload = JSONObject().apply {
                 put("phone", phone)
@@ -81,14 +82,15 @@ class RealAuthenticationRepository(
                 endpoint = REQUEST_OTP_ENDPOINT,
                 timestamp = timestamp,
                 nonce = nonce,
-                payload = payload.toString()
+                payload = payload.toString(),
+                privateKey = privateKey
             )
             
             // Add authentication fields
             val requestBody = JSONObject().apply {
                 put("phone", phone)
                 put("_cert", certificate)
-                put("_timestamp", timestamp)
+                put("_timestamp", timestamp.toString())
                 put("_nonce", nonce)
                 put("_signature", signature)
             }
@@ -134,9 +136,10 @@ class RealAuthenticationRepository(
             }
             
             // Prepare request payload
-            val timestamp = System.currentTimeMillis().toString()
+            val timestamp = System.currentTimeMillis()
             val nonce = nonceGenerator.generate()
-            val certificate = certificateManager.getCertificate()!!
+            val certificate = certificateManager.getCertificatePem()!!
+            val privateKey = certificateManager.getPrivateKey()!!
             
             val payload = JSONObject().apply {
                 put("phone", phone)
@@ -148,7 +151,8 @@ class RealAuthenticationRepository(
                 endpoint = VERIFY_OTP_ENDPOINT,
                 timestamp = timestamp,
                 nonce = nonce,
-                payload = payload.toString()
+                payload = payload.toString(),
+                privateKey = privateKey
             )
             
             // Add authentication fields
@@ -156,7 +160,7 @@ class RealAuthenticationRepository(
                 put("phone", phone)
                 put("otp", otp)
                 put("_cert", certificate)
-                put("_timestamp", timestamp)
+                put("_timestamp", timestamp.toString())
                 put("_nonce", nonce)
                 put("_signature", signature)
             }

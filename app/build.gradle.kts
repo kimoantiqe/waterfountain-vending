@@ -1,6 +1,8 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
+    // TODO: Enable when Firebase is configured with real google-services.json
+    // id("com.google.gms.google-services")
 }
 
 android {
@@ -70,6 +72,16 @@ dependencies {
     
     // Security - for EncryptedSharedPreferences
     implementation("androidx.security:security-crypto:1.1.0-alpha06")
+    
+    // Firebase - for backend integration
+    // TODO: Uncomment when Firebase is configured with real google-services.json
+    // implementation(platform("com.google.firebase:firebase-bom:32.7.0"))
+    // implementation("com.google.firebase:firebase-functions-ktx")
+    // implementation("com.google.firebase:firebase-auth-ktx")
+    
+    // Kotlin Coroutines for Firebase async operations
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
 
     // QR Code dependencies
     implementation("com.google.zxing:core:3.5.2")

@@ -3,6 +3,7 @@ package com.waterfountainmachine.app.auth
 import android.content.Context
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
+import com.waterfountainmachine.app.config.ApiEnvironment
 import com.waterfountainmachine.app.security.CertificateManager
 import com.waterfountainmachine.app.security.NonceGenerator
 import com.waterfountainmachine.app.security.RequestSigner
@@ -29,6 +30,7 @@ object AuthModule {
     private const val TAG = "AuthModule"
     private const val PREFS_NAME = "auth_config"
     private const val KEY_USE_MOCK_MODE = "use_mock_mode"
+    private const val KEY_API_ENVIRONMENT = "api_environment"
     
     @Volatile
     private var authRepository: IAuthenticationRepository? = null
@@ -67,9 +69,12 @@ object AuthModule {
             val requestSigner = RequestSigner()
             val nonceGenerator = NonceGenerator()
             
-            // Base URL for Firebase Cloud Functions
-            // TODO: Make this configurable per environment (dev/prod)
-            val baseUrl = "https://us-central1-waterfountain-dev.cloudfunctions.net"
+            // Get API environment from preferences or default to DEV
+            val environment = loadEnvironmentPreference(context)
+            val baseUrl = environment.baseUrl
+            
+            AppLog.i(TAG, "Using environment: $environment")
+            AppLog.i(TAG, "Base URL: $baseUrl")
             
             RealAuthenticationRepository(
                 baseUrl = baseUrl,
@@ -150,6 +155,33 @@ object AuthModule {
             EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
             EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
         )
+    
+    /**
+     * Load API environment preference
+     */
+    fun loadEnvironmentPreference(context: Context): ApiEnvironment {
+        return try {
+            val prefs = getEncryptedPreferences(context)
+            val envName = prefs.getString(KEY_API_ENVIRONMENT, ApiEnvironment.DEV.name)
+            ApiEnvironment.valueOf(envName ?: ApiEnvironment.DEV.name)
+        } catch (e: Exception) {
+            AppLog.e(TAG, "Error loading environment preference: ${e.message}")
+            ApiEnvironment.DEV // Default to DEV
+        }
+    }
+    
+    /**
+     * Save API environment preference
+     */
+    fun saveEnvironmentPreference(context: Context, environment: ApiEnvironment) {
+        try {
+            val prefs = getEncryptedPreferences(context)
+            prefs.edit().putString(KEY_API_ENVIRONMENT, environment.name).apply()
+            AppLog.d(TAG, "Environment preference saved: ${environment.name}")
+        } catch (e: Exception) {
+            AppLog.e(TAG, "Error saving environment preference: ${e.message}")
+        }
+    }
     
     /**
      * For testing: Reset the module

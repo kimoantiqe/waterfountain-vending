@@ -139,6 +139,18 @@ class CertificateManager private constructor(private val context: Context) {
     }
 
     /**
+     * Check if certificate is expired.
+     *
+     * @return true if certificate is expired or doesn't exist
+     */
+    fun isCertificateExpired(): Boolean {
+        if (!hasCertificate()) return true
+
+        val expiryDate = preferences.getLong(KEY_EXPIRY_DATE, 0)
+        return System.currentTimeMillis() >= expiryDate
+    }
+
+    /**
      * Delete stored certificate.
      */
     fun deleteCertificate() {

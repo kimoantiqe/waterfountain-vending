@@ -108,6 +108,15 @@
             android:theme="@style/Theme.WaterFountainMachine"
             android:exported="false" />
 
+        <!-- Certificate Setup Activity -->
+        <activity
+            android:name=".setup.CertificateSetupActivity"
+            android:screenOrientation="portrait"
+            android:configChanges="orientation|screenSize|keyboardHidden"
+            android:theme="@style/Theme.WaterFountainMachine"
+            android:label="Machine Enrollment"
+            android:exported="false" />
+
         <!-- File Provider for Log Export -->
         <provider
             android:name="androidx.core.content.FileProvider"
