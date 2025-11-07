@@ -1,36 +1,30 @@
 package com.waterfountainmachine.app.auth
 
+import com.google.firebase.Firebase
+import com.google.firebase.functions.FirebaseFunctions
+import com.google.firebase.functions.FirebaseFunctionsException
+import com.google.firebase.functions.functions
 import com.waterfountainmachine.app.security.CertificateManager
 import com.waterfountainmachine.app.security.NonceGenerator
 import com.waterfountainmachine.app.security.RequestSigner
 import com.waterfountainmachine.app.utils.AppLog
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import org.json.JSONObject
-import java.io.BufferedReader
-import java.io.InputStreamReader
-import java.io.OutputStreamWriter
-import java.net.HttpURLConnection
-import java.net.URL
-import javax.net.ssl.HttpsURLConnection
+import kotlinx.coroutines.tasks.await
 
 /**
  * Real implementation of IAuthenticationRepository.
- * Connects to Firebase Cloud Functions with certificate-based authentication.
+ * Uses Firebase Functions SDK with certificate-based authentication.
  * 
  * Security Features:
+ * - Firebase App Check (automatic via SDK)
  * - Client certificate authentication
  * - Request signing with private key
  * - Nonce-based replay attack prevention
- * - TLS 1.3 encryption
  * 
- * @param baseUrl Base URL for Firebase Cloud Functions (e.g., "https://us-central1-waterfountain-dev.cloudfunctions.net")
  * @param certificateManager Manages machine certificate and private key
  * @param requestSigner Signs requests with machine's private key
  * @param nonceGenerator Generates unique nonces for replay protection
  */
 class RealAuthenticationRepository(
-    private val baseUrl: String,
     private val certificateManager: CertificateManager,
     private val requestSigner: RequestSigner,
     private val nonceGenerator: NonceGenerator
@@ -42,72 +36,51 @@ class RealAuthenticationRepository(
         // API endpoints
         private const val REQUEST_OTP_ENDPOINT = "requestOtpFn"
         private const val VERIFY_OTP_ENDPOINT = "verifyOtpFn"
-        
-        // Timeouts
-        private const val CONNECT_TIMEOUT_MS = 15_000
-        private const val READ_TIMEOUT_MS = 30_000
     }
     
-    override suspend fun requestOtp(phone: String): Result<OtpRequestResponse> = withContext(Dispatchers.IO) {
-        try {
+    private val functions: FirebaseFunctions = Firebase.functions
+    
+    override suspend fun requestOtp(phone: String): Result<OtpRequestResponse> {
+        return try {
             AppLog.d(TAG, "Requesting OTP for phone: ${maskPhone(phone)}")
             
             // Validate certificate
             if (!certificateManager.hasCertificate()) {
                 AppLog.e(TAG, "No certificate available")
-                return@withContext Result.failure(
+                return Result.failure(
                     AuthenticationException.CertificateError("Machine not enrolled. Contact administrator.")
                 )
             }
             
             if (certificateManager.isCertificateExpired()) {
                 AppLog.e(TAG, "Certificate expired")
-                return@withContext Result.failure(
+                return Result.failure(
                     AuthenticationException.CertificateError("Certificate expired. Re-enrollment required.")
                 )
             }
             
-            // Prepare request payload
-            val timestamp = System.currentTimeMillis()
-            val nonce = nonceGenerator.generate()
-            val certificate = certificateManager.getCertificatePem()!!
-            val privateKey = certificateManager.getPrivateKey()!!
-            
-            val payload = JSONObject().apply {
-                put("phone", phone)
-            }
-            
-            // Sign the request
-            val signature = requestSigner.signRequest(
+            // Prepare authenticated request
+            val authenticatedData = buildAuthenticatedRequest(
                 endpoint = REQUEST_OTP_ENDPOINT,
-                timestamp = timestamp,
-                nonce = nonce,
-                payload = payload.toString(),
-                privateKey = privateKey
+                data = mapOf("phone" to phone)
             )
             
-            // Add authentication fields
-            val requestBody = JSONObject().apply {
-                put("phone", phone)
-                put("_cert", certificate)
-                put("_timestamp", timestamp.toString())
-                put("_nonce", nonce)
-                put("_signature", signature)
-            }
-            
-            // Make HTTP request
-            val response = makeHttpRequest(REQUEST_OTP_ENDPOINT, requestBody)
+            // Call Firebase Function (SDK automatically includes App Check token)
+            val result = functions
+                .getHttpsCallable(REQUEST_OTP_ENDPOINT)
+                .call(authenticatedData)
+                .await()
             
             AppLog.i(TAG, "OTP request successful")
             Result.success(
                 OtpRequestResponse(
                     success = true,
-                    message = response.optString("message", "OTP sent successfully")
+                    message = "OTP sent successfully"
                 )
             )
-        } catch (e: AuthenticationException) {
-            AppLog.e(TAG, "Authentication error: ${e.message}", e)
-            Result.failure(e)
+        } catch (e: FirebaseFunctionsException) {
+            AppLog.e(TAG, "Firebase Functions error: ${e.code} - ${e.message}", e)
+            Result.failure(parseFirebaseException(e))
         } catch (e: Exception) {
             AppLog.e(TAG, "Unexpected error requesting OTP", e)
             Result.failure(
@@ -116,68 +89,50 @@ class RealAuthenticationRepository(
         }
     }
     
-    override suspend fun verifyOtp(phone: String, otp: String): Result<OtpVerifyResponse> = withContext(Dispatchers.IO) {
-        try {
+    override suspend fun verifyOtp(phone: String, otp: String): Result<OtpVerifyResponse> {
+        return try {
             AppLog.d(TAG, "Verifying OTP for phone: ${maskPhone(phone)}")
             
             // Validate certificate
             if (!certificateManager.hasCertificate()) {
                 AppLog.e(TAG, "No certificate available")
-                return@withContext Result.failure(
+                return Result.failure(
                     AuthenticationException.CertificateError("Machine not enrolled. Contact administrator.")
                 )
             }
             
             if (certificateManager.isCertificateExpired()) {
                 AppLog.e(TAG, "Certificate expired")
-                return@withContext Result.failure(
+                return Result.failure(
                     AuthenticationException.CertificateError("Certificate expired. Re-enrollment required.")
                 )
             }
             
-            // Prepare request payload
-            val timestamp = System.currentTimeMillis()
-            val nonce = nonceGenerator.generate()
-            val certificate = certificateManager.getCertificatePem()!!
-            val privateKey = certificateManager.getPrivateKey()!!
-            
-            val payload = JSONObject().apply {
-                put("phone", phone)
-                put("otp", otp)
-            }
-            
-            // Sign the request
-            val signature = requestSigner.signRequest(
+            // Prepare authenticated request
+            val authenticatedData = buildAuthenticatedRequest(
                 endpoint = VERIFY_OTP_ENDPOINT,
-                timestamp = timestamp,
-                nonce = nonce,
-                payload = payload.toString(),
-                privateKey = privateKey
+                data = mapOf(
+                    "phone" to phone,
+                    "otp" to otp
+                )
             )
             
-            // Add authentication fields
-            val requestBody = JSONObject().apply {
-                put("phone", phone)
-                put("otp", otp)
-                put("_cert", certificate)
-                put("_timestamp", timestamp.toString())
-                put("_nonce", nonce)
-                put("_signature", signature)
-            }
-            
-            // Make HTTP request
-            val response = makeHttpRequest(VERIFY_OTP_ENDPOINT, requestBody)
+            // Call Firebase Function (SDK automatically includes App Check token)
+            functions
+                .getHttpsCallable(VERIFY_OTP_ENDPOINT)
+                .call(authenticatedData)
+                .await()
             
             AppLog.i(TAG, "OTP verification successful")
             Result.success(
                 OtpVerifyResponse(
                     success = true,
-                    message = response.optString("message", "OTP verified successfully")
+                    message = "OTP verified successfully"
                 )
             )
-        } catch (e: AuthenticationException) {
-            AppLog.e(TAG, "Authentication error: ${e.message}", e)
-            Result.failure(e)
+        } catch (e: FirebaseFunctionsException) {
+            AppLog.e(TAG, "Firebase Functions error: ${e.code} - ${e.message}", e)
+            Result.failure(parseFirebaseException(e))
         } catch (e: Exception) {
             AppLog.e(TAG, "Unexpected error verifying OTP", e)
             Result.failure(
@@ -187,74 +142,73 @@ class RealAuthenticationRepository(
     }
     
     /**
-     * Make HTTPS request to Firebase Cloud Function
+     * Build authenticated request with certificate authentication fields
      */
-    private fun makeHttpRequest(endpoint: String, body: JSONObject): JSONObject {
-        val url = URL("$baseUrl/$endpoint")
-        val connection = url.openConnection() as HttpsURLConnection
+    private fun buildAuthenticatedRequest(
+        endpoint: String,
+        data: Map<String, Any>
+    ): Map<String, Any> {
+        val timestamp = System.currentTimeMillis()
+        val nonce = nonceGenerator.generate()
+        val certificate = certificateManager.getCertificatePem()!!
+        val privateKey = certificateManager.getPrivateKey()!!
         
-        try {
-            // Configure connection
-            connection.requestMethod = "POST"
-            connection.connectTimeout = CONNECT_TIMEOUT_MS
-            connection.readTimeout = READ_TIMEOUT_MS
-            connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8")
-            connection.setRequestProperty("Accept", "application/json")
-            connection.doOutput = true
-            connection.doInput = true
-            
-            // Write request body
-            val writer = OutputStreamWriter(connection.outputStream, "UTF-8")
-            writer.write(body.toString())
-            writer.flush()
-            writer.close()
-            
-            // Read response
-            val responseCode = connection.responseCode
-            AppLog.d(TAG, "Response code: $responseCode")
-            
-            if (responseCode in 200..299) {
-                // Success
-                val reader = BufferedReader(InputStreamReader(connection.inputStream, "UTF-8"))
-                val response = reader.readText()
-                reader.close()
-                
-                AppLog.d(TAG, "Response received: ${response.take(100)}...")
-                return JSONObject(response)
-            } else {
-                // Error
-                val errorReader = BufferedReader(InputStreamReader(connection.errorStream ?: connection.inputStream, "UTF-8"))
-                val errorResponse = errorReader.readText()
-                errorReader.close()
-                
-                AppLog.e(TAG, "Error response: $errorResponse")
-                
-                // Parse error
-                throw parseErrorResponse(responseCode, errorResponse)
-            }
-        } finally {
-            connection.disconnect()
+        // Create payload JSON string for signing
+        val payloadJson = data.entries.joinToString(",", "{", "}") { (key, value) ->
+            "\"$key\":\"$value\""
         }
+        
+        // Sign the request
+        val signature = requestSigner.signRequest(
+            endpoint = endpoint,
+            timestamp = timestamp,
+            nonce = nonce,
+            payload = payloadJson,
+            privateKey = privateKey
+        )
+        
+        // Return map with data + authentication fields
+        return data + mapOf(
+            "_cert" to certificate,
+            "_timestamp" to timestamp.toString(),
+            "_nonce" to nonce,
+            "_signature" to signature
+        )
     }
     
     /**
-     * Parse error response and throw appropriate exception
+     * Parse Firebase Functions exception to domain exception
      */
-    private fun parseErrorResponse(code: Int, body: String): AuthenticationException {
-        return try {
-            val json = JSONObject(body)
-            val errorMessage = json.optJSONObject("error")?.optString("message") 
-                ?: json.optString("message", "Unknown error")
+    private fun parseFirebaseException(e: FirebaseFunctionsException): AuthenticationException {
+        return when (e.code) {
+            FirebaseFunctionsException.Code.UNAUTHENTICATED ->
+                AuthenticationException.CertificateError("Authentication failed: ${e.message}")
             
-            when {
-                code == 403 -> AuthenticationException.CertificateError(errorMessage)
-                code == 429 -> AuthenticationException.RateLimitError(errorMessage)
-                code in 400..499 -> AuthenticationException.InvalidOtpError(errorMessage)
-                code in 500..599 -> AuthenticationException.ServerError(errorMessage)
-                else -> AuthenticationException.NetworkError("HTTP $code: $errorMessage")
-            }
-        } catch (e: Exception) {
-            AuthenticationException.ServerError("HTTP $code: Failed to parse error response")
+            FirebaseFunctionsException.Code.PERMISSION_DENIED ->
+                AuthenticationException.CertificateError("Permission denied: ${e.message}")
+            
+            FirebaseFunctionsException.Code.NOT_FOUND ->
+                AuthenticationException.InvalidOtpError("OTP not found or expired: ${e.message}")
+            
+            FirebaseFunctionsException.Code.ALREADY_EXISTS ->
+                AuthenticationException.InvalidOtpError("OTP already used: ${e.message}")
+            
+            FirebaseFunctionsException.Code.RESOURCE_EXHAUSTED ->
+                AuthenticationException.RateLimitError("Rate limit exceeded: ${e.message}")
+            
+            FirebaseFunctionsException.Code.DEADLINE_EXCEEDED ->
+                AuthenticationException.InvalidOtpError("Request timeout: ${e.message}")
+            
+            FirebaseFunctionsException.Code.INVALID_ARGUMENT ->
+                AuthenticationException.InvalidOtpError("Invalid request: ${e.message}")
+            
+            FirebaseFunctionsException.Code.INTERNAL,
+            FirebaseFunctionsException.Code.UNAVAILABLE,
+            FirebaseFunctionsException.Code.UNKNOWN ->
+                AuthenticationException.ServerError("Server error: ${e.message}")
+            
+            else ->
+                AuthenticationException.NetworkError("Unexpected error: ${e.message}")
         }
     }
     

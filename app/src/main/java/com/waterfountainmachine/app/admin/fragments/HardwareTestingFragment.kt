@@ -16,6 +16,8 @@ import com.waterfountainmachine.app.databinding.FragmentHardwareTestingBinding
 import com.waterfountainmachine.app.hardware.sdk.SlotValidator
 import com.waterfountainmachine.app.utils.AppLog
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 /**
  * Hardware Testing Panel
@@ -223,8 +225,10 @@ class HardwareTestingFragment : Fragment() {
                 
                 val startTime = System.currentTimeMillis()
                 
-                // Test dispenser
-                val success = app.hardwareManager.testDispenser(slot)
+                // ⚡ FIX: Run hardware operation on IO dispatcher to prevent blocking UI thread
+                val success = withContext(Dispatchers.IO) {
+                    app.hardwareManager.testDispenser(slot)
+                }
                 
                 val elapsed = System.currentTimeMillis() - startTime
                 
@@ -269,7 +273,10 @@ class HardwareTestingFragment : Fragment() {
                     val position = SlotValidator.getSlotPosition(slot)
                     binding.testResultText.text = "Testing all slots...\nCurrent: Slot $slot ($position)"
                     
-                    val success = app.hardwareManager.testDispenser(slot)
+                    // ⚡ FIX: Run hardware operation on IO dispatcher
+                    val success = withContext(Dispatchers.IO) {
+                        app.hardwareManager.testDispenser(slot)
+                    }
                     
                     if (success) {
                         results.add("Slot $slot: ✅")

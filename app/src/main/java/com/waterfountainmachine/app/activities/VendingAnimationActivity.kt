@@ -17,6 +17,8 @@ import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.lifecycleScope
 import com.waterfountainmachine.app.R
 import com.waterfountainmachine.app.databinding.ActivityVendingAnimationBinding
+import com.waterfountainmachine.app.hardware.WaterFountainManager
+import com.waterfountainmachine.app.utils.AppLog
 import com.waterfountainmachine.app.views.ProgressRingView
 import com.waterfountainmachine.app.utils.FullScreenUtils
 import nl.dionsegijn.konfetti.core.Party
@@ -26,11 +28,16 @@ import nl.dionsegijn.konfetti.core.models.Size
 import nl.dionsegijn.konfetti.xml.KonfettiView
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.util.concurrent.TimeUnit
 
 class VendingAnimationActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityVendingAnimationBinding
+    
+    // Water fountain hardware manager
+    private lateinit var waterFountainManager: WaterFountainManager
 
     private var phoneNumber: String? = null
     private var dispensingTime: Long = 0
@@ -54,6 +61,7 @@ class VendingAnimationActivity : AppCompatActivity() {
     }
     
     companion object {
+        private const val TAG = "VendingAnimationActivity"
         private const val FADE_IN_DELAY_MS = 50L  // Start almost immediately for smooth page transition
         private const val PROGRESS_START_DELAY_MS = 1000L
         private const val PROGRESS_DURATION_MS = 14000L
@@ -83,6 +91,9 @@ class VendingAnimationActivity : AppCompatActivity() {
         phoneNumber = intent.getStringExtra("phoneNumber")
         dispensingTime = intent.getLongExtra("dispensingTime", 8000)
         slot = intent.getIntExtra("slot", 1)
+        
+        // Initialize hardware manager
+        waterFountainManager = WaterFountainManager.getInstance(this)
 
         initializeViews()
         setupFullscreen()
@@ -93,7 +104,40 @@ class VendingAnimationActivity : AppCompatActivity() {
         binding.completionText.alpha = 0f
         binding.logoImage.alpha = 0f
         
-        startRingAnimation()
+        // Start water dispensing and animation
+        startWaterDispensing()
+    }
+    
+    /**
+     * Start water dispensing in background while showing animation
+     */
+    private fun startWaterDispensing() {
+        lifecycleScope.launch {
+            try {
+                AppLog.i(TAG, "Starting water dispensing...")
+                
+                // Start the ring animation immediately for user feedback
+                startRingAnimation()
+                
+                // Dispense water on IO thread (blocking hardware operation)
+                val result = withContext(Dispatchers.IO) {
+                    waterFountainManager.dispenseWater()
+                }
+                
+                if (result.success) {
+                    AppLog.i(TAG, "Water dispensed successfully in ${result.dispensingTimeMs}ms")
+                    // Update dispensing time with actual value
+                    dispensingTime = result.dispensingTimeMs
+                } else {
+                    AppLog.e(TAG, "Water dispensing failed: ${result.errorMessage}")
+                    // Continue with animation anyway - don't break user experience
+                }
+                
+            } catch (e: Exception) {
+                AppLog.e(TAG, "Error during water dispensing", e)
+                // Continue with animation anyway
+            }
+        }
     }
 
     private fun initializeViews() {

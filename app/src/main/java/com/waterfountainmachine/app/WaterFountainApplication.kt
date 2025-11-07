@@ -1,6 +1,10 @@
 package com.waterfountainmachine.app
 
 import android.app.Application
+import com.google.firebase.Firebase
+import com.google.firebase.appcheck.appCheck
+import com.google.firebase.appcheck.debug.DebugAppCheckProviderFactory
+import com.google.firebase.initialize
 import com.waterfountainmachine.app.auth.AuthModule
 import com.waterfountainmachine.app.security.SecurityModule
 import com.waterfountainmachine.app.hardware.WaterFountainManager
@@ -48,6 +52,17 @@ class WaterFountainApplication : Application() {
         AppLog.i(TAG, "═══════════════════════════════════════════════")
         AppLog.i(TAG, "Water Fountain Vending Machine Application Starting")
         AppLog.i(TAG, "═══════════════════════════════════════════════")
+        
+        // Initialize Firebase
+        Firebase.initialize(context = this)
+        
+        // Initialize Firebase App Check with debug provider for development
+        // In production, replace with DeviceCheckProviderFactory or SafetyNetAppCheckProviderFactory
+        Firebase.appCheck.installAppCheckProviderFactory(
+            DebugAppCheckProviderFactory.getInstance()
+        )
+        AppLog.i(TAG, "Firebase App Check initialized with Debug Provider")
+        AppLog.i(TAG, "⚠️ Check logcat for App Check debug token - register it in Firebase Console")
         
         // Initialize security module
         initializeSecurityModule()

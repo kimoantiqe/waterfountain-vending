@@ -1,8 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
-    // TODO: Enable when Firebase is configured with real google-services.json
-    // id("com.google.gms.google-services")
+    id("com.google.gms.google-services")
 }
 
 android {
@@ -74,10 +73,11 @@ dependencies {
     implementation("androidx.security:security-crypto:1.1.0-alpha06")
     
     // Firebase - for backend integration
-    // TODO: Uncomment when Firebase is configured with real google-services.json
-    // implementation(platform("com.google.firebase:firebase-bom:32.7.0"))
-    // implementation("com.google.firebase:firebase-functions-ktx")
-    // implementation("com.google.firebase:firebase-auth-ktx")
+    implementation(platform("com.google.firebase:firebase-bom:32.7.0"))
+    implementation("com.google.firebase:firebase-functions-ktx")
+    implementation("com.google.firebase:firebase-auth-ktx")
+    implementation("com.google.firebase:firebase-appcheck-debug:17.1.1")
+    implementation("com.google.firebase:firebase-appcheck-ktx")
     
     // Kotlin Coroutines for Firebase async operations
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")

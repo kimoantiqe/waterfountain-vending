@@ -107,12 +107,17 @@ class VendorSDKAdapter : IVendingMachineAdapter {
     /**
      * Dispense water from the specified slot.
      * 
-     * Per-operation connection lifecycle:
+     * TWO-PHASE DISPENSING CYCLE (VMC Hardware Requirement):
+     * Phase 1: Dispense water into cup (sets "can dispensed" flag in VMC)
+     * Phase 2: Open door for retrieval (based on VMC flag)
+     * 
+     * Per-operation connection lifecycle (per phase):
      * 1. Validates slot number (must be in 48-slot layout)
      * 2. Creates CYVendingMachine instance (opens /dev/ttyS0 automatically)
      * 3. Waits for shipment callback (status 3, 4, 5, or 6)
      * 4. Vendor SDK auto-closes port via CancleQuery() on terminal status
-     * 5. Returns WaterDispenseResult
+     * 5. Repeats for second phase (door open)
+     * 6. Returns WaterDispenseResult
      * 
      * The vendor SDK manages the complete operation lifecycle internally,
      * including timeouts and error handling. We trust the SDK to complete
@@ -122,7 +127,9 @@ class VendorSDKAdapter : IVendingMachineAdapter {
      * @return Result with WaterDispenseResult (always success Result, check WaterDispenseResult.success flag)
      */
     override suspend fun dispenseWater(slot: Int): Result<WaterDispenseResult> {
-        AppLog.i(tag, "DISPENSE OPERATION START")
+        AppLog.i(tag, "========================================")
+        AppLog.i(tag, "TWO-PHASE DISPENSE OPERATION START")
+        AppLog.i(tag, "========================================")
         AppLog.i(tag, "Slot: $slot | Per-operation connection model")
         
         // Step 1: Validate slot
@@ -153,11 +160,64 @@ class VendorSDKAdapter : IVendingMachineAdapter {
             )
         }
         
-        // Step 3: Dispense (no timeout - vendor SDK manages complete lifecycle)
+        val startTime = System.currentTimeMillis()
+        
+        // PHASE 1: Dispense water
+        AppLog.i(tag, "----------------------------------------")
+        AppLog.i(tag, "PHASE 1: DISPENSING WATER")
+        AppLog.i(tag, "----------------------------------------")
         AppLog.i(tag, "Opening serial port /dev/ttyS0 (9600 baud)")
-        return dispenseWaterInternal(slot).also {
-            AppLog.i(tag, "DISPENSE OPERATION END")
+        
+        val phase1Result = dispenseWaterInternal(slot)
+        
+        if (phase1Result.isFailure || !phase1Result.getOrNull()!!.success) {
+            AppLog.e(tag, "Phase 1 failed: ${phase1Result.getOrNull()?.errorMessage}")
+            AppLog.i(tag, "========================================")
+            AppLog.i(tag, "TWO-PHASE DISPENSE OPERATION FAILED")
+            AppLog.i(tag, "========================================")
+            return phase1Result
         }
+        
+        AppLog.i(tag, "✅ Phase 1 complete: Water dispensed")
+        AppLog.i(tag, "VMC internal flag: 'can dispensed' = true")
+        
+        // Short delay between phases
+        kotlinx.coroutines.delay(500)
+        
+        // PHASE 2: Open door for retrieval
+        AppLog.i(tag, "----------------------------------------")
+        AppLog.i(tag, "PHASE 2: OPENING DOOR FOR RETRIEVAL")
+        AppLog.i(tag, "----------------------------------------")
+        AppLog.i(tag, "Opening serial port /dev/ttyS0 (9600 baud)")
+        
+        val phase2Result = dispenseWaterInternal(slot)
+        
+        val totalTime = System.currentTimeMillis() - startTime
+        
+        if (phase2Result.isFailure || !phase2Result.getOrNull()!!.success) {
+            AppLog.w(tag, "Phase 2 failed: ${phase2Result.getOrNull()?.errorMessage}")
+            AppLog.w(tag, "Water was dispensed but door may not have opened")
+            AppLog.i(tag, "========================================")
+            AppLog.i(tag, "TWO-PHASE DISPENSE PARTIALLY COMPLETE")
+            AppLog.i(tag, "========================================")
+            return phase2Result
+        }
+        
+        AppLog.i(tag, "✅ Phase 2 complete: Door opened")
+        AppLog.i(tag, "========================================")
+        AppLog.i(tag, "✅ TWO-PHASE DISPENSE OPERATION SUCCESS")
+        AppLog.i(tag, "========================================")
+        AppLog.i(tag, "Total time: ${totalTime}ms")
+        
+        return Result.success(
+            WaterDispenseResult(
+                success = true,
+                slot = slot,
+                errorCode = 0x00,
+                errorMessage = "",
+                dispensingTimeMs = totalTime
+            )
+        )
     }
     
     /**

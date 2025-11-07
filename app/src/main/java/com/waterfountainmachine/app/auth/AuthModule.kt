@@ -62,22 +62,14 @@ object AuthModule {
                 successRate = 1.0f // 100% success rate by default
             )
         } else {
-            AppLog.i(TAG, "Initializing with RealAuthenticationRepository")
+            AppLog.i(TAG, "Initializing with RealAuthenticationRepository (Firebase Functions SDK)")
             
             // Create security components
             val certificateManager = CertificateManager.getInstance(context)
             val requestSigner = RequestSigner()
             val nonceGenerator = NonceGenerator()
             
-            // Get API environment from preferences or default to DEV
-            val environment = loadEnvironmentPreference(context)
-            val baseUrl = environment.baseUrl
-            
-            AppLog.i(TAG, "Using environment: $environment")
-            AppLog.i(TAG, "Base URL: $baseUrl")
-            
             RealAuthenticationRepository(
-                baseUrl = baseUrl,
                 certificateManager = certificateManager,
                 requestSigner = requestSigner,
                 nonceGenerator = nonceGenerator

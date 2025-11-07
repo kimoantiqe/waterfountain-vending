@@ -52,8 +52,13 @@ class CertificateSetupActivity : AppCompatActivity() {
         binding = ActivityCertificateSetupBinding.inflate(layoutInflater)
         setContentView(binding.root)
         
-        // Initialize Firebase Functions
+        // Initialize Firebase Functions (uses deployed backend in us-central1)
         functions = FirebaseFunctions.getInstance()
+        
+        AppLog.d(TAG, "Firebase Functions initialized")
+        AppLog.d(TAG, "Connecting to DEPLOYED backend (not emulator)")
+        AppLog.d(TAG, "Project ID: waterfountain-dev")
+        AppLog.d(TAG, "Region: us-central1")
         
         setupUI()
         checkExistingEnrollment()
@@ -115,45 +120,65 @@ class CertificateSetupActivity : AppCompatActivity() {
     }
     
     private suspend fun enrollMachine(machineId: String, token: String) {
+        AppLog.d(TAG, "========================================")
+        AppLog.d(TAG, "Starting machine enrollment process")
+        AppLog.d(TAG, "Machine ID: $machineId")
+        AppLog.d(TAG, "Token: ${token.take(5)}...${token.takeLast(5)}")
+        AppLog.d(TAG, "========================================")
+        
         // Step 1: Generate RSA key pair and extract public key in PEM format
         setState(EnrollmentState.GENERATING_KEYS)
         showProgress("Generating cryptographic keys...")
         delay(500) // Brief delay for UI feedback
         
+        AppLog.d(TAG, "Step 1/3: Generating RSA key pair")
         val publicKeyPem = try {
             SecurityModule.generatePublicKeyPem(machineId)
         } catch (e: Exception) {
+            AppLog.e(TAG, "Key generation failed", e)
             throw Exception("Failed to generate keys: ${e.message}", e)
         }
         
-        AppLog.d(TAG, "Public key generated for machine: $machineId")
+        AppLog.d(TAG, "✓ Public key generated successfully")
+        AppLog.d(TAG, "Public key length: ${publicKeyPem.length} bytes")
         
         // Step 2: Call backend enrollMachineKey API
         setState(EnrollmentState.CALLING_BACKEND)
         showProgress("Enrolling with backend...")
         
+        AppLog.d(TAG, "Step 2/3: Calling backend API")
         val certificate = try {
             callEnrollMachineKey(machineId, token, publicKeyPem)
         } catch (e: Exception) {
+            AppLog.e(TAG, "Backend enrollment failed", e)
             throw Exception("Backend enrollment failed: ${e.message}", e)
         }
         
-        AppLog.d(TAG, "Certificate received from backend")
+        AppLog.d(TAG, "✓ Certificate received from backend")
         
         // Step 3: Install certificate
         setState(EnrollmentState.INSTALLING_CERT)
         showProgress("Installing certificate...")
         delay(500)
         
+        AppLog.d(TAG, "Step 3/3: Installing certificate")
         try {
             SecurityModule.installCertificate(certificate)
+            AppLog.d(TAG, "✓ Certificate installed successfully")
         } catch (e: Exception) {
+            AppLog.e(TAG, "Certificate installation failed", e)
             throw Exception("Failed to install certificate: ${e.message}", e)
         }
         
         // Step 4: Complete
         setState(EnrollmentState.COMPLETE)
         showSuccess()
+        
+        AppLog.d(TAG, "========================================")
+        AppLog.d(TAG, "✓✓✓ ENROLLMENT COMPLETED SUCCESSFULLY ✓✓✓")
+        AppLog.d(TAG, "Machine ID: $machineId")
+        AppLog.d(TAG, "Status: Enrolled and Active")
+        AppLog.d(TAG, "========================================")
     }
     
     /**
@@ -173,24 +198,97 @@ class CertificateSetupActivity : AppCompatActivity() {
             "publicKeyPem" to publicKeyPem
         )
         
-        val result = functions
-            .getHttpsCallable("enrollMachineKey")
-            .call(data)
-            .await()
+        AppLog.d(TAG, "=== Enrollment API Call Start ===")
+        AppLog.d(TAG, "Calling enrollMachineKey endpoint")
+        AppLog.d(TAG, "Machine ID: $machineId")
+        AppLog.d(TAG, "Token length: ${oneTimeToken.length} chars")
+        AppLog.d(TAG, "Public key length: ${publicKeyPem.length} chars")
+        AppLog.d(TAG, "Public key preview: ${publicKeyPem.take(100)}...")
         
-        val resultData = result.data as? Map<*, *>
-            ?: throw Exception("Invalid response from backend")
-        
-        val success = resultData["success"] as? Boolean
-        if (success != true) {
-            val error = resultData["error"] as? String ?: "Unknown error"
-            throw Exception(error)
+        try {
+            val result = functions
+                .getHttpsCallable("enrollMachineKey")
+                .call(data)
+                .await()
+            
+            AppLog.d(TAG, "=== Backend Response Received ===")
+            AppLog.d(TAG, "Raw result data type: ${result.data?.javaClass?.simpleName}")
+            
+            val resultData = result.data as? Map<*, *>
+            if (resultData == null) {
+                AppLog.e(TAG, "Backend response is not a Map! Data: ${result.data}")
+                throw Exception("Invalid response from backend")
+            }
+            
+            AppLog.d(TAG, "Response keys: ${resultData.keys}")
+            AppLog.d(TAG, "Full response: $resultData")
+            
+            val success = resultData["success"] as? Boolean
+            AppLog.d(TAG, "Success field: $success")
+            
+            if (success != true) {
+                val error = resultData["error"] as? String ?: "Unknown error"
+                AppLog.e(TAG, "Enrollment failed with error: $error")
+                throw Exception(error)
+            }
+            
+            val certificate = resultData["certificate"] as? String
+            if (certificate == null) {
+                AppLog.e(TAG, "Certificate not found in response!")
+                AppLog.e(TAG, "Available fields: ${resultData.keys}")
+                throw Exception("Certificate not found in response")
+            }
+            
+            val validUntil = resultData["validUntil"] as? String
+            AppLog.d(TAG, "Certificate received successfully")
+            AppLog.d(TAG, "Certificate length: ${certificate.length} chars")
+            AppLog.d(TAG, "Certificate valid until: $validUntil")
+            AppLog.d(TAG, "Certificate preview: ${certificate.take(100)}...")
+            AppLog.d(TAG, "=== Enrollment API Call Complete ===")
+            
+            return certificate
+            
+        } catch (e: com.google.firebase.functions.FirebaseFunctionsException) {
+            AppLog.e(TAG, "=== Firebase Functions Exception ===")
+            AppLog.e(TAG, "Error code: ${e.code}")
+            AppLog.e(TAG, "Error message: ${e.message}")
+            AppLog.e(TAG, "Error details: ${e.details}")
+            
+            // Map Firebase error codes to user-friendly messages
+            val userMessage = when (e.code) {
+                com.google.firebase.functions.FirebaseFunctionsException.Code.NOT_FOUND -> 
+                    "Enrollment token not found. Please generate a new token from the admin panel."
+                com.google.firebase.functions.FirebaseFunctionsException.Code.PERMISSION_DENIED -> 
+                    "Invalid enrollment token. Please check your token and try again."
+                com.google.firebase.functions.FirebaseFunctionsException.Code.DEADLINE_EXCEEDED -> 
+                    "Enrollment token has expired. Please generate a new token."
+                com.google.firebase.functions.FirebaseFunctionsException.Code.ALREADY_EXISTS -> 
+                    "Token already used. Please generate a new token."
+                com.google.firebase.functions.FirebaseFunctionsException.Code.FAILED_PRECONDITION ->
+                    "Token already used or revoked. Please generate a new token."
+                com.google.firebase.functions.FirebaseFunctionsException.Code.UNAVAILABLE ->
+                    "Backend service unavailable. Please check your internet connection and try again."
+                com.google.firebase.functions.FirebaseFunctionsException.Code.UNAUTHENTICATED ->
+                    "Authentication failed. Please restart the app and try again."
+                com.google.firebase.functions.FirebaseFunctionsException.Code.INTERNAL ->
+                    "Internal Firebase error. This may be due to:\n" +
+                    "• No internet connection\n" +
+                    "• Emulator doesn't have Google Play Services\n" +
+                    "• Firebase not fully initialized\n\n" +
+                    "Try: Use a real device or emulator with Google Play, ensure internet connection, and restart the app."
+                else -> "Enrollment failed: ${e.message}"
+            }
+            
+            AppLog.e(TAG, "User-friendly message: $userMessage")
+            throw Exception(userMessage)
+            
+        } catch (e: Exception) {
+            AppLog.e(TAG, "=== Unexpected Exception ===")
+            AppLog.e(TAG, "Exception type: ${e.javaClass.simpleName}")
+            AppLog.e(TAG, "Exception message: ${e.message}")
+            AppLog.e(TAG, "Stack trace:", e)
+            throw e
         }
-        
-        val certificate = resultData["certificate"] as? String
-            ?: throw Exception("Certificate not found in response")
-        
-        return certificate
     }
     
     private fun setState(state: EnrollmentState) {

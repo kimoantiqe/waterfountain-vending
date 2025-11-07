@@ -26,12 +26,13 @@ class NonceGenerator {
     /**
      * Generate a new cryptographically secure nonce.
      *
-     * @return Base64-encoded random nonce (256 bits)
+     * @return URL-safe Base64-encoded random nonce (256 bits)
      */
     fun generate(): String {
         val bytes = ByteArray(NONCE_SIZE_BYTES)
         secureRandom.nextBytes(bytes)
-        return Base64.getEncoder().encodeToString(bytes)
+        // Use URL-safe encoding to avoid '/' and '+' characters which are invalid in Firestore document IDs
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes)
     }
 
     companion object {

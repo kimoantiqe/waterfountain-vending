@@ -20,6 +20,8 @@ import com.waterfountainmachine.app.utils.AppLog
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 class SMSVerifyActivity : AppCompatActivity() {
 
@@ -273,8 +275,8 @@ class SMSVerifyActivity : AppCompatActivity() {
                 
                 result.onSuccess { response ->
                     AppLog.i(TAG, "OTP verification successful: ${response.message}")
-                    // SMS verification successful - now dispense water
-                    dispenseWaterAfterVerification()
+                    // SMS verification successful - navigate to vending animation
+                    navigateToVendingAnimation()
                 }.onFailure { error ->
                     val errorMessage = error.message ?: "Verification failed"
                     AppLog.w(TAG, "OTP verification failed: $errorMessage", error)
@@ -492,6 +494,22 @@ class SMSVerifyActivity : AppCompatActivity() {
             .start()
     }
     
+    /**
+     * Navigate to vending animation screen after successful OTP verification
+     */
+    private fun navigateToVendingAnimation() {
+        AppLog.i(TAG, "OTP verified - navigating to vending animation")
+        
+        // Create transition intent
+        val intent = Intent(this, VendingAnimationActivity::class.java)
+        intent.putExtra("phoneNumber", phoneNumber)
+
+        // Use standard fade transition
+        startActivity(intent)
+        overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
+        finish()
+    }
+    
     private fun setupHardware() {
         waterFountainManager = WaterFountainManager.getInstance(this)
         
@@ -506,38 +524,6 @@ class SMSVerifyActivity : AppCompatActivity() {
                 AppLog.e(TAG, "Hardware error", e)
             }
         }
-    }
-    
-    private fun dispenseWaterAfterVerification() {
-        lifecycleScope.launch {
-            try {
-                AppLog.i(TAG, "Verification successful - dispensing water")
-                
-                val result = waterFountainManager.dispenseWater()
-                
-                if (result.success) {
-                    AppLog.i(TAG, "Water dispensed successfully")
-                    navigateToAnimation(result.dispensingTimeMs)
-                } else {
-                    AppLog.e(TAG, "Water dispensing failed: ${result.errorMessage}")
-                }
-            } catch (e: Exception) {
-                AppLog.e(TAG, "Dispensing error", e)
-            }
-        }
-    }
-    
-    private fun navigateToAnimation(dispensingTime: Long) {
-        // Create transition intent
-        val intent = Intent(this, VendingAnimationActivity::class.java)
-        intent.putExtra("phoneNumber", phoneNumber)
-        intent.putExtra("dispensingTime", dispensingTime)
-        intent.putExtra("slot", waterFountainManager.getCurrentSlot())
-
-        // Use standard fade transition (same as other screens)
-        startActivity(intent)
-        overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
-        finish()
     }
 
     private fun addDigit(digit: String) {

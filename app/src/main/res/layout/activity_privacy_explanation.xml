@@ -232,7 +232,7 @@
                                     android:layout_marginBottom="12dp"
                                     android:fontFamily="sans-serif-medium"
                                     android:letterSpacing="-0.01"
-                                    android:text="Why your number?"
+                                    android:text="Why your numbers?"
                                     android:textColor="#555555"
                                     android:textSize="44sp" />
 

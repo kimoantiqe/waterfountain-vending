@@ -138,8 +138,13 @@ class WaterFountainManager private constructor(
     
     /**
      * Get current active water slot/lane
+     * HARDCODED TO SLOT 1 FOR TESTING
      */
-    fun getCurrentSlot(): Int = laneManager.getNextLane()
+    fun getCurrentSlot(): Int {
+        AppLog.d(TAG, "getCurrentSlot() - HARDCODED to slot 1")
+        return 15  // Hardcoded to slot 1 for testing
+        // return laneManager.getNextLane()  // Original implementation
+    }
     
     /**
      * Get comprehensive lane status report for diagnostics
@@ -159,6 +164,7 @@ class WaterFountainManager private constructor(
     /**
      * Dispense water using smart lane management
      * This is the main function for water dispensing with automatic fallback
+     * HARDCODED TO SLOT 1 FOR TESTING
      */
     suspend fun dispenseWater(): WaterDispenseResult {
         if (!isReady()) {
@@ -171,6 +177,23 @@ class WaterFountainManager private constructor(
         }
         
         try {
+            // HARDCODED TO SLOT 1 FOR TESTING
+            val slot = 15
+            AppLog.i(TAG, "Attempting to dispense water from slot $slot (HARDCODED)...")
+            
+            val result = attemptDispenseFromLane(slot)
+            
+            if (result.success) {
+                AppLog.i(TAG, "Water dispensed successfully from slot $slot")
+                laneManager.recordSuccess(slot, result.dispensingTimeMs)
+            } else {
+                AppLog.w(TAG, "Water dispensing failed from slot $slot: ${result.errorMessage}")
+                laneManager.recordFailure(slot, result.errorCode, result.errorMessage)
+            }
+            
+            return result
+            
+            /* ORIGINAL IMPLEMENTATION WITH LANE MANAGEMENT - COMMENTED OUT FOR TESTING
             // Get the best lane for dispensing
             val primaryLane = laneManager.getNextLane()
             AppLog.i(TAG, "Attempting to dispense water from lane $primaryLane...")
@@ -212,6 +235,7 @@ class WaterFountainManager private constructor(
                 errorMessage = "All water lanes are currently unavailable. Please contact support.",
                 dispensingTimeMs = result.dispensingTimeMs
             )
+            */
             
         } catch (e: Exception) {
             AppLog.e(TAG, "Exception during water dispensing", e)
