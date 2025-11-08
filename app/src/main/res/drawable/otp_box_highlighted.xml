@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    
+    <!-- Light shadow layer -->
+    <item android:left="0dp" android:top="2dp" android:right="2dp" android:bottom="0dp">
+        <shape android:shape="rectangle">
+            <corners android:radius="16dp"/>
+            <solid android:color="#18000000"/>
+        </shape>
+    </item>
+    
+    <!-- Base glass with subtle frosted effect -->
+    <item android:left="0dp" android:top="0dp" android:right="2dp" android:bottom="2dp">
+        <shape android:shape="rectangle">
+            <corners android:radius="16dp"/>
+            <solid android:color="#4DFFFFFF"/>
+            <stroke android:width="2.5dp" android:color="#8B7BA8"/>
+        </shape>
+    </item>
+
+    <!-- Inner top highlight -->
+    <item android:left="0dp" android:top="1dp" android:right="2dp" android:bottom="999dp">
+        <shape android:shape="rectangle">
+            <corners android:topLeftRadius="16dp" android:topRightRadius="16dp"/>
+            <solid android:color="#26FFFFFF"/>
+        </shape>
+    </item>
+
+</layer-list>

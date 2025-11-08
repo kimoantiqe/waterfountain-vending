@@ -6,6 +6,7 @@ import android.content.Intent
 import android.os.Bundle
 import android.view.View
 import android.view.animation.AccelerateDecelerateInterpolator
+import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.waterfountainmachine.app.R
@@ -17,6 +18,7 @@ import com.waterfountainmachine.app.utils.FullScreenUtils
 import com.waterfountainmachine.app.utils.AnimationUtils
 import com.waterfountainmachine.app.utils.InactivityTimer
 import com.waterfountainmachine.app.utils.AppLog
+import com.waterfountainmachine.app.utils.SoundManager
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -34,6 +36,7 @@ class SMSVerifyActivity : AppCompatActivity() {
 
     private lateinit var inactivityTimer: InactivityTimer
     private var questionMarkAnimator: AnimatorSet? = null
+    private lateinit var soundManager: SoundManager
 
     // Timer for OTP resend - using coroutines instead of Handler to prevent memory leaks
     private var otpTimerJob: Job? = null
@@ -55,6 +58,7 @@ class SMSVerifyActivity : AppCompatActivity() {
         private const val MAX_FAILED_ATTEMPTS = 3
         private const val CORRECT_OTP = "111111" // Deprecated - now using AuthModule
         const val EXTRA_PHONE_NUMBER = "phoneNumber"
+        const val EXTRA_PHONE_VISIBILITY = "phoneVisibility"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -62,10 +66,16 @@ class SMSVerifyActivity : AppCompatActivity() {
         binding = ActivitySmsVerifyBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // Get phone number from intent
+        // Get phone number and visibility state from intent
         phoneNumber = intent.getStringExtra(EXTRA_PHONE_NUMBER) ?: ""
+        val isPhoneNumberVisible = intent.getBooleanExtra(EXTRA_PHONE_VISIBILITY, true)
 
         FullScreenUtils.setupFullScreen(window, binding.root)
+        
+        // Initialize sound manager
+        soundManager = SoundManager(this)
+        soundManager.loadSound(R.raw.click)
+        soundManager.loadSound(R.raw.correct)
         
         // Initialize authentication repository
         try {
@@ -90,7 +100,7 @@ class SMSVerifyActivity : AppCompatActivity() {
         setupHardware()
         
         // Setup initial UI
-        setupVerificationUI()
+        setupVerificationUI(isPhoneNumberVisible)
     }
 
     private fun initializeViews() {
@@ -122,12 +132,14 @@ class SMSVerifyActivity : AppCompatActivity() {
     private fun setupModalFunctionality() {
         // Question mark button click
         binding.questionMarkButton.setOnClickListener {
+            soundManager.playSound(R.raw.click, 0.6f)
             inactivityTimer.reset()
             showModal()
         }
 
         // Close modal button click
         binding.closeModalButton.setOnClickListener {
+            soundManager.playSound(R.raw.click, 0.6f)
             hideModal()
         }
 
@@ -155,19 +167,25 @@ class SMSVerifyActivity : AppCompatActivity() {
         }
     }
 
-    private fun setupVerificationUI() {
+    private fun setupVerificationUI(isPhoneNumberVisible: Boolean) {
         otpCode = ""
         
-        // Show masked phone number in subtitle (only show last 4 digits)
-        val maskedPhone = "••• •••-${phoneNumber.substring(6)}"
-        binding.subtitleText.text = "We sent a code to $maskedPhone"
+        // Show phone number in subtitle - masked or visible based on user's choice from SMS screen
+        val displayPhone = if (isPhoneNumberVisible) {
+            // Show full number formatted
+            "(${phoneNumber.substring(0, 3)}) ${phoneNumber.substring(3, 6)}-${phoneNumber.substring(6)}"
+        } else {
+            // Show only last 4 digits
+            "••• •••-${phoneNumber.substring(6)}"
+        }
+        binding.subtitleText.text = "We sent a code to $displayPhone"
         
-        // Initialize verify button
-        binding.verifyOtpButton.isEnabled = false
+        // Initialize verify button - always enabled for click feedback
+        binding.verifyOtpButton.isEnabled = true
         updateButtonDisabledState(binding.verifyOtpButton, false)
         
-        // Clear OTP display
-        updateOtpDisplay()
+        // Clear OTP boxes
+        updateOtpBoxes()
         
         // Start the timer
         startOtpTimer()
@@ -254,8 +272,10 @@ class SMSVerifyActivity : AppCompatActivity() {
             return
         }
         
+        // Check if OTP is incomplete
         if (otpCode.length != MAX_OTP_LENGTH) {
-            AppLog.e(TAG, "Invalid OTP length: ${otpCode.length}")
+            AppLog.d(TAG, "Incomplete OTP: ${otpCode.length} digits")
+            showIncompleteOtpHint()
             return
         }
         
@@ -270,8 +290,19 @@ class SMSVerifyActivity : AppCompatActivity() {
             try {
                 AppLog.d(TAG, "Verifying OTP for phone: +1***-***-${phoneNumber.takeLast(4)}")
                 
+                // Add minimum display time for spinner
+                val startTime = System.currentTimeMillis()
+                val minDisplayTime = 800L
+                
                 // Verify OTP via repository
                 val result = authRepository.verifyOtp(formattedPhone, otpCode)
+                
+                // Ensure minimum spinner visibility
+                val elapsedTime = System.currentTimeMillis() - startTime
+                val remainingTime = minDisplayTime - elapsedTime
+                if (remainingTime > 0) {
+                    delay(remainingTime)
+                }
                 
                 result.onSuccess { response ->
                     AppLog.i(TAG, "OTP verification successful: ${response.message}")
@@ -283,61 +314,54 @@ class SMSVerifyActivity : AppCompatActivity() {
                     handleVerificationError(errorMessage)
                 }
             } catch (e: Exception) {
-                AppLog.e(TAG, "Unexpected verification error", e)
-                handleVerificationError("An unexpected error occurred")
+                AppLog.e(TAG, "Verification error", e)
+                handleVerificationError("Verification failed. Please try again.")
             }
         }
     }
     
     private fun setLoadingState(loading: Boolean) {
         if (loading) {
-            // Smoothly transition to loading state
-            binding.verifyOtpButton.animate()
-                .alpha(0f)
-                .setDuration(150)
-                .withEndAction {
-                    binding.verifyOtpButton.text = "Verifying..."
-                    binding.verifyOtpButton.isEnabled = false
-                    binding.verifyOtpButton.animate()
-                        .alpha(0.7f)
-                        .setDuration(200)
-                        .start()
-                }
-                .start()
-            
-            // Smoothly dim and scale down keypad
-            binding.keypadLayout.animate()
-                .alpha(0.5f)
-                .scaleX(0.98f)
-                .scaleY(0.98f)
-                .setDuration(300)
-                .start()
-            
-            // Disable keypad
+            // Disable keypad during loading
             setKeypadEnabled(false)
-        } else {
-            // Smoothly restore button
+            
+            // Fade out button
             binding.verifyOtpButton.animate()
                 .alpha(0f)
-                .setDuration(150)
+                .setDuration(200)
                 .withEndAction {
-                    binding.verifyOtpButton.text = "Verify"
-                    
-                    // Update button state based on OTP completion
-                    val isComplete = otpCode.length == MAX_OTP_LENGTH
-                    binding.verifyOtpButton.isEnabled = isComplete
-                    
-                    val targetAlpha = if (isComplete) 1.0f else 0.6f
-                    binding.verifyOtpButton.animate()
-                        .alpha(targetAlpha)
-                        .setDuration(200)
+                    // Show spinner and fade it in (overlaid on button)
+                    binding.loadingSpinner.visibility = View.VISIBLE
+                    binding.loadingSpinner.alpha = 0f
+                    binding.loadingSpinner.animate()
+                        .alpha(1f)
+                        .setDuration(300)
                         .start()
+                }
+                .start()
+        } else {
+            // Fade out and hide spinner
+            binding.loadingSpinner.animate()
+                .alpha(0f)
+                .setDuration(200)
+                .withEndAction {
+                    binding.loadingSpinner.visibility = View.GONE
                     
-                    updateButtonDisabledState(binding.verifyOtpButton, isComplete)
+                    // Fade button back in
+                    binding.verifyOtpButton.animate()
+                        .alpha(1f)
+                        .setDuration(300)
+                        .start()
                 }
                 .start()
             
-            // Smoothly restore keypad (will be animated separately if error)
+            val isComplete = otpCode.length == MAX_OTP_LENGTH
+            // Update button visual state after fade in
+            binding.verifyOtpButton.postDelayed({
+                updateButtonDisabledState(binding.verifyOtpButton, isComplete)
+            }, 300)
+            
+            // Re-enable keypad if not max attempts
             if (failedAttempts < MAX_FAILED_ATTEMPTS) {
                 setKeypadEnabled(true)
             }
@@ -394,20 +418,19 @@ class SMSVerifyActivity : AppCompatActivity() {
         val originalColor = binding.subtitleText.currentTextColor
         binding.subtitleText.setTextColor(0xFFFF4444.toInt()) // Red color
         
-        // Shake animation for OTP display
-        val shake = android.view.animation.AnimationUtils.loadAnimation(this, R.anim.shake)
-        binding.otpDisplay.startAnimation(shake)
+        // Set all boxes to error state (red borders)
+        setOtpBoxesErrorState()
         
         // Smoothly fade out and slide up keypad during error
         animateKeypadError()
         
         lifecycleScope.launch {
-            // Wait for shake animation
-            delay(500)
+            // Wait for animations
+            delay(600)
             
-            // Clear the OTP code
+            // Clear the OTP code and boxes
             otpCode = ""
-            updateOtpDisplay()
+            updateOtpBoxes()
             
             // Reset button state
             setLoadingState(false)
@@ -439,9 +462,8 @@ class SMSVerifyActivity : AppCompatActivity() {
         binding.subtitleText.text = errorMessage
         binding.subtitleText.setTextColor(0xFFFF4444.toInt()) // Red color
         
-        // Shake animation for OTP display
-        val shake = android.view.animation.AnimationUtils.loadAnimation(this, R.anim.shake)
-        binding.otpDisplay.startAnimation(shake)
+        // Set all boxes to error state
+        setOtpBoxesErrorState()
         
         // Return to main screen after brief delay
         lifecycleScope.launch {
@@ -459,38 +481,28 @@ class SMSVerifyActivity : AppCompatActivity() {
         android.widget.Toast.makeText(this, message, android.widget.Toast.LENGTH_LONG).show()
         AppLog.e(TAG, "Error shown to user: $message")
     }
-
-    private fun showErrorAndReturnToMain() {
-        // Shake animation for OTP display
-        val shake = android.view.animation.AnimationUtils.loadAnimation(this, R.anim.shake)
-        binding.otpDisplay.startAnimation(shake)
-        
-        // Immediately return to main screen without showing message
-        lifecycleScope.launch {
-            delay(500) // Just wait for shake animation
-            returnToMainScreen()
-        }
-    }
     
     private fun animateKeypadError() {
-        // Smoothly fade out and slightly scale down keypad
+        // Smoother fade out with gentle scale and translation
         binding.keypadLayout.animate()
-            .alpha(0.4f)
-            .scaleX(0.98f)
-            .scaleY(0.98f)
-            .translationY(10f)
-            .setDuration(300)
+            .alpha(0.3f)
+            .scaleX(0.96f)
+            .scaleY(0.96f)
+            .translationY(15f)
+            .setDuration(400)
+            .setInterpolator(AccelerateDecelerateInterpolator())
             .start()
     }
     
     private fun animateKeypadRestore() {
-        // Smoothly fade in and restore keypad
+        // Smoother fade in and restore with spring-like effect
         binding.keypadLayout.animate()
             .alpha(1f)
             .scaleX(1f)
             .scaleY(1f)
             .translationY(0f)
-            .setDuration(400)
+            .setDuration(500)
+            .setInterpolator(AccelerateDecelerateInterpolator())
             .start()
     }
     
@@ -499,6 +511,9 @@ class SMSVerifyActivity : AppCompatActivity() {
      */
     private fun navigateToVendingAnimation() {
         AppLog.i(TAG, "OTP verified - navigating to vending animation")
+        
+        // Play success sound
+        soundManager.playSound(R.raw.correct, 0.7f)
         
         // Create transition intent
         val intent = Intent(this, VendingAnimationActivity::class.java)
@@ -529,36 +544,184 @@ class SMSVerifyActivity : AppCompatActivity() {
     private fun addDigit(digit: String) {
         if (otpCode.length < MAX_OTP_LENGTH) {
             otpCode += digit
-            updateOtpDisplayWithAnimation()
+            updateOtpBoxesWithAnimation()
             val isComplete = otpCode.length == MAX_OTP_LENGTH
-            binding.verifyOtpButton.isEnabled = isComplete
             updateButtonDisabledState(binding.verifyOtpButton, isComplete)
         }
     }
 
     private fun removeLastDigit() {
         if (otpCode.isNotEmpty()) {
-            // Animate disappear
-            binding.otpDisplay.startAnimation(
-                android.view.animation.AnimationUtils.loadAnimation(this, R.anim.number_disappear)
-            )
-            
-            lifecycleScope.launch {
-                delay(100)
-                otpCode = otpCode.dropLast(1)
-                updateOtpDisplay()
-                val isComplete = otpCode.length == MAX_OTP_LENGTH
-                binding.verifyOtpButton.isEnabled = isComplete
-                updateButtonDisabledState(binding.verifyOtpButton, isComplete)
-            }
+            otpCode = otpCode.dropLast(1)
+            updateOtpBoxesWithAnimation()
+            val isComplete = otpCode.length == MAX_OTP_LENGTH
+            updateButtonDisabledState(binding.verifyOtpButton, isComplete)
         }
     }
 
     private fun clearInput() {
         otpCode = ""
-        updateOtpDisplay()
-        binding.verifyOtpButton.isEnabled = false
+        updateOtpBoxes()
         updateButtonDisabledState(binding.verifyOtpButton, false)
+    }
+    
+    /**
+     * Get list of OTP box views
+     */
+    private fun getOtpBoxes(): List<TextView> {
+        return listOf(
+            binding.otpBox1,
+            binding.otpBox2,
+            binding.otpBox3,
+            binding.otpBox4,
+            binding.otpBox5,
+            binding.otpBox6
+        )
+    }
+    
+    /**
+     * Update all OTP boxes with current code
+     */
+    private fun updateOtpBoxes() {
+        val boxes = getOtpBoxes()
+        for (i in boxes.indices) {
+            if (i < otpCode.length) {
+                boxes[i].text = otpCode[i].toString()
+                boxes[i].setBackgroundResource(R.drawable.otp_box_background)
+            } else {
+                boxes[i].text = ""
+                boxes[i].setBackgroundResource(R.drawable.otp_box_background)
+            }
+        }
+        
+        // Highlight the next empty box
+        if (otpCode.length < MAX_OTP_LENGTH) {
+            boxes[otpCode.length].setBackgroundResource(R.drawable.otp_box_highlighted)
+        }
+    }
+    
+    /**
+     * Update OTP boxes with animation
+     */
+    private fun updateOtpBoxesWithAnimation() {
+        val boxes = getOtpBoxes()
+        
+        // Animate the box that just changed
+        val changedIndex = otpCode.length - 1
+        if (changedIndex >= 0 && changedIndex < boxes.size) {
+            val box = boxes[changedIndex]
+            box.text = otpCode[changedIndex].toString()
+            
+            // Scale animation for the new digit
+            box.scaleX = 0.7f
+            box.scaleY = 0.7f
+            box.animate()
+                .scaleX(1f)
+                .scaleY(1f)
+                .setDuration(200)
+                .setInterpolator(AccelerateDecelerateInterpolator())
+                .start()
+        }
+        
+        // Update all boxes
+        for (i in boxes.indices) {
+            if (i < otpCode.length) {
+                boxes[i].text = otpCode[i].toString()
+                boxes[i].setBackgroundResource(R.drawable.otp_box_background)
+            } else {
+                boxes[i].text = ""
+                boxes[i].setBackgroundResource(R.drawable.otp_box_background)
+            }
+        }
+        
+        // Highlight the next empty box
+        if (otpCode.length < MAX_OTP_LENGTH) {
+            boxes[otpCode.length].setBackgroundResource(R.drawable.otp_box_highlighted)
+        }
+    }
+    
+    /**
+     * Set all boxes to error state (red borders)
+     */
+    private fun setOtpBoxesErrorState() {
+        val boxes = getOtpBoxes()
+        
+        // Shake and turn red
+        for (box in boxes) {
+            box.setBackgroundResource(R.drawable.otp_box_error)
+            
+            // Shake animation
+            val shake = ObjectAnimator.ofFloat(box, "translationX", 0f, -15f, 15f, -10f, 10f, -5f, 5f, 0f)
+            shake.duration = 600
+            shake.interpolator = AccelerateDecelerateInterpolator()
+            shake.start()
+        }
+    }
+    
+    /**
+     * Show hint when user clicks verify with incomplete OTP
+     */
+    private fun showIncompleteOtpHint() {
+        // Turn empty boxes red and pulse the next one
+        if (otpCode.length < MAX_OTP_LENGTH) {
+            val boxes = getOtpBoxes()
+            
+            // Set all empty boxes to error state (red border)
+            for (i in otpCode.length until boxes.size) {
+                boxes[i].setBackgroundResource(R.drawable.otp_box_error)
+            }
+            
+            // Pulse the next empty box
+            val emptyBox = boxes[otpCode.length]
+            emptyBox.animate()
+                .scaleX(1.15f)
+                .scaleY(1.15f)
+                .setDuration(200)
+                .withEndAction {
+                    emptyBox.animate()
+                        .scaleX(1f)
+                        .scaleY(1f)
+                        .setDuration(200)
+                        .start()
+                }
+                .start()
+        }
+        
+        // Show error message in subtitle (store original color with alpha)
+        val maskedPhone = "••• •••-${phoneNumber.substring(6)}"
+        val originalText = "We sent a code to $maskedPhone"
+        val originalColor = 0xB3555555.toInt() // Gray with alpha
+        
+        binding.subtitleText.animate()
+            .alpha(0f)
+            .setDuration(200)
+            .withEndAction {
+                binding.subtitleText.text = "Please enter all 6 digits"
+                binding.subtitleText.setTextColor(0xFFFF6B6B.toInt())
+                binding.subtitleText.animate().alpha(0.9f).setDuration(300).start()
+                
+                // Auto-restore after 2.5s
+                binding.subtitleText.postDelayed({
+                    binding.subtitleText.animate()
+                        .alpha(0f)
+                        .setDuration(200)
+                        .withEndAction {
+                            binding.subtitleText.setTextColor(originalColor)
+                            binding.subtitleText.text = originalText
+                            binding.subtitleText.animate()
+                                .alpha(0.7f)
+                                .setDuration(200)
+                                .start()
+                        }
+                        .start()
+                    
+                    // Restore box backgrounds to normal after message clears
+                    binding.subtitleText.postDelayed({
+                        updateOtpBoxes()
+                    }, 400)
+                }, 2500)
+            }
+            .start()
     }
     
     /**
@@ -567,7 +730,7 @@ class SMSVerifyActivity : AppCompatActivity() {
     private fun updateButtonDisabledState(button: androidx.appcompat.widget.AppCompatButton, isEnabled: Boolean) {
         // Smooth alpha transition
         button.animate()
-            .alpha(if (isEnabled) 1.0f else 0.6f)
+            .alpha(if (isEnabled) 1.0f else 0.4f)
             .setDuration(200)
             .start()
         
@@ -576,7 +739,7 @@ class SMSVerifyActivity : AppCompatActivity() {
         val endColor = if (isEnabled) {
             0xFF888888.toInt()  // Lighter gray when enabled (more visible on glass background)
         } else {
-            0xFF555555.toInt()  // Dark gray when disabled (less prominent)
+            0xFF333333.toInt()  // Very dark gray when disabled (less prominent)
         }
         
         // Animate color change
@@ -588,61 +751,19 @@ class SMSVerifyActivity : AppCompatActivity() {
         colorAnimator.start()
     }
 
-    private fun updateOtpDisplay() {
-        // Smooth transition when display updates - no masking for OTP
-        val formatted = formatOtpCode(otpCode)
-        binding.otpDisplay.animate()
-            .alpha(0.7f)
-            .setDuration(100)
-            .withEndAction {
-                binding.otpDisplay.text = formatted
-                binding.otpDisplay.animate()
-                    .alpha(1f)
-                    .setDuration(150)
-                    .start()
-            }
-            .start()
-    }
-
-    private fun updateOtpDisplayWithAnimation() {
-        // No masking for OTP
-        val formatted = formatOtpCode(otpCode)
-        
-        // Animate the text change
-        binding.otpDisplay.startAnimation(
-            android.view.animation.AnimationUtils.loadAnimation(this, R.anim.number_appear)
-        )
-        binding.otpDisplay.text = formatted
-    }
-
-    private fun formatOtpCode(code: String): String {
-        // Smart formatting: just show the digits with spaces, no underscores
-        if (code.isEmpty()) return ""
-        
-        val digits = code.toCharArray()
-        val formatted = StringBuilder()
-
-        for (i in digits.indices) {
-            formatted.append(digits[i])
-            if (i < digits.size - 1) formatted.append(" ")
-        }
-
-        return formatted.toString()
-    }
-
     private fun setupKeypadListeners() {
         // Set up verify OTP button listener
         binding.verifyOtpButton.setOnClickListener {
             inactivityTimer.reset()
             performButtonAnimation(binding.verifyOtpButton) {
-                if (otpCode.length == MAX_OTP_LENGTH) {
-                    verifyAndProceed()
-                }
+                // Always call verifyAndProceed to show feedback
+                verifyAndProceed()
             }
         }
 
         // Set up resend code button listener with proper animation
         binding.resendCodeButton.setOnClickListener {
+            soundManager.playSound(R.raw.click, 0.5f)
             inactivityTimer.reset()
             performKeypadAnimation(binding.resendCodeButton) {
                 resendVerificationCode()
@@ -650,20 +771,20 @@ class SMSVerifyActivity : AppCompatActivity() {
         }
 
         // Set up number button listeners with feedback animations
-        binding.btn0.setOnClickListener { inactivityTimer.reset(); performKeypadAnimation(binding.btn0) { addDigit("0") } }
-        binding.btn1.setOnClickListener { inactivityTimer.reset(); performKeypadAnimation(binding.btn1) { addDigit("1") } }
-        binding.btn2.setOnClickListener { inactivityTimer.reset(); performKeypadAnimation(binding.btn2) { addDigit("2") } }
-        binding.btn3.setOnClickListener { inactivityTimer.reset(); performKeypadAnimation(binding.btn3) { addDigit("3") } }
-        binding.btn4.setOnClickListener { inactivityTimer.reset(); performKeypadAnimation(binding.btn4) { addDigit("4") } }
-        binding.btn5.setOnClickListener { inactivityTimer.reset(); performKeypadAnimation(binding.btn5) { addDigit("5") } }
-        binding.btn6.setOnClickListener { inactivityTimer.reset(); performKeypadAnimation(binding.btn6) { addDigit("6") } }
-        binding.btn7.setOnClickListener { inactivityTimer.reset(); performKeypadAnimation(binding.btn7) { addDigit("7") } }
-        binding.btn8.setOnClickListener { inactivityTimer.reset(); performKeypadAnimation(binding.btn8) { addDigit("8") } }
-        binding.btn9.setOnClickListener { inactivityTimer.reset(); performKeypadAnimation(binding.btn9) { addDigit("9") } }
+        binding.btn0.setOnClickListener { soundManager.playSound(R.raw.click, 0.5f); inactivityTimer.reset(); performKeypadAnimation(binding.btn0) { addDigit("0") } }
+        binding.btn1.setOnClickListener { soundManager.playSound(R.raw.click, 0.5f); inactivityTimer.reset(); performKeypadAnimation(binding.btn1) { addDigit("1") } }
+        binding.btn2.setOnClickListener { soundManager.playSound(R.raw.click, 0.5f); inactivityTimer.reset(); performKeypadAnimation(binding.btn2) { addDigit("2") } }
+        binding.btn3.setOnClickListener { soundManager.playSound(R.raw.click, 0.5f); inactivityTimer.reset(); performKeypadAnimation(binding.btn3) { addDigit("3") } }
+        binding.btn4.setOnClickListener { soundManager.playSound(R.raw.click, 0.5f); inactivityTimer.reset(); performKeypadAnimation(binding.btn4) { addDigit("4") } }
+        binding.btn5.setOnClickListener { soundManager.playSound(R.raw.click, 0.5f); inactivityTimer.reset(); performKeypadAnimation(binding.btn5) { addDigit("5") } }
+        binding.btn6.setOnClickListener { soundManager.playSound(R.raw.click, 0.5f); inactivityTimer.reset(); performKeypadAnimation(binding.btn6) { addDigit("6") } }
+        binding.btn7.setOnClickListener { soundManager.playSound(R.raw.click, 0.5f); inactivityTimer.reset(); performKeypadAnimation(binding.btn7) { addDigit("7") } }
+        binding.btn8.setOnClickListener { soundManager.playSound(R.raw.click, 0.5f); inactivityTimer.reset(); performKeypadAnimation(binding.btn8) { addDigit("8") } }
+        binding.btn9.setOnClickListener { soundManager.playSound(R.raw.click, 0.5f); inactivityTimer.reset(); performKeypadAnimation(binding.btn9) { addDigit("9") } }
 
         // Set up control button listeners with feedback
-        binding.btnBackspace.setOnClickListener { inactivityTimer.reset(); performKeypadAnimation(binding.btnBackspace) { removeLastDigit() } }
-        binding.btnClear.setOnClickListener { inactivityTimer.reset(); performKeypadAnimation(binding.btnClear) { clearInput() } }
+        binding.btnBackspace.setOnClickListener { soundManager.playSound(R.raw.click, 0.5f); inactivityTimer.reset(); performKeypadAnimation(binding.btnBackspace) { removeLastDigit() } }
+        binding.btnClear.setOnClickListener { soundManager.playSound(R.raw.click, 0.5f); inactivityTimer.reset(); performKeypadAnimation(binding.btnClear) { clearInput() } }
     }
 
     private fun performButtonAnimation(button: View, onComplete: () -> Unit) {
@@ -744,8 +865,7 @@ class SMSVerifyActivity : AppCompatActivity() {
         
         // Clear the OTP field
         otpCode = ""
-        updateOtpDisplay()
-        binding.verifyOtpButton.isEnabled = false
+        updateOtpBoxes()
         updateButtonDisabledState(binding.verifyOtpButton, false)
         
         // Reset subtitle if showing error
@@ -797,6 +917,9 @@ class SMSVerifyActivity : AppCompatActivity() {
             cancel()
         }
         questionMarkAnimator = null
+        
+        // Clean up sound manager
+        soundManager.release()
         
         // Clean up hardware resources
         if (::waterFountainManager.isInitialized) {

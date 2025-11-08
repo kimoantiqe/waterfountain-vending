@@ -21,6 +21,7 @@ import com.waterfountainmachine.app.hardware.WaterFountainManager
 import com.waterfountainmachine.app.utils.AppLog
 import com.waterfountainmachine.app.views.ProgressRingView
 import com.waterfountainmachine.app.utils.FullScreenUtils
+import com.waterfountainmachine.app.utils.SoundManager
 import nl.dionsegijn.konfetti.core.Party
 import nl.dionsegijn.konfetti.core.Position
 import nl.dionsegijn.konfetti.core.emitter.Emitter
@@ -35,6 +36,9 @@ import java.util.concurrent.TimeUnit
 class VendingAnimationActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityVendingAnimationBinding
+    
+    // Sound manager
+    private lateinit var soundManager: SoundManager
     
     // Water fountain hardware manager
     private lateinit var waterFountainManager: WaterFountainManager
@@ -91,6 +95,10 @@ class VendingAnimationActivity : AppCompatActivity() {
         phoneNumber = intent.getStringExtra("phoneNumber")
         dispensingTime = intent.getLongExtra("dispensingTime", 8000)
         slot = intent.getIntExtra("slot", 1)
+        
+        // Initialize sound manager
+        soundManager = SoundManager(this)
+        soundManager.loadSound(R.raw.vend)
         
         // Initialize hardware manager
         waterFountainManager = WaterFountainManager.getInstance(this)
@@ -263,6 +271,9 @@ class VendingAnimationActivity : AppCompatActivity() {
     }
 
     private fun showCompletion() {
+        // Play vend sound
+        soundManager.playSound(R.raw.vend, 0.8f)
+        
         // Dramatic logo pulse with glow effect, then shrink significantly
         val scaleX = ObjectAnimator.ofFloat(binding.logoImage, "scaleX", 1f, 1.15f, 1.05f, 1f, 0.85f, 0.7f)
         val scaleY = ObjectAnimator.ofFloat(binding.logoImage, "scaleY", 1f, 1.15f, 1.05f, 1f, 0.85f, 0.7f)
@@ -415,6 +426,10 @@ class VendingAnimationActivity : AppCompatActivity() {
         // Clean up any pending callbacks to prevent memory leaks
         binding.logoImage.removeCallbacks(logoDelayedRunnable)
         binding.root.removeCallbacks(confettiDelayedRunnable)
+        
+        // Clean up sound manager
+        soundManager.release()
+        
         super.onDestroy()
     }
 }

@@ -23,12 +23,14 @@ import com.waterfountainmachine.app.utils.AppLog
 import com.waterfountainmachine.app.utils.FullScreenUtils
 import com.waterfountainmachine.app.utils.AnimationUtils
 import com.waterfountainmachine.app.utils.HardwareKeyHandler
+import com.waterfountainmachine.app.utils.SoundManager
 
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private var questionMarkAnimator: AnimatorSet? = null
     private var canBobbingAnimator: AnimatorSet? = null
     private lateinit var adminGestureDetector: AdminGestureDetector
+    private lateinit var soundManager: SoundManager
     
     // Prevent multiple launches - FLAG_ACTIVITY_SINGLE_TOP provides primary protection
     // This flag provides additional UI feedback during navigation
@@ -53,6 +55,7 @@ class MainActivity : AppCompatActivity() {
 
         setupKioskMode()
         setupFullScreen()
+        setupSoundManager()
         setupClickListener()
         setupQuestionMarkAnimation()
         setupModalFunctionality()
@@ -61,6 +64,13 @@ class MainActivity : AppCompatActivity() {
         
         // Initialize hardware on app launch
         initializeHardware()
+    }
+    
+    private fun setupSoundManager() {
+        soundManager = SoundManager(this)
+        // Pre-load sounds for instant playback
+        soundManager.loadSound(R.raw.click)
+        AppLog.i(TAG, "SoundManager initialized and sounds loaded")
     }
     
     private fun setupKioskMode() {
@@ -99,6 +109,7 @@ class MainActivity : AppCompatActivity() {
             // Only navigate if modal is not visible and not already navigating
             if (binding.modalOverlay.visibility == View.GONE && !isNavigating) {
                 AppLog.d(TAG, "Screen tapped, launching PrivacyExplanationActivity")
+                
                 isNavigating = true
                 performPressAnimation {
                     val intent = Intent(this, PrivacyExplanationActivity::class.java)
@@ -249,11 +260,13 @@ class MainActivity : AppCompatActivity() {
     private fun setupModalFunctionality() {
         // Question mark button click
         binding.questionMarkButton.setOnClickListener {
+            soundManager.playSound(R.raw.click, 0.6f)
             showModal()
         }
 
         // Close modal button click
         binding.closeModalButton.setOnClickListener {
+            soundManager.playSound(R.raw.click, 0.6f)
             hideModal()
         }
 
@@ -387,6 +400,9 @@ class MainActivity : AppCompatActivity() {
         
         // Clean up pending callbacks
         binding.root.removeCallbacks(navigationResetRunnable)
+        
+        // Release sound resources
+        soundManager.release()
         
         AppLog.d(TAG, "MainActivity destroyed")
     }

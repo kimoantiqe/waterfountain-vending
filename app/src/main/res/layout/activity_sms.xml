@@ -145,11 +145,11 @@
                 <LinearLayout
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:minWidth="480dp"
+                    android:minWidth="540dp"
                     android:background="@drawable/glass_phone_display_background"
                     android:gravity="center"
-                    android:paddingHorizontal="@dimen/margin_xlarge"
-                    android:paddingVertical="@dimen/margin_large"
+                    android:paddingHorizontal="48dp"
+                    android:paddingVertical="28dp"
                     android:elevation="8dp">
 
                     <TextView
@@ -162,7 +162,7 @@
                         android:fontFamily="sans-serif-light"
                         android:gravity="center"
                         android:letterSpacing="0.08"
-                        android:minWidth="380dp"/>
+                        android:minWidth="420dp"/>
 
                 </LinearLayout>
 
@@ -174,9 +174,9 @@
                     android:layout_gravity="end|center_vertical"
                     android:layout_marginEnd="12dp"
                     android:background="?android:attr/selectableItemBackgroundBorderless"
-                    android:src="@android:drawable/ic_menu_view"
-                    android:contentDescription="Show/Hide phone number"
-                    android:alpha="0.7"
+                    android:src="@drawable/ic_eye_off"
+                    android:contentDescription="Hide phone number"
+                    android:alpha="1.0"
                     android:padding="8dp"
                     android:scaleType="fitCenter"
                     app:tint="#555555"/>
@@ -310,16 +310,32 @@
             </LinearLayout>
 
             <!-- Main Action Buttons -->
-            <!-- Send Code Button (Step 1) -->
-            <androidx.appcompat.widget.AppCompatButton
-                android:id="@+id/verifyButton"
-                style="@style/GlassActionButtonStyle"
-                android:layout_width="@dimen/action_button_width"
-                android:layout_height="@dimen/action_button_height"
-                android:text="Send Code"
-                android:textSize="@dimen/action_button_text_size"
-                android:enabled="false"
-                android:layout_marginTop="@dimen/margin_medium"/>
+            <!-- Send Code Button (Step 1) with Loading -->
+            <FrameLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/margin_medium">
+                
+                <androidx.appcompat.widget.AppCompatButton
+                    android:id="@+id/verifyButton"
+                    style="@style/GlassActionButtonStyle"
+                    android:layout_width="@dimen/action_button_width"
+                    android:layout_height="@dimen/action_button_height"
+                    android:text="Send Code"
+                    android:textSize="@dimen/action_button_text_size"
+                    android:enabled="false"/>
+                
+                <!-- Loading Spinner (shows during API call) - overlaid on button -->
+                <ProgressBar
+                    android:id="@+id/loadingSpinner"
+                    android:layout_width="56dp"
+                    android:layout_height="56dp"
+                    android:layout_gravity="center"
+                    android:indeterminateTint="#8B7BA8"
+                    android:elevation="2dp"
+                    android:visibility="gone"/>
+                
+            </FrameLayout>
 
             <!-- OTP Step Buttons Layout (initially hidden) -->
             <LinearLayout

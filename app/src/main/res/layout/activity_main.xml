@@ -19,23 +19,27 @@
             android:layout_marginTop="24dp"
             android:layout_marginBottom="32dp">
 
-            <!-- Just Wordmark Centered -->
+            <!-- Just Wordmark Centered - Much Bigger -->
             <TextView
                 android:layout_width="0dp"
                 android:layout_weight="1"
                 android:layout_height="wrap_content"
                 android:text="@string/wordmark_text"
                 android:contentDescription="@string/waterfountain_wordmark"
-                android:textSize="72sp"
+                android:textSize="120sp"
                 android:textColor="@android:color/white"
                 android:fontFamily="@font/century_gothic_bold"
                 android:maxLines="1"
                 android:singleLine="true"
                 android:ellipsize="end"
                 android:gravity="center"
-                android:letterSpacing="-0.09"
+                android:letterSpacing="-0.05"
                 android:includeFontPadding="false"
-                android:paddingHorizontal="16dp" />
+                android:paddingHorizontal="16dp"
+                android:shadowColor="#30000000"
+                android:shadowDx="0"
+                android:shadowDy="3"
+                android:shadowRadius="6" />
 
         </LinearLayout>
 

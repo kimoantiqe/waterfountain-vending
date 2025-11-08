@@ -198,15 +198,23 @@ object AnimationUtils {
      * @param closeModalButton The button to close the modal
      * @param onShow Optional callback when modal is shown
      */
+    /**
+     * Setup modal functionality with open/close animations.
+     * @param soundManager Optional SoundManager for click sounds
+     */
     fun setupModalFunctionality(
         modalOverlay: View,
         modalContent: View,
         questionMarkButton: View,
         closeModalButton: View,
-        onShow: (() -> Unit)? = null
+        onShow: (() -> Unit)? = null,
+        soundManager: SoundManager? = null
     ) {
         // Question mark button click
         questionMarkButton.setOnClickListener {
+            // Play click sound
+            soundManager?.playSound(com.waterfountainmachine.app.R.raw.click, 0.6f)
+            
             modalOverlay.visibility = View.VISIBLE
             showModalAnimation(modalContent)
             onShow?.invoke()
@@ -214,6 +222,9 @@ object AnimationUtils {
 
         // Close modal button click
         closeModalButton.setOnClickListener {
+            // Play click sound
+            soundManager?.playSound(com.waterfountainmachine.app.R.raw.click, 0.6f)
+            
             hideModalAnimation(modalContent) {
                 modalOverlay.visibility = View.GONE
             }

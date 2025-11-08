@@ -17,6 +17,7 @@ import com.waterfountainmachine.app.utils.FullScreenUtils
 import com.waterfountainmachine.app.utils.AnimationUtils
 import com.waterfountainmachine.app.utils.InactivityTimer
 import com.waterfountainmachine.app.utils.AppLog
+import com.waterfountainmachine.app.utils.SoundManager
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -34,6 +35,7 @@ class SMSActivity : AppCompatActivity() {
 
     private lateinit var inactivityTimer: InactivityTimer
     private var questionMarkAnimator: AnimatorSet? = null
+    private lateinit var soundManager: SoundManager
     
     // Loading state for API calls
     private var isLoading = false
@@ -50,6 +52,11 @@ class SMSActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         FullScreenUtils.setupFullScreen(window, binding.root)
+        
+        // Initialize sound manager
+        soundManager = SoundManager(this)
+        soundManager.loadSound(R.raw.click)
+        soundManager.loadSound(R.raw.correct)
         
         // Initialize authentication repository
         try {
@@ -101,12 +108,14 @@ class SMSActivity : AppCompatActivity() {
     private fun setupModalFunctionality() {
         // Question mark button click
         binding.questionMarkButton.setOnClickListener {
+            soundManager.playSound(R.raw.click, 0.6f)
             inactivityTimer.reset()
             showModal()
         }
 
         // Close modal button click
         binding.closeModalButton.setOnClickListener {
+            soundManager.playSound(R.raw.click, 0.6f)
             hideModal()
         }
 
@@ -137,15 +146,15 @@ class SMSActivity : AppCompatActivity() {
     private fun setupPhoneNumberStep() {
         phoneNumber = ""
         
-        // Reset visibility state
-        isPhoneNumberVisible = false
+        // Reset visibility state - default to VISIBLE
+        isPhoneNumberVisible = true
         // Show toggle button on phone entry screen
         binding.togglePhoneVisibility.visibility = View.VISIBLE
         updateToggleIcon()
         
-        // Initialize button
+        // Initialize button - keep it ENABLED so it's always clickable
         binding.verifyButton.visibility = View.VISIBLE
-        binding.verifyButton.isEnabled = false
+        binding.verifyButton.isEnabled = true  // Keep enabled for click feedback
         binding.verifyButton.text = "Send Code"
         updateButtonDisabledState(binding.verifyButton, false)
         binding.verifyButton.alpha = 1f
@@ -159,6 +168,7 @@ class SMSActivity : AppCompatActivity() {
         
         // Setup toggle phone visibility button
         binding.togglePhoneVisibility.setOnClickListener {
+            soundManager.playSound(R.raw.click, 0.5f)
             inactivityTimer.reset()
             isPhoneNumberVisible = !isPhoneNumberVisible
             updatePhoneDisplay()
@@ -178,16 +188,31 @@ class SMSActivity : AppCompatActivity() {
                 try {
                     AppLog.d(TAG, "Requesting OTP for phone: +1***-***-${phoneNumber.takeLast(4)}")
                     
+                    // Start timer to ensure minimum spinner display time
+                    val startTime = System.currentTimeMillis()
+                    val minDisplayTime = 800L // Minimum 800ms to see spinner
+                    
                     // Request OTP via repository
                     val result = authRepository.requestOtp(formattedPhone)
+                    
+                    // Calculate remaining time to show spinner
+                    val elapsedTime = System.currentTimeMillis() - startTime
+                    val remainingTime = minDisplayTime - elapsedTime
+                    if (remainingTime > 0) {
+                        delay(remainingTime)
+                    }
                     
                     result.onSuccess { response ->
                         hideLoading()
                         AppLog.i(TAG, "OTP requested successfully: ${response.message}")
                         
+                        // Play success sound
+                        soundManager.playSound(R.raw.correct, 0.7f)
+                        
                         // Navigate to verification activity
                         val intent = Intent(this@SMSActivity, SMSVerifyActivity::class.java)
                         intent.putExtra(SMSVerifyActivity.EXTRA_PHONE_NUMBER, phoneNumber)
+                        intent.putExtra(SMSVerifyActivity.EXTRA_PHONE_VISIBILITY, isPhoneNumberVisible)
                         startActivity(intent)
                         overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
                         // Don't finish() here - let user come back if needed
@@ -211,10 +236,25 @@ class SMSActivity : AppCompatActivity() {
      */
     private fun showLoading() {
         isLoading = true
-        binding.verifyButton.isEnabled = false
-        binding.verifyButton.text = "Sending..."
+        
         // Disable keypad during loading
         setKeypadEnabled(false)
+        
+        // Fade out button
+        binding.verifyButton.animate()
+            .alpha(0f)
+            .setDuration(200)
+            .withEndAction {
+                // Show spinner and fade it in (overlaid on button)
+                binding.loadingSpinner.visibility = View.VISIBLE
+                binding.loadingSpinner.alpha = 0f
+                binding.loadingSpinner.animate()
+                    .alpha(1f)
+                    .setDuration(300)
+                    .start()
+            }
+            .start()
+        
         AppLog.d(TAG, "Loading state: enabled")
     }
     
@@ -223,10 +263,28 @@ class SMSActivity : AppCompatActivity() {
      */
     private fun hideLoading() {
         isLoading = false
-        binding.verifyButton.text = "Send Code"
+        
+        // Fade out and hide spinner
+        binding.loadingSpinner.animate()
+            .alpha(0f)
+            .setDuration(200)
+            .withEndAction {
+                binding.loadingSpinner.visibility = View.GONE
+                
+                // Fade button back in
+                binding.verifyButton.animate()
+                    .alpha(1f)
+                    .setDuration(300)
+                    .start()
+            }
+            .start()
+        
         val isComplete = phoneNumber.length == MAX_PHONE_LENGTH
-        binding.verifyButton.isEnabled = isComplete
-        updateButtonDisabledState(binding.verifyButton, isComplete)
+        // Update button visual state after fade in
+        binding.verifyButton.postDelayed({
+            updateButtonDisabledState(binding.verifyButton, isComplete)
+        }, 300)
+        
         // Re-enable keypad
         setKeypadEnabled(true)
         AppLog.d(TAG, "Loading state: disabled")
@@ -256,7 +314,7 @@ class SMSActivity : AppCompatActivity() {
             phoneNumber += digit
             updatePhoneDisplayWithAnimation()
             val isComplete = phoneNumber.length == MAX_PHONE_LENGTH
-            binding.verifyButton.isEnabled = isComplete
+            // Don't change isEnabled, just visual state
             updateButtonDisabledState(binding.verifyButton, isComplete)
         }
     }
@@ -273,7 +331,7 @@ class SMSActivity : AppCompatActivity() {
                 phoneNumber = phoneNumber.dropLast(1)
                 updatePhoneDisplay()
                 val isComplete = phoneNumber.length == MAX_PHONE_LENGTH
-                binding.verifyButton.isEnabled = isComplete
+                // Don't change isEnabled, just visual state
                 updateButtonDisabledState(binding.verifyButton, isComplete)
             }
         }
@@ -282,7 +340,7 @@ class SMSActivity : AppCompatActivity() {
     private fun clearInput() {
         phoneNumber = ""
         updatePhoneDisplay()
-        binding.verifyButton.isEnabled = false
+        // Don't change isEnabled, just visual state
         updateButtonDisabledState(binding.verifyButton, false)
     }
     
@@ -290,9 +348,9 @@ class SMSActivity : AppCompatActivity() {
      * Update button appearance to make disabled state very obvious with smooth fade
      */
     private fun updateButtonDisabledState(button: androidx.appcompat.widget.AppCompatButton, isEnabled: Boolean) {
-        // Smooth alpha transition
+        // Smooth alpha transition - more dramatic difference
         button.animate()
-            .alpha(if (isEnabled) 1.0f else 0.6f)
+            .alpha(if (isEnabled) 1.0f else 0.4f)  // Changed from 0.6f to 0.4f for darker appearance
             .setDuration(200)
             .start()
         
@@ -301,7 +359,7 @@ class SMSActivity : AppCompatActivity() {
         val endColor = if (isEnabled) {
             0xFF888888.toInt()  // Lighter gray when enabled (more visible on glass background)
         } else {
-            0xFF555555.toInt()  // Dark gray when disabled (less prominent)
+            0xFF333333.toInt()  // Much darker gray when disabled (changed from 0xFF555555)
         }
         
         // Animate color change
@@ -356,7 +414,15 @@ class SMSActivity : AppCompatActivity() {
     }
     
     private fun updateToggleIcon() {
-        // Update alpha to indicate state (more visible when showing numbers)
+        // Update icon and alpha based on visibility state
+        // When visible, show hide icon (eye-off) at full opacity
+        // When hidden, show show icon (eye) at reduced opacity
+        val iconRes = if (isPhoneNumberVisible) {
+            R.drawable.ic_eye_off // Hide icon when numbers are visible
+        } else {
+            R.drawable.ic_eye // Show icon when numbers are hidden
+        }
+        binding.togglePhoneVisibility.setImageResource(iconRes)
         binding.togglePhoneVisibility.alpha = if (isPhoneNumberVisible) 1.0f else 0.7f
     }
 
@@ -372,31 +438,35 @@ class SMSActivity : AppCompatActivity() {
     }
 
     private fun setupKeypadListeners() {
-        // Set up send code button listener
+        // Set up send code button listener - show hint if incomplete
         binding.verifyButton.setOnClickListener {
             inactivityTimer.reset()
-            performButtonAnimation(binding.verifyButton) {
-                if (phoneNumber.length == MAX_PHONE_LENGTH) {
+            
+            if (phoneNumber.length == MAX_PHONE_LENGTH) {
+                performButtonAnimation(binding.verifyButton) {
                     sendCodeAndNavigate()
                 }
+            } else {
+                // Show hint that number is incomplete
+                showIncompleteNumberHint()
             }
         }
 
-        // Set up number button listeners with feedback animations
-        binding.btn0.setOnClickListener { inactivityTimer.reset(); performKeypadAnimation(binding.btn0) { addDigit("0") } }
-        binding.btn1.setOnClickListener { inactivityTimer.reset(); performKeypadAnimation(binding.btn1) { addDigit("1") } }
-        binding.btn2.setOnClickListener { inactivityTimer.reset(); performKeypadAnimation(binding.btn2) { addDigit("2") } }
-        binding.btn3.setOnClickListener { inactivityTimer.reset(); performKeypadAnimation(binding.btn3) { addDigit("3") } }
-        binding.btn4.setOnClickListener { inactivityTimer.reset(); performKeypadAnimation(binding.btn4) { addDigit("4") } }
-        binding.btn5.setOnClickListener { inactivityTimer.reset(); performKeypadAnimation(binding.btn5) { addDigit("5") } }
-        binding.btn6.setOnClickListener { inactivityTimer.reset(); performKeypadAnimation(binding.btn6) { addDigit("6") } }
-        binding.btn7.setOnClickListener { inactivityTimer.reset(); performKeypadAnimation(binding.btn7) { addDigit("7") } }
-        binding.btn8.setOnClickListener { inactivityTimer.reset(); performKeypadAnimation(binding.btn8) { addDigit("8") } }
-        binding.btn9.setOnClickListener { inactivityTimer.reset(); performKeypadAnimation(binding.btn9) { addDigit("9") } }
+        // Set up number button listeners with feedback animations and sound
+        binding.btn0.setOnClickListener { inactivityTimer.reset(); soundManager.playSound(R.raw.click, 0.5f); performKeypadAnimation(binding.btn0) { addDigit("0") } }
+        binding.btn1.setOnClickListener { inactivityTimer.reset(); soundManager.playSound(R.raw.click, 0.5f); performKeypadAnimation(binding.btn1) { addDigit("1") } }
+        binding.btn2.setOnClickListener { inactivityTimer.reset(); soundManager.playSound(R.raw.click, 0.5f); performKeypadAnimation(binding.btn2) { addDigit("2") } }
+        binding.btn3.setOnClickListener { inactivityTimer.reset(); soundManager.playSound(R.raw.click, 0.5f); performKeypadAnimation(binding.btn3) { addDigit("3") } }
+        binding.btn4.setOnClickListener { inactivityTimer.reset(); soundManager.playSound(R.raw.click, 0.5f); performKeypadAnimation(binding.btn4) { addDigit("4") } }
+        binding.btn5.setOnClickListener { inactivityTimer.reset(); soundManager.playSound(R.raw.click, 0.5f); performKeypadAnimation(binding.btn5) { addDigit("5") } }
+        binding.btn6.setOnClickListener { inactivityTimer.reset(); soundManager.playSound(R.raw.click, 0.5f); performKeypadAnimation(binding.btn6) { addDigit("6") } }
+        binding.btn7.setOnClickListener { inactivityTimer.reset(); soundManager.playSound(R.raw.click, 0.5f); performKeypadAnimation(binding.btn7) { addDigit("7") } }
+        binding.btn8.setOnClickListener { inactivityTimer.reset(); soundManager.playSound(R.raw.click, 0.5f); performKeypadAnimation(binding.btn8) { addDigit("8") } }
+        binding.btn9.setOnClickListener { inactivityTimer.reset(); soundManager.playSound(R.raw.click, 0.5f); performKeypadAnimation(binding.btn9) { addDigit("9") } }
 
         // Set up control button listeners with feedback
-        binding.btnBackspace.setOnClickListener { inactivityTimer.reset(); performKeypadAnimation(binding.btnBackspace) { removeLastDigit() } }
-        binding.btnClear.setOnClickListener { inactivityTimer.reset(); performKeypadAnimation(binding.btnClear) { clearInput() } }
+        binding.btnBackspace.setOnClickListener { inactivityTimer.reset(); soundManager.playSound(R.raw.click, 0.5f); performKeypadAnimation(binding.btnBackspace) { removeLastDigit() } }
+        binding.btnClear.setOnClickListener { inactivityTimer.reset(); soundManager.playSound(R.raw.click, 0.5f); performKeypadAnimation(binding.btnClear) { clearInput() } }
     }
 
     private fun performButtonAnimation(button: View, onComplete: () -> Unit) {
@@ -471,6 +541,44 @@ class SMSActivity : AppCompatActivity() {
         fullAnimation.start()
     }
 
+    private fun showIncompleteNumberHint() {
+        // Fade out current subtitle text
+        binding.subtitleText.animate()
+            .alpha(0f)
+            .setDuration(200)
+            .withEndAction {
+                // Change to error message
+                binding.subtitleText.text = "Please enter a 10-digit phone number"
+                binding.subtitleText.setTextColor(0xFFFF6B6B.toInt()) // Red color
+                
+                // Fade in error message
+                binding.subtitleText.animate()
+                    .alpha(0.9f)
+                    .setDuration(300)
+                    .start()
+                
+                // Auto-restore after 2.5 seconds
+                binding.subtitleText.postDelayed({
+                    binding.subtitleText.animate()
+                        .alpha(0f)
+                        .setDuration(200)
+                        .withEndAction {
+                            // Restore original message and color
+                            binding.subtitleText.text = "We'll send you a verification code"
+                            binding.subtitleText.setTextColor(0xFF555555.toInt()) // Original gray
+                            
+                            // Fade back in
+                            binding.subtitleText.animate()
+                                .alpha(0.7f)
+                                .setDuration(300)
+                                .start()
+                        }
+                        .start()
+                }, 2500)
+            }
+            .start()
+    }
+
     override fun onDestroy() {
         super.onDestroy()
         inactivityTimer.cleanup()
@@ -481,6 +589,9 @@ class SMSActivity : AppCompatActivity() {
             cancel()
         }
         questionMarkAnimator = null
+        
+        // Release sound resources
+        soundManager.release()
     }
 
     override fun onResume() {
