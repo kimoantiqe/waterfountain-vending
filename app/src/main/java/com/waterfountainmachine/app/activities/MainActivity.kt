@@ -27,7 +27,6 @@ import com.waterfountainmachine.app.utils.SoundManager
 
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
-    private var questionMarkAnimator: AnimatorSet? = null
     private var canBobbingAnimator: AnimatorSet? = null
     private lateinit var adminGestureDetector: AdminGestureDetector
     private lateinit var soundManager: SoundManager
@@ -57,8 +56,6 @@ class MainActivity : AppCompatActivity() {
         setupFullScreen()
         setupSoundManager()
         setupClickListener()
-        setupQuestionMarkAnimation()
-        setupModalFunctionality()
         setupPressAnimation()
         setupAdminGesture()
         
@@ -106,13 +103,13 @@ class MainActivity : AppCompatActivity() {
         binding.root.setOnClickListener {
             // Check if we're in the admin corner area
             // This will be handled by dispatchTouchEvent and AdminGestureDetector
-            // Only navigate if modal is not visible and not already navigating
-            if (binding.modalOverlay.visibility == View.GONE && !isNavigating) {
-                AppLog.d(TAG, "Screen tapped, launching PrivacyExplanationActivity")
+            // Only navigate if not already navigating
+            if (!isNavigating) {
+                AppLog.d(TAG, "Screen tapped, launching SMSActivity")
                 
                 isNavigating = true
                 performPressAnimation {
-                    val intent = Intent(this, PrivacyExplanationActivity::class.java)
+                    val intent = Intent(this, SMSActivity::class.java)
                     intent.flags = Intent.FLAG_ACTIVITY_SINGLE_TOP // Prevent multiple instances
                     startActivity(intent)
                     overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
@@ -122,14 +119,6 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
-    }
-
-    private fun setupQuestionMarkAnimation() {
-        questionMarkAnimator = AnimationUtils.setupQuestionMarkAnimation(
-            button = binding.questionMarkButton,
-            icon = binding.questionMarkIcon,
-            rootView = binding.root
-        )
     }
 
     private fun setupPressAnimation() {
@@ -257,32 +246,6 @@ class MainActivity : AppCompatActivity() {
         animatorSet.start()
     }
 
-    private fun setupModalFunctionality() {
-        // Question mark button click
-        binding.questionMarkButton.setOnClickListener {
-            soundManager.playSound(R.raw.click, 0.6f)
-            showModal()
-        }
-
-        // Close modal button click
-        binding.closeModalButton.setOnClickListener {
-            soundManager.playSound(R.raw.click, 0.6f)
-            hideModal()
-        }
-
-        // Click outside modal to close
-        binding.modalOverlay.setOnClickListener { view ->
-            if (view == binding.modalOverlay) {
-                hideModal()
-            }
-        }
-
-        // Prevent modal content clicks from closing modal
-        binding.modalContent.setOnClickListener {
-            // Do nothing - prevent click from bubbling up
-        }
-    }
-
     private fun showModal() {
         binding.modalOverlay.visibility = View.VISIBLE
         AnimationUtils.showModalAnimation(binding.modalContent)
@@ -386,12 +349,6 @@ class MainActivity : AppCompatActivity() {
         super.onDestroy()
         
         // Clean up animations
-        questionMarkAnimator?.apply {
-            removeAllListeners()
-            cancel()
-        }
-        questionMarkAnimator = null
-        
         canBobbingAnimator?.apply {
             removeAllListeners()
             cancel()

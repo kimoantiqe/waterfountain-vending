@@ -17,18 +17,20 @@
         android:padding="@dimen/main_screen_padding">
 
         <!-- Header with Back Button and Centered Wordmark -->
-        <FrameLayout
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="24dp"
-            android:layout_marginBottom="32dp">
+            android:layout_marginBottom="32dp"
+            android:gravity="center"
+            android:baselineAligned="false">
 
-            <!-- Back Button - Positioned absolutely on the left -->
+            <!-- Back Button - vertically centered with wordmark -->
             <ImageButton
                 android:id="@+id/closeButton"
                 android:layout_width="@dimen/back_button_size"
                 android:layout_height="@dimen/back_button_size"
-                android:layout_gravity="start|center_vertical"
+                android:layout_marginTop="8dp"
                 android:alpha="0.9"
                 android:background="?android:attr/selectableItemBackgroundBorderless"
                 android:contentDescription="@string/back_button"
@@ -37,24 +39,34 @@
                 android:src="@drawable/ic_arrow_back"
                 app:tint="@android:color/white" />
 
-            <!-- Centered Wordmark Only (matching main activity exactly) -->
+            <!-- Centered Wordmark Only (20% smaller for screens with back button) -->
             <TextView
-                android:layout_width="match_parent"
+                android:layout_width="0dp"
+                android:layout_weight="1"
                 android:layout_height="wrap_content"
                 android:contentDescription="@string/waterfountain_wordmark"
                 android:ellipsize="end"
                 android:fontFamily="@font/century_gothic_bold"
                 android:gravity="center"
                 android:includeFontPadding="false"
-                android:letterSpacing="-0.09"
+                android:letterSpacing="-0.05"
                 android:maxLines="1"
                 android:paddingHorizontal="16dp"
                 android:singleLine="true"
                 android:text="@string/wordmark_text"
                 android:textColor="@android:color/white"
-                android:textSize="72sp" />
+                android:textSize="96sp"
+                android:shadowColor="#30000000"
+                android:shadowDx="0"
+                android:shadowDy="3"
+                android:shadowRadius="6" />
 
-        </FrameLayout>
+            <!-- Empty space to balance the back button -->
+            <View
+                android:layout_width="@dimen/back_button_size"
+                android:layout_height="match_parent" />
+
+        </LinearLayout>
 
         <!-- Main Content Area - Properly centered with upward adjustment -->
         <FrameLayout

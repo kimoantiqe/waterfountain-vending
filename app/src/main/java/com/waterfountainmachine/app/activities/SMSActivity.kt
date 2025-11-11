@@ -130,6 +130,32 @@ class SMSActivity : AppCompatActivity() {
         binding.modalContent.setOnClickListener {
             // Do nothing - prevent click from bubbling up
         }
+
+        // Show QR Code button click
+        binding.showQrCodeButton.setOnClickListener {
+            soundManager.playSound(R.raw.click, 0.6f)
+            inactivityTimer.reset()
+            hideModal()
+            showQrCodeModal()
+        }
+
+        // Close QR modal button click
+        binding.closeQrModalButton.setOnClickListener {
+            soundManager.playSound(R.raw.click, 0.6f)
+            hideQrCodeModal()
+        }
+
+        // Click outside QR modal to close
+        binding.qrModalOverlay.setOnClickListener { view ->
+            if (view == binding.qrModalOverlay) {
+                hideQrCodeModal()
+            }
+        }
+
+        // Prevent QR modal content clicks from closing modal
+        binding.qrModalContent.setOnClickListener {
+            // Do nothing - prevent click from bubbling up
+        }
     }
 
     private fun showModal() {
@@ -141,6 +167,39 @@ class SMSActivity : AppCompatActivity() {
         AnimationUtils.hideModalAnimation(binding.modalContent) {
             binding.modalOverlay.visibility = View.GONE
         }
+    }
+
+    private fun showQrCodeModal() {
+        // Generate QR code for https://www.waterfountain.io
+        try {
+            val qrBitmap = generateQRCode("https://www.waterfountain.io", 400, 400)
+            binding.qrCodeImage.setImageBitmap(qrBitmap)
+        } catch (e: Exception) {
+            AppLog.e(TAG, "Error generating QR code", e)
+        }
+        
+        binding.qrModalOverlay.visibility = View.VISIBLE
+        AnimationUtils.showModalAnimation(binding.qrModalContent)
+    }
+
+    private fun hideQrCodeModal() {
+        AnimationUtils.hideModalAnimation(binding.qrModalContent) {
+            binding.qrModalOverlay.visibility = View.GONE
+        }
+    }
+
+    private fun generateQRCode(text: String, width: Int, height: Int): android.graphics.Bitmap {
+        val qrCodeWriter = com.google.zxing.qrcode.QRCodeWriter()
+        val bitMatrix = qrCodeWriter.encode(text, com.google.zxing.BarcodeFormat.QR_CODE, width, height)
+        
+        val bitmap = android.graphics.Bitmap.createBitmap(width, height, android.graphics.Bitmap.Config.ARGB_8888)
+        for (x in 0 until width) {
+            for (y in 0 until height) {
+                bitmap.setPixel(x, y, if (bitMatrix[x, y]) android.graphics.Color.BLACK else android.graphics.Color.WHITE)
+            }
+        }
+        
+        return bitmap
     }
 
     private fun setupPhoneNumberStep() {
@@ -178,6 +237,17 @@ class SMSActivity : AppCompatActivity() {
 
     private fun sendCodeAndNavigate() {
         if (phoneNumber.length == MAX_PHONE_LENGTH && !isLoading) {
+            // Mock mode check: Show error screen for phone number 1111111111
+            if (phoneNumber == "1111111111") {
+                AppLog.d(TAG, "Mock mode: Navigating to ErrorActivity for phone 1111111111")
+                val intent = Intent(this, ErrorActivity::class.java)
+                intent.putExtra(ErrorActivity.EXTRA_MESSAGE, ErrorActivity.DEFAULT_DAILY_LIMIT_MESSAGE)
+                startActivity(intent)
+                finish()
+                overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
+                return
+            }
+            
             // Show loading state
             showLoading()
             

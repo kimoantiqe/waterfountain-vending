@@ -54,30 +54,34 @@
             android:clipChildren="false"
             android:clipToPadding="false">
 
-            <!-- Thirsty? Text -->
+            <!-- Free Cold Water Text -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Thirsty?"
+                android:text="Free Cold Water"
                 android:textSize="64sp"
                 android:textColor="#555555"
-                android:fontFamily="sans-serif"
+                android:fontFamily="@font/inter"
                 android:gravity="center"
                 android:includeFontPadding="false"
-                android:layout_marginBottom="0dp"/>
+                android:layout_marginBottom="8dp"/>
 
-            <!-- It's Free Text (Bold) -->
+            <!-- Yes, It's Free! Text (Extra Bold) -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="It's Free"
+                android:text="Yes, It's Free!"
                 android:textSize="64sp"
                 android:textColor="#555555"
-                android:fontFamily="sans-serif-medium"
+                android:fontFamily="@font/inter"
                 android:textStyle="bold"
                 android:gravity="center"
                 android:includeFontPadding="false"
-                android:layout_marginBottom="0dp"/>
+                android:layout_marginBottom="0dp"
+                android:shadowColor="#40000000"
+                android:shadowDx="0"
+                android:shadowDy="1"
+                android:shadowRadius="2"/>
 
             <!-- Can Image -->
             <ImageView
@@ -87,8 +91,8 @@
                 android:src="@drawable/can"
                 android:contentDescription="Water can"
                 android:scaleType="centerCrop"
-                android:layout_marginTop="-50dp"
-                android:layout_marginBottom="-50dp"
+                android:layout_marginTop="0dp"
+                android:layout_marginBottom="0dp"
                 android:adjustViewBounds="false"/>
 
             <!-- Tap to start instruction text -->
@@ -99,7 +103,7 @@
                 android:text="Tap to start"
                 android:textSize="56sp"
                 android:textColor="#555555"
-                android:fontFamily="sans-serif-medium"
+                android:fontFamily="@font/inter"
                 android:gravity="center"
                 android:letterSpacing="0.00"
                 android:includeFontPadding="false"/>
@@ -107,44 +111,6 @@
         </LinearLayout>
 
     </LinearLayout>
-
-    <!-- Centered Question Mark Button at Bottom with Glass Effect -->
-    <FrameLayout
-        android:id="@+id/questionMarkButton"
-        android:layout_width="@dimen/question_button_size"
-        android:layout_height="@dimen/question_button_size"
-        android:layout_gravity="bottom|center_horizontal"
-        android:layout_marginBottom="@dimen/question_button_bottom_margin"
-        android:padding="@dimen/margin_medium"
-        android:clipToPadding="false"
-        android:clipChildren="false"
-        android:clickable="true"
-        android:focusable="true"
-        android:elevation="12dp">
-
-        <!-- 3D Sphere background with pressed state -->
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:layout_gravity="center"
-            android:background="@drawable/sphere_button_selector"
-            android:duplicateParentState="true"/>
-
-        <TextView
-            android:id="@+id/questionMarkIcon"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:text="?"
-            android:textSize="@dimen/question_icon_size"
-            android:textColor="@android:color/white"
-            android:fontFamily="sans-serif-medium"
-            android:shadowColor="#40000000"
-            android:shadowDx="0"
-            android:shadowDy="2"
-            android:shadowRadius="4"/>
-
-    </FrameLayout>
 
     <!-- Modal Overlay (initially hidden) -->
     <FrameLayout
@@ -167,46 +133,49 @@
             android:gravity="center"
             android:elevation="16dp">
 
-            <!-- Close X Button - Top Right -->
-            <FrameLayout
+            <!-- Header with Title and Close Button -->
+            <RelativeLayout
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content">
-                
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="@dimen/margin_large">
+
+                <!-- Modal Title - Centered -->
+                <TextView
+                    android:id="@+id/modalTitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_centerInParent="true"
+                    android:text="How It Works"
+                    android:textSize="@dimen/modal_title_size"
+                    android:textColor="#555555"
+                    android:fontFamily="@font/inter"
+                    android:textStyle="bold"
+                    android:gravity="center"
+                    android:letterSpacing="0.00"/>
+
+                <!-- Close X Button - Top Right -->
                 <ImageButton
                     android:id="@+id/closeModalButton"
                     android:layout_width="48dp"
                     android:layout_height="48dp"
-                    android:layout_gravity="end"
+                    android:layout_alignParentEnd="true"
+                    android:layout_centerVertical="true"
                     android:background="?android:attr/selectableItemBackgroundBorderless"
                     android:contentDescription="Close"
                     android:src="@android:drawable/ic_menu_close_clear_cancel"
                     android:tint="#555555"
                     android:padding="12dp"/>
-                
-            </FrameLayout>
 
-            <!-- Modal Title -->
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Why is this free?"
-                android:textSize="@dimen/modal_title_size"
-                android:textColor="#555555"
-                android:fontFamily="sans-serif-medium"
-                android:textStyle="bold"
-                android:gravity="center"
-                android:letterSpacing="0.00"
-                android:layout_marginTop="8dp"
-                android:layout_marginBottom="@dimen/margin_large"/>
+            </RelativeLayout>
 
             <!-- Modal Message -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Our spring water is completely free. Nature doesn't charge, so neither do we. Instead, we partner with local businesses who cover the cost to keep you hydrated.\n\nGet one every single day with your phone number"
+                android:text="Local businesses sponsor your water by advertising on the can. You get free hydration + exclusive discounts!\n\n🔒 Your Number\nWe only use your phone number to keep things fair - limiting 2 free waters per day per person. Your number is encrypted and never sold.\n\n✨ That's It!\nTap to start and enjoy your free water."
                 android:textSize="@dimen/modal_text_size"
                 android:textColor="#555555"
-                android:fontFamily="sans-serif"
+                android:fontFamily="@font/inter"
                 android:gravity="center"
                 android:lineSpacingExtra="8dp"
                 android:lineSpacingMultiplier="1.2"

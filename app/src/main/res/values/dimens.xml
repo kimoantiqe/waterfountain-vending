@@ -63,7 +63,7 @@
     
     <!-- Question Mark Button -->
     <dimen name="question_button_size">160dp</dimen>
-    <dimen name="question_button_bottom_margin">45dp</dimen>
+    <dimen name="question_button_bottom_margin">90dp</dimen>
     <dimen name="question_icon_size">64sp</dimen>
     
     <!-- Modal -->

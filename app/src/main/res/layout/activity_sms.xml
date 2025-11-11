@@ -9,54 +9,52 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"
-        android:padding="@dimen/main_screen_padding"
-        android:gravity="center">
+        android:padding="@dimen/main_screen_padding">
 
         <!-- Header with Back Button and Centered Wordmark -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="24dp"
-            android:layout_marginBottom="32dp"
-            android:gravity="center_vertical">
+            android:layout_marginBottom="24dp"
+            android:gravity="center"
+            android:baselineAligned="false">
 
-            <!-- Back Button - positioned to not affect centering -->
-            <FrameLayout
+            <!-- Back Button - vertically centered with wordmark -->
+            <ImageButton
+                android:id="@+id/backButton"
                 android:layout_width="@dimen/back_button_size"
-                android:layout_height="wrap_content"
-                android:gravity="center_vertical">
+                android:layout_height="@dimen/back_button_size"
+                android:layout_marginTop="8dp"
+                android:background="?android:attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/back_button"
+                android:src="@drawable/ic_arrow_back"
+                android:alpha="0.9"
+                android:padding="@dimen/back_button_padding"
+                android:scaleType="fitCenter"
+                app:tint="@android:color/white" />
 
-                <ImageButton
-                    android:id="@+id/backButton"
-                    android:layout_width="@dimen/back_button_size"
-                    android:layout_height="@dimen/back_button_size"
-                    android:background="?android:attr/selectableItemBackgroundBorderless"
-                    android:contentDescription="@string/back_button"
-                    android:src="@drawable/ic_arrow_back"
-                    android:alpha="0.9"
-                    android:padding="@dimen/back_button_padding"
-                    android:scaleType="fitCenter"
-                    app:tint="@android:color/white" />
-
-            </FrameLayout>
-
-            <!-- Centered Wordmark Only (matching main activity) -->
+            <!-- Centered Wordmark Only (20% smaller for screens with back button) -->
             <TextView
                 android:layout_width="0dp"
                 android:layout_weight="1"
                 android:layout_height="wrap_content"
                 android:text="@string/wordmark_text"
                 android:contentDescription="@string/waterfountain_wordmark"
-                android:textSize="72sp"
+                android:textSize="96sp"
                 android:textColor="@android:color/white"
                 android:fontFamily="@font/century_gothic_bold"
                 android:maxLines="1"
                 android:singleLine="true"
                 android:ellipsize="end"
                 android:gravity="center"
-                android:letterSpacing="-0.09"
+                android:letterSpacing="-0.05"
                 android:includeFontPadding="false"
-                android:paddingHorizontal="16dp" />
+                android:paddingHorizontal="16dp"
+                android:shadowColor="#30000000"
+                android:shadowDx="0"
+                android:shadowDy="3"
+                android:shadowRadius="6" />
 
             <!-- Empty space to balance the back button -->
             <View
@@ -65,15 +63,70 @@
 
         </LinearLayout>
 
+        <!-- Progress Header - Slightly below the wordmark -->
+        <TextView
+            android:id="@+id/progressHeader"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:text="Step 1 of 2: Receive OTP"
+            android:textSize="28sp"
+            android:textColor="#666666"
+            android:fontFamily="sans-serif-medium"
+            android:gravity="center"
+            android:layout_marginBottom="24dp"
+            android:letterSpacing="0.02"/>
+
         <!-- Main Content Area - SMS specific content goes here -->
-        <LinearLayout
+        <ScrollView
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1"
-            android:orientation="vertical"
-            android:gravity="center"
-            android:clipChildren="false"
-            android:clipToPadding="false">
+            android:fillViewport="true">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="top|center_horizontal"
+                android:clipChildren="false"
+                android:clipToPadding="false">
+
+                <!-- Phone Logo Icon - 320x320 -->
+                <ImageView
+                    android:layout_width="320dp"
+                    android:layout_height="320dp"
+                    android:src="@drawable/phone_logo"
+                    android:layout_marginBottom="12dp"/>
+
+                <!-- Informational Message - Closer to PNG -->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center"
+                android:paddingHorizontal="16dp"
+                android:paddingVertical="8dp"
+                android:layout_marginBottom="12dp">
+
+                <ImageView
+                    android:layout_width="28dp"
+                    android:layout_height="28dp"
+                    android:src="@android:drawable/ic_dialog_info"
+                    app:tint="#8B7BA8"
+                    android:layout_marginEnd="16dp"/>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Only to ensure fair access to the machine"
+                    android:textSize="26sp"
+                    android:textColor="#8B7BA8"
+                    android:fontFamily="sans-serif-medium"
+                    android:gravity="center"
+                    android:letterSpacing="0.01"/>
+
+            </LinearLayout>
 
             <!-- Title -->
             <TextView
@@ -86,7 +139,7 @@
                 android:fontFamily="sans-serif-medium"
                 android:textStyle="bold"
                 android:gravity="center"
-                android:layout_marginBottom="@dimen/margin_medium"/>
+                android:layout_marginBottom="16dp"/>
 
             <!-- Timer Display (initially hidden, shows during OTP step) -->
             <LinearLayout
@@ -97,7 +150,7 @@
                 android:gravity="center"
                 android:paddingHorizontal="40dp"
                 android:paddingVertical="20dp"
-                android:layout_marginBottom="30dp"
+                android:layout_marginBottom="24dp"
                 android:elevation="8dp"
                 android:visibility="gone"
                 android:orientation="horizontal">
@@ -132,7 +185,7 @@
                 android:textSize="36sp"
                 android:paddingHorizontal="40dp"
                 android:paddingVertical="20dp"
-                android:layout_marginBottom="30dp"
+                android:layout_marginBottom="24dp"
                 android:visibility="gone"
                 android:elevation="8dp"/>
 
@@ -140,7 +193,7 @@
             <FrameLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="@dimen/phone_display_margin_bottom">
+                android:layout_marginBottom="20dp">
 
                 <LinearLayout
                     android:layout_width="wrap_content"
@@ -194,7 +247,7 @@
                 android:alpha="0.7"
                 android:fontFamily="sans-serif-light"
                 android:gravity="center"
-                android:layout_marginBottom="@dimen/margin_xlarge"/>
+                android:layout_marginBottom="24dp"/>
 
             <!-- Bigger On-Screen Keypad with Glass Effect -->
             <LinearLayout
@@ -202,7 +255,7 @@
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
                 android:gravity="center"
-                android:layout_marginBottom="30dp">
+                android:layout_marginBottom="20dp">
 
                 <!-- Row 1: 1, 2, 3 -->
                 <LinearLayout
@@ -314,14 +367,14 @@
             <FrameLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/margin_medium">
+                android:layout_marginTop="12dp">
                 
                 <androidx.appcompat.widget.AppCompatButton
                     android:id="@+id/verifyButton"
                     style="@style/GlassActionButtonStyle"
                     android:layout_width="@dimen/action_button_width"
                     android:layout_height="@dimen/action_button_height"
-                    android:text="Send Code"
+                    android:text="Text me a code"
                     android:textSize="@dimen/action_button_text_size"
                     android:enabled="false"/>
                 
@@ -344,7 +397,7 @@
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
                 android:gravity="center"
-                android:layout_marginTop="@dimen/margin_medium"
+                android:layout_marginTop="12dp"
                 android:visibility="gone"
                 android:clipChildren="false"
                 android:clipToPadding="false">
@@ -363,6 +416,8 @@
 
         </LinearLayout>
 
+        </ScrollView>
+
     </LinearLayout>
 
     <!-- Centered Question Mark Button at Bottom with Glass Effect -->
@@ -371,7 +426,7 @@
         android:layout_width="@dimen/question_button_size"
         android:layout_height="@dimen/question_button_size"
         android:layout_gravity="bottom|center_horizontal"
-        android:layout_marginBottom="@dimen/question_button_bottom_margin"
+        android:layout_marginBottom="40dp"
         android:padding="@dimen/margin_medium"
         android:clipToPadding="false"
         android:clipChildren="false"
@@ -424,49 +479,235 @@
             android:gravity="center"
             android:elevation="16dp">
 
-            <!-- Close X Button - Top Right -->
-            <FrameLayout
+            <!-- Header with Title and Close Button -->
+            <RelativeLayout
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content">
-                
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="@dimen/margin_large">
+
+                <!-- Modal Title - Centered -->
+                <TextView
+                    android:id="@+id/modalTitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_centerInParent="true"
+                    android:text="How It Works?"
+                    android:textSize="@dimen/modal_title_size"
+                    android:textColor="#555555"
+                    android:fontFamily="@font/inter"
+                    android:textStyle="bold"
+                    android:gravity="center"
+                    android:letterSpacing="0.00"/>
+
+                <!-- Close X Button - Top Right -->
                 <ImageButton
                     android:id="@+id/closeModalButton"
                     android:layout_width="48dp"
                     android:layout_height="48dp"
-                    android:layout_gravity="end"
+                    android:layout_alignParentEnd="true"
+                    android:layout_centerVertical="true"
                     android:background="?android:attr/selectableItemBackgroundBorderless"
                     android:contentDescription="Close"
                     android:src="@android:drawable/ic_menu_close_clear_cancel"
                     android:tint="#555555"
                     android:padding="12dp"/>
-                
-            </FrameLayout>
 
-            <!-- Modal Title -->
+            </RelativeLayout>
+
+            <!-- Modal Message - FAQ Format -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:paddingHorizontal="16dp"
+                android:layout_marginBottom="@dimen/margin_large">
+
+                <!-- Q1 -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Q: How is the water free?"
+                    android:textSize="@dimen/modal_text_size"
+                    android:textColor="#8B7BA8"
+                    android:fontFamily="@font/inter"
+                    android:textStyle="bold"
+                    android:gravity="start"
+                    android:layout_marginBottom="8dp"/>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="A: Local businesses sponsor your water through advertising on the can. You get free hydration plus exclusive discounts."
+                    android:textSize="@dimen/modal_text_size"
+                    android:textColor="#555555"
+                    android:fontFamily="@font/inter"
+                    android:gravity="start"
+                    android:lineSpacingExtra="4dp"
+                    android:lineSpacingMultiplier="1.15"
+                    android:layout_marginBottom="20dp"/>
+
+                <!-- Q2 -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Q: Why do you need my phone number?"
+                    android:textSize="@dimen/modal_text_size"
+                    android:textColor="#8B7BA8"
+                    android:fontFamily="@font/inter"
+                    android:textStyle="bold"
+                    android:gravity="start"
+                    android:layout_marginBottom="8dp"/>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="A: We use it to keep things fair by limiting each person to 2 free waters per day. Your number is encrypted and never sold."
+                    android:textSize="@dimen/modal_text_size"
+                    android:textColor="#555555"
+                    android:fontFamily="@font/inter"
+                    android:gravity="start"
+                    android:lineSpacingExtra="4dp"
+                    android:lineSpacingMultiplier="1.15"
+                    android:layout_marginBottom="20dp"/>
+
+                <!-- Q3 -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Q: How do I get my water?"
+                    android:textSize="@dimen/modal_text_size"
+                    android:textColor="#8B7BA8"
+                    android:fontFamily="@font/inter"
+                    android:textStyle="bold"
+                    android:gravity="start"
+                    android:layout_marginBottom="8dp"/>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="A: Enter your phone number, verify the code we send you, and enjoy your free water!"
+                    android:textSize="@dimen/modal_text_size"
+                    android:textColor="#555555"
+                    android:fontFamily="@font/inter"
+                    android:gravity="start"
+                    android:lineSpacingExtra="4dp"
+                    android:lineSpacingMultiplier="1.15"/>
+
+            </LinearLayout>
+
+            <!-- QR Code Button -->
+            <androidx.appcompat.widget.AppCompatButton
+                android:id="@+id/showQrCodeButton"
+                style="@style/GlassActionButtonStyle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Show QR Code for More Details"
+                android:textSize="24sp"
+                android:paddingHorizontal="32dp"
+                android:paddingVertical="16dp"
+                android:layout_marginBottom="@dimen/margin_medium"/>
+
+        </LinearLayout>
+
+    </FrameLayout>
+
+    <!-- QR Code Modal Overlay (initially hidden) -->
+    <FrameLayout
+        android:id="@+id/qrModalOverlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#C0000000"
+        android:visibility="gone"
+        android:clickable="true">
+
+        <!-- QR Code Modal Content -->
+        <LinearLayout
+            android:id="@+id/qrModalContent"
+            android:layout_width="@dimen/modal_width"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:background="@drawable/modal_background"
+            android:orientation="vertical"
+            android:padding="@dimen/modal_padding"
+            android:gravity="center"
+            android:elevation="16dp">
+
+            <!-- Header with Title and Close Button -->
+            <RelativeLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="@dimen/margin_large">
+
+                <!-- QR Code Title - Centered -->
+                <TextView
+                    android:id="@+id/qrModalTitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_centerInParent="true"
+                    android:text="Learn More"
+                    android:textSize="@dimen/modal_title_size"
+                    android:textColor="#555555"
+                    android:fontFamily="@font/inter"
+                    android:textStyle="bold"
+                    android:gravity="center"/>
+
+                <!-- Close X Button - Top Right -->
+                <ImageButton
+                    android:id="@+id/closeQrModalButton"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:layout_alignParentEnd="true"
+                    android:layout_centerVertical="true"
+                    android:background="?android:attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="Close"
+                    android:src="@android:drawable/ic_menu_close_clear_cancel"
+                    android:tint="#555555"
+                    android:padding="12dp"/>
+
+            </RelativeLayout>
+
+            <!-- QR Code Image -->
+            <ImageView
+                android:id="@+id/qrCodeImage"
+                android:layout_width="400dp"
+                android:layout_height="400dp"
+                android:contentDescription="QR Code"
+                android:layout_marginBottom="@dimen/margin_medium"/>
+
+            <!-- QR Code Description -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="How to Use"
-                android:textSize="@dimen/modal_title_size"
-                android:textColor="#555555"
-                android:fontFamily="sans-serif-medium"
+                android:text="Scan this QR code with your phone\nto learn more about our service"
+                android:textSize="@dimen/modal_text_size"
+                android:textColor="#666666"
+                android:fontFamily="@font/inter"
+                android:gravity="center"
+                android:lineSpacingExtra="4dp"
+                android:paddingHorizontal="16dp"
+                android:layout_marginBottom="16dp"/>
+
+            <!-- Or Text -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="or visit this link:"
+                android:textSize="@dimen/modal_text_size"
+                android:textColor="#888888"
+                android:fontFamily="@font/inter"
+                android:gravity="center"
+                android:layout_marginBottom="8dp"/>
+
+            <!-- Link -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="www.waterfountain.io"
+                android:textSize="28sp"
+                android:textColor="#8B7BA8"
+                android:fontFamily="@font/inter"
                 android:textStyle="bold"
                 android:gravity="center"
-                android:letterSpacing="0.00"
-                android:layout_marginTop="8dp"
-                android:layout_marginBottom="@dimen/margin_large"/>
-
-            <!-- Modal Message -->
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="1. Enter your 10-digit phone number using the keypad\n\n2. Tap 'Send Code' to receive a verification code via SMS\n\n3. Enter the 6-digit code when it arrives\n\n4. Tap 'Verify' to confirm and get your free water\n\nTip: Use the eye icon to show or hide your phone number. You can resend the code if it doesn't arrive within 2 minutes."
-                android:textSize="@dimen/modal_text_size"
-                android:textColor="#555555"
-                android:fontFamily="sans-serif"
-                android:gravity="center"
-                android:lineSpacingExtra="8dp"
-                android:lineSpacingMultiplier="1.2"
                 android:paddingHorizontal="16dp"
                 android:layout_marginBottom="@dimen/margin_large"/>
 

@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/background2">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:padding="@dimen/main_screen_padding"
+        android:gravity="center">
+
+        <!-- Header with Logo and Wordmark at Top -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:layout_marginTop="24dp"
+            android:layout_marginBottom="32dp">
+
+            <!-- Just Wordmark Centered - Much Bigger -->
+            <TextView
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:text="@string/wordmark_text"
+                android:contentDescription="@string/waterfountain_wordmark"
+                android:textSize="120sp"
+                android:textColor="@android:color/white"
+                android:fontFamily="@font/century_gothic_bold"
+                android:maxLines="1"
+                android:singleLine="true"
+                android:ellipsize="end"
+                android:gravity="center"
+                android:letterSpacing="-0.05"
+                android:includeFontPadding="false"
+                android:paddingHorizontal="16dp"
+                android:shadowColor="#30000000"
+                android:shadowDx="0"
+                android:shadowDy="3"
+                android:shadowRadius="6" />
+
+        </LinearLayout>
+
+        <!-- Main Content Area - Centered Vertically -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center">
+
+            <!-- Sad Girl Image -->
+            <ImageView
+                android:id="@+id/sadGirlImage"
+                android:layout_width="800dp"
+                android:layout_height="800dp"
+                android:layout_marginBottom="40dp"
+                android:contentDescription="Error"
+                android:src="@drawable/sad_girl" />
+
+            <!-- Error/Sorry Message -->
+            <TextView
+                android:id="@+id/messageText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="We are very sorry,\nplease come visit us again tomorrow."
+                android:textSize="42sp"
+                android:textColor="#555555"
+                android:fontFamily="@font/inter"
+                android:gravity="center"
+                android:maxLines="2"
+                android:lineSpacingExtra="8dp"/>
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</FrameLayout>

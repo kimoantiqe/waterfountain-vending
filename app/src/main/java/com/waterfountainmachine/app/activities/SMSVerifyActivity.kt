@@ -154,6 +154,32 @@ class SMSVerifyActivity : AppCompatActivity() {
         binding.modalContent.setOnClickListener {
             // Do nothing - prevent click from bubbling up
         }
+
+        // Show QR Code button click
+        binding.showQrCodeButton.setOnClickListener {
+            soundManager.playSound(R.raw.click, 0.6f)
+            inactivityTimer.reset()
+            hideModal()
+            showQrCodeModal()
+        }
+
+        // Close QR modal button click
+        binding.closeQrModalButton.setOnClickListener {
+            soundManager.playSound(R.raw.click, 0.6f)
+            hideQrCodeModal()
+        }
+
+        // Click outside QR modal to close
+        binding.qrModalOverlay.setOnClickListener { view ->
+            if (view == binding.qrModalOverlay) {
+                hideQrCodeModal()
+            }
+        }
+
+        // Prevent QR modal content clicks from closing modal
+        binding.qrModalContent.setOnClickListener {
+            // Do nothing - prevent click from bubbling up
+        }
     }
 
     private fun showModal() {
@@ -167,6 +193,39 @@ class SMSVerifyActivity : AppCompatActivity() {
         }
     }
 
+    private fun showQrCodeModal() {
+        // Generate QR code for https://www.waterfountain.io
+        try {
+            val qrBitmap = generateQRCode("https://www.waterfountain.io", 400, 400)
+            binding.qrCodeImage.setImageBitmap(qrBitmap)
+        } catch (e: Exception) {
+            AppLog.e(TAG, "Error generating QR code", e)
+        }
+        
+        binding.qrModalOverlay.visibility = View.VISIBLE
+        AnimationUtils.showModalAnimation(binding.qrModalContent)
+    }
+
+    private fun hideQrCodeModal() {
+        AnimationUtils.hideModalAnimation(binding.qrModalContent) {
+            binding.qrModalOverlay.visibility = View.GONE
+        }
+    }
+
+    private fun generateQRCode(text: String, width: Int, height: Int): android.graphics.Bitmap {
+        val qrCodeWriter = com.google.zxing.qrcode.QRCodeWriter()
+        val bitMatrix = qrCodeWriter.encode(text, com.google.zxing.BarcodeFormat.QR_CODE, width, height)
+        
+        val bitmap = android.graphics.Bitmap.createBitmap(width, height, android.graphics.Bitmap.Config.ARGB_8888)
+        for (x in 0 until width) {
+            for (y in 0 until height) {
+                bitmap.setPixel(x, y, if (bitMatrix[x, y]) android.graphics.Color.BLACK else android.graphics.Color.WHITE)
+            }
+        }
+        
+        return bitmap
+    }
+
     private fun setupVerificationUI(isPhoneNumberVisible: Boolean) {
         otpCode = ""
         
@@ -178,7 +237,6 @@ class SMSVerifyActivity : AppCompatActivity() {
             // Show only last 4 digits
             "••• •••-${phoneNumber.substring(6)}"
         }
-        binding.subtitleText.text = "We sent a code to $displayPhone"
         
         // Initialize verify button - always enabled for click feedback
         binding.verifyOtpButton.isEnabled = true
@@ -411,13 +469,6 @@ class SMSVerifyActivity : AppCompatActivity() {
     }
     
     private fun showVerificationError(errorMessage: String = "Incorrect PIN") {
-        // Update subtitle to show error
-        binding.subtitleText.text = errorMessage
-        
-        // Animate subtitle to red
-        val originalColor = binding.subtitleText.currentTextColor
-        binding.subtitleText.setTextColor(0xFFFF4444.toInt()) // Red color
-        
         // Set all boxes to error state (red borders)
         setOtpBoxesErrorState()
         
@@ -435,21 +486,8 @@ class SMSVerifyActivity : AppCompatActivity() {
             // Reset button state
             setLoadingState(false)
             
-            // Fade subtitle back to original color after delay
+            // Wait before restoring keypad
             delay(2000)
-            binding.subtitleText.animate()
-                .alpha(0f)
-                .setDuration(200)
-                .withEndAction {
-                    binding.subtitleText.setTextColor(originalColor)
-                    val maskedPhone = "••• •••-${phoneNumber.substring(6)}"
-                    binding.subtitleText.text = "We sent a code to $maskedPhone"
-                    binding.subtitleText.animate()
-                        .alpha(0.7f)
-                        .setDuration(200)
-                        .start()
-                }
-                .start()
             
             // Smoothly fade in and slide down keypad after error clears
             delay(200)
@@ -458,10 +496,6 @@ class SMSVerifyActivity : AppCompatActivity() {
     }
     
     private fun showErrorAndReturnToMain(errorMessage: String = "Too many failed attempts") {
-        // Update subtitle
-        binding.subtitleText.text = errorMessage
-        binding.subtitleText.setTextColor(0xFFFF4444.toInt()) // Red color
-        
         // Set all boxes to error state
         setOtpBoxesErrorState()
         
@@ -687,41 +721,10 @@ class SMSVerifyActivity : AppCompatActivity() {
                 .start()
         }
         
-        // Show error message in subtitle (store original color with alpha)
-        val maskedPhone = "••• •••-${phoneNumber.substring(6)}"
-        val originalText = "We sent a code to $maskedPhone"
-        val originalColor = 0xB3555555.toInt() // Gray with alpha
-        
-        binding.subtitleText.animate()
-            .alpha(0f)
-            .setDuration(200)
-            .withEndAction {
-                binding.subtitleText.text = "Please enter all 6 digits"
-                binding.subtitleText.setTextColor(0xFFFF6B6B.toInt())
-                binding.subtitleText.animate().alpha(0.9f).setDuration(300).start()
-                
-                // Auto-restore after 2.5s
-                binding.subtitleText.postDelayed({
-                    binding.subtitleText.animate()
-                        .alpha(0f)
-                        .setDuration(200)
-                        .withEndAction {
-                            binding.subtitleText.setTextColor(originalColor)
-                            binding.subtitleText.text = originalText
-                            binding.subtitleText.animate()
-                                .alpha(0.7f)
-                                .setDuration(200)
-                                .start()
-                        }
-                        .start()
-                    
-                    // Restore box backgrounds to normal after message clears
-                    binding.subtitleText.postDelayed({
-                        updateOtpBoxes()
-                    }, 400)
-                }, 2500)
-            }
-            .start()
+        // Auto-restore box backgrounds after 2.5s
+        binding.otpBox1.postDelayed({
+            updateOtpBoxes()
+        }, 2500)
     }
     
     /**
@@ -867,12 +870,6 @@ class SMSVerifyActivity : AppCompatActivity() {
         otpCode = ""
         updateOtpBoxes()
         updateButtonDisabledState(binding.verifyOtpButton, false)
-        
-        // Reset subtitle if showing error
-        val maskedPhone = "••• •••-${phoneNumber.substring(6)}"
-        binding.subtitleText.text = "Sending new code..."
-        binding.subtitleText.setTextColor(0xB3555555.toInt()) // Reset to original color with alpha
-        binding.subtitleText.alpha = 0.7f
 
         // Format phone with country code (+1 for US)
         val formattedPhone = "+1$phoneNumber"
@@ -887,21 +884,14 @@ class SMSVerifyActivity : AppCompatActivity() {
                 result.onSuccess { response ->
                     AppLog.i(TAG, "OTP resent successfully: ${response.message}")
                     
-                    // Update subtitle
-                    binding.subtitleText.text = "We sent a code to $maskedPhone"
-                    
                     // Restart the timer
                     startOtpTimer()
                 }.onFailure { error ->
                     val errorMessage = error.message ?: "Failed to resend code"
                     AppLog.e(TAG, "OTP resend failed: $errorMessage", error)
-                    binding.subtitleText.text = errorMessage
-                    binding.subtitleText.setTextColor(0xFFFF4444.toInt()) // Red
                 }
             } catch (e: Exception) {
                 AppLog.e(TAG, "Unexpected error resending OTP", e)
-                binding.subtitleText.text = "Failed to resend code"
-                binding.subtitleText.setTextColor(0xFFFF4444.toInt()) // Red
             }
         }
     }
