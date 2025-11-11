@@ -51,7 +51,7 @@ class ErrorActivity : AppCompatActivity() {
         const val EXTRA_DISPLAY_DURATION = "display_duration"
         
         // Default messages
-        const val DEFAULT_DAILY_LIMIT_MESSAGE = "We are very sorry,\nplease come visit us again tomorrow."
+        const val DEFAULT_DAILY_LIMIT_MESSAGE = "We are very sorry,\nPlease visit us tomorrow."
         const val DEFAULT_ERROR_MESSAGE = "An error occurred.\nPlease try again."
         
         // Timing constants

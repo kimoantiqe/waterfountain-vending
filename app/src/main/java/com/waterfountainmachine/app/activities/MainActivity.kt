@@ -263,8 +263,32 @@ class MainActivity : AppCompatActivity() {
         // Do nothing - disable back button
     }
 
-    // Prevent hardware keys from exiting
+    // Prevent hardware keys from exiting AND handle admin keyboard trigger
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        // Only process on ACTION_DOWN to avoid double-counting
+        if (event.action == KeyEvent.ACTION_DOWN) {
+            // First, let admin gesture detector handle keyboard input (USB keyboard Enter key)
+            if (adminGestureDetector.onKeyEvent(event.keyCode, event)) {
+                // Admin gesture handled the key event - consume it completely
+                AppLog.d(TAG, "Admin keyboard trigger processed, consuming key event")
+                return true
+            }
+            
+            // Block ALL Enter key presses from propagating (admin or not)
+            // This prevents Enter from triggering screen clicks
+            if (event.keyCode == KeyEvent.KEYCODE_ENTER) {
+                AppLog.d(TAG, "Enter key blocked to prevent screen click")
+                return true // Consume the event
+            }
+        }
+        
+        // Let other events be handled normally
+        return super.dispatchKeyEvent(event)
+    }
+    
+    // Keep onKeyDown for hardware key blocking
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
+        // Handle general hardware key blocking
         return HardwareKeyHandler.handleKeyDown(keyCode)
             || super.onKeyDown(keyCode, event)
     }

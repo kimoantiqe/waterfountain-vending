@@ -67,7 +67,7 @@
                 android:id="@+id/messageText"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="We are very sorry,\nplease come visit us again tomorrow."
+                android:text="We are very sorry,\nPlease come visit tomorrow."
                 android:textSize="42sp"
                 android:textColor="#555555"
                 android:fontFamily="@font/inter"
