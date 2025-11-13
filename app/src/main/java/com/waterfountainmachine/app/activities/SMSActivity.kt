@@ -40,6 +40,10 @@ class SMSActivity : AppCompatActivity() {
     // Loading state for API calls
     private var isLoading = false
     
+    // QR code cache (simple in-memory cache)
+    private var cachedQRCode: android.graphics.Bitmap? = null
+    private var cachedQRCodeText: String? = null
+    
     companion object {
         private const val TAG = "SMSActivity"
         private const val MAX_PHONE_LENGTH = 10
@@ -48,6 +52,10 @@ class SMSActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // Set window background to black to prevent white flash during transitions
+        window.setBackgroundDrawableResource(android.R.color.black)
+        
         binding = ActivitySmsBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
@@ -91,10 +99,11 @@ class SMSActivity : AppCompatActivity() {
 
     private fun returnToMainScreen() {
         val intent = Intent(this, MainActivity::class.java)
-        intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK
+        // Use SINGLE_TOP to reuse existing MainActivity instance for smooth transition
+        intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
         startActivity(intent)
-        finish()
         overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
+        finish()
     }
 
     private fun setupQuestionMarkAnimation() {
@@ -170,9 +179,23 @@ class SMSActivity : AppCompatActivity() {
     }
 
     private fun showQrCodeModal() {
-        // Generate QR code for https://www.waterfountain.io
+        // Generate QR code for https://www.waterfountain.io with caching
         try {
-            val qrBitmap = generateQRCode("https://www.waterfountain.io", 400, 400)
+            val url = "https://www.waterfountain.io"
+            
+            // Check cache first
+            val qrBitmap = if (cachedQRCodeText == url && cachedQRCode != null) {
+                AppLog.d(TAG, "Using cached QR code")
+                cachedQRCode!!
+            } else {
+                AppLog.d(TAG, "Generating new QR code")
+                val newBitmap = generateQRCode(url, 400, 400)
+                // Cache the result
+                cachedQRCode = newBitmap
+                cachedQRCodeText = url
+                newBitmap
+            }
+            
             binding.qrCodeImage.setImageBitmap(qrBitmap)
         } catch (e: Exception) {
             AppLog.e(TAG, "Error generating QR code", e)
@@ -192,12 +215,17 @@ class SMSActivity : AppCompatActivity() {
         val qrCodeWriter = com.google.zxing.qrcode.QRCodeWriter()
         val bitMatrix = qrCodeWriter.encode(text, com.google.zxing.BarcodeFormat.QR_CODE, width, height)
         
-        val bitmap = android.graphics.Bitmap.createBitmap(width, height, android.graphics.Bitmap.Config.ARGB_8888)
-        for (x in 0 until width) {
-            for (y in 0 until height) {
-                bitmap.setPixel(x, y, if (bitMatrix[x, y]) android.graphics.Color.BLACK else android.graphics.Color.WHITE)
+        // Optimized: Pre-compute pixel array instead of setPixel() in nested loop
+        val pixels = IntArray(width * height)
+        for (y in 0 until height) {
+            val offset = y * width
+            for (x in 0 until width) {
+                pixels[offset + x] = if (bitMatrix[x, y]) android.graphics.Color.BLACK else android.graphics.Color.WHITE
             }
         }
+        
+        val bitmap = android.graphics.Bitmap.createBitmap(width, height, android.graphics.Bitmap.Config.ARGB_8888)
+        bitmap.setPixels(pixels, 0, width, 0, 0, width, height)
         
         return bitmap
     }
@@ -290,12 +318,40 @@ class SMSActivity : AppCompatActivity() {
                         hideLoading()
                         val errorMessage = error.message ?: "Failed to send verification code"
                         AppLog.e(TAG, "OTP request failed: $errorMessage", error)
-                        showError(errorMessage)
+                        
+                        // All errors navigate to error screen with appropriate message
+                        when (error) {
+                            is com.waterfountainmachine.app.auth.AuthenticationException.CertificateError -> {
+                                showError("System configuration error.\nPlease contact support.")
+                            }
+                            is com.waterfountainmachine.app.auth.AuthenticationException.ServerError -> {
+                                showError("Unable to connect to service.\nPlease try again later.")
+                            }
+                            is com.waterfountainmachine.app.auth.AuthenticationException.NetworkError -> {
+                                showError("Network error.\nPlease check your connection.")
+                            }
+                            else -> {
+                                showError("Unable to send verification code.\nPlease try again.")
+                            }
+                        }
+                    }
+                } catch (e: com.waterfountainmachine.app.auth.AuthenticationException) {
+                    hideLoading()
+                    AppLog.e(TAG, "Authentication exception", e)
+                    
+                    // All authentication exceptions navigate to error screen
+                    when (e) {
+                        is com.waterfountainmachine.app.auth.AuthenticationException.CertificateError -> {
+                            showError("System configuration error.\nPlease contact support.")
+                        }
+                        else -> {
+                            showError("Authentication error.\nPlease try again.")
+                        }
                     }
                 } catch (e: Exception) {
                     hideLoading()
                     AppLog.e(TAG, "Unexpected error requesting OTP", e)
-                    showError("An unexpected error occurred. Please try again.")
+                    showError("An unexpected error occurred.\nPlease try again.")
                 }
             }
         }
@@ -370,13 +426,23 @@ class SMSActivity : AppCompatActivity() {
     }
     
     /**
-     * Show error message to user
+     * Show error by navigating to error screen
+     * All errors in SMS flow should show the error screen
      */
     private fun showError(message: String) {
-        // TODO: Show a proper error dialog or toast
-        // For now, use a toast
-        android.widget.Toast.makeText(this, message, android.widget.Toast.LENGTH_LONG).show()
-        AppLog.e(TAG, "Error shown to user: $message")
+        navigateToErrorScreen(message)
+    }
+    
+    /**
+     * Navigate to error screen for all errors
+     */
+    private fun navigateToErrorScreen(message: String) {
+        AppLog.e(TAG, "Error occurred - navigating to error screen: $message")
+        val intent = Intent(this, ErrorActivity::class.java)
+        intent.putExtra(ErrorActivity.EXTRA_MESSAGE, message)
+        startActivity(intent)
+        finish()
+        overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
     }
 
     private fun addDigit(digit: String) {
@@ -662,6 +728,11 @@ class SMSActivity : AppCompatActivity() {
         
         // Release sound resources
         soundManager.release()
+        
+        // Clean up QR code cache
+        cachedQRCode?.recycle()
+        cachedQRCode = null
+        cachedQRCodeText = null
     }
 
     override fun onResume() {

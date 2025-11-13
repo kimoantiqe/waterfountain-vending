@@ -3,6 +3,15 @@ package com.waterfountainmachine.app.security
 import android.content.Context
 import android.util.Log
 import org.json.JSONObject
+import java.io.ByteArrayInputStream
+import java.security.KeyStore
+import java.security.SecureRandom
+import java.security.cert.CertificateFactory
+import java.security.cert.X509Certificate
+import javax.net.ssl.SSLContext
+import javax.net.ssl.TrustManager
+import javax.net.ssl.TrustManagerFactory
+import javax.net.ssl.X509TrustManager
 
 /**
  * Coordinates all security components for certificate-based authentication.
@@ -228,5 +237,80 @@ object SecurityModule {
                 else -> "Valid"
             }
         )
+    }
+    
+    /**
+     * Get SSLContext configured with the machine's client certificate
+     * for mutual TLS authentication.
+     *
+     * @return SSLContext configured with client certificate
+     * @throws IllegalStateException if not enrolled
+     */
+    fun getSslContext(): SSLContext {
+        if (!isEnrolled()) {
+            throw IllegalStateException("Machine not enrolled - cannot create SSL context")
+        }
+        
+        try {
+            // Get certificate and private key
+            val certPem = certificateManager.getCertificatePem()
+                ?: throw IllegalStateException("Certificate not found")
+            val privateKey = certificateManager.getPrivateKey()
+                ?: throw IllegalStateException("Private key not found")
+            
+            // Parse certificate
+            val certBytes = certPem
+                .replace("-----BEGIN CERTIFICATE-----", "")
+                .replace("-----END CERTIFICATE-----", "")
+                .replace("\n", "")
+                .trim()
+            val certInputStream = ByteArrayInputStream(java.util.Base64.getDecoder().decode(certBytes))
+            val certificateFactory = CertificateFactory.getInstance("X.509")
+            val certificate = certificateFactory.generateCertificate(certInputStream) as X509Certificate
+            
+            // Create KeyStore with client certificate and private key
+            val keyStore = KeyStore.getInstance(KeyStore.getDefaultType())
+            keyStore.load(null, null)
+            keyStore.setKeyEntry(
+                "client",
+                privateKey,
+                null,
+                arrayOf(certificate)
+            )
+            
+            // Create SSLContext
+            val sslContext = SSLContext.getInstance("TLS")
+            val kmf = javax.net.ssl.KeyManagerFactory.getInstance(
+                javax.net.ssl.KeyManagerFactory.getDefaultAlgorithm()
+            )
+            kmf.init(keyStore, null)
+            
+            // Use system trust store for server certificates
+            val tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm())
+            tmf.init(null as KeyStore?)
+            
+            sslContext.init(kmf.keyManagers, tmf.trustManagers, SecureRandom())
+            
+            Log.d(TAG, "Created SSLContext with client certificate")
+            return sslContext
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to create SSLContext", e)
+            throw SecurityException("SSL context creation failed: ${e.message}", e)
+        }
+    }
+    
+    /**
+     * Get X509TrustManager for OkHttp configuration.
+     *
+     * @return X509TrustManager using system trust store
+     */
+    fun getTrustManager(): X509TrustManager {
+        val tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm())
+        tmf.init(null as KeyStore?)
+        
+        return tmf.trustManagers
+            .filterIsInstance<X509TrustManager>()
+            .first()
     }
 }

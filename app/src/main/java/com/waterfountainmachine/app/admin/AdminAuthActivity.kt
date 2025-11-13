@@ -13,11 +13,21 @@ class AdminAuthActivity : AppCompatActivity() {
     
     private lateinit var binding: ActivityAdminAuthBinding
     private var pinCode = ""
-    private val correctPin = "01121999" // Hardcoded for now, will use TOTP later
+    // PIN now stored as salted hash in EncryptedSharedPreferences
+    // Managed by AdminPinManager for security
     private var isValidating = false
+    
+    // Rate limiting: 3 attempts, then 1-hour lockout
+    private var failedAttempts = 0
+    private var lockoutUntil: Long = 0
     
     companion object {
         private const val TAG = "AdminAuthActivity"
+        private const val MAX_ATTEMPTS = 3
+        private const val LOCKOUT_DURATION_MS = 60 * 60 * 1000L // 1 hour
+        private const val PREFS_NAME = "admin_auth_prefs"
+        private const val KEY_FAILED_ATTEMPTS = "failed_attempts"
+        private const val KEY_LOCKOUT_UNTIL = "lockout_until"
     }
     
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -25,9 +35,109 @@ class AdminAuthActivity : AppCompatActivity() {
         binding = ActivityAdminAuthBinding.inflate(layoutInflater)
         setContentView(binding.root)
         
+        // Load rate limiting state from encrypted preferences
+        loadRateLimitState()
+        
         setupFullScreen()
         setupKeypad()
         setupUI()
+        
+        // Check if currently locked out
+        checkLockoutStatus()
+    }
+    
+    /**
+     * Load rate limiting state from encrypted preferences
+     */
+    private fun loadRateLimitState() {
+        val prefs = com.waterfountainmachine.app.utils.SecurePreferences.getSystemSettings(this)
+        failedAttempts = prefs.getInt(KEY_FAILED_ATTEMPTS, 0)
+        lockoutUntil = prefs.getLong(KEY_LOCKOUT_UNTIL, 0)
+        
+        AppLog.d(TAG, "Loaded rate limit state: $failedAttempts attempts, lockout until: $lockoutUntil")
+    }
+    
+    /**
+     * Save rate limiting state to encrypted preferences
+     */
+    private fun saveRateLimitState() {
+        val prefs = com.waterfountainmachine.app.utils.SecurePreferences.getSystemSettings(this)
+        prefs.edit()
+            .putInt(KEY_FAILED_ATTEMPTS, failedAttempts)
+            .putLong(KEY_LOCKOUT_UNTIL, lockoutUntil)
+            .apply()
+        
+        AppLog.d(TAG, "Saved rate limit state: $failedAttempts attempts, lockout until: $lockoutUntil")
+    }
+    
+    /**
+     * Check if currently locked out and show message
+     */
+    private fun checkLockoutStatus() {
+        val currentTime = System.currentTimeMillis()
+        
+        if (currentTime < lockoutUntil) {
+            val remainingMs = lockoutUntil - currentTime
+            val remainingMinutes = remainingMs / 60000
+            
+            binding.subtitleText.text = "Locked: Try again in ${remainingMinutes} minutes"
+            binding.subtitleText.setTextColor(getColor(android.R.color.holo_red_dark))
+            setKeypadEnabled(false)
+            
+            AppLog.w(TAG, "Admin access locked out for ${remainingMinutes} minutes")
+            
+            // Schedule UI update when lockout expires
+            binding.root.postDelayed({
+                if (!isFinishing) {
+                    checkLockoutStatus()
+                }
+            }, 60000) // Check every minute
+        } else {
+            // Lockout expired or no lockout
+            if (lockoutUntil > 0) {
+                // Just expired, reset counter
+                failedAttempts = 0
+                lockoutUntil = 0
+                saveRateLimitState()
+                AppLog.i(TAG, "Lockout expired, reset attempts counter")
+            }
+            
+            binding.subtitleText.text = "Enter Administrator PIN"
+            binding.subtitleText.setTextColor(getColor(com.waterfountainmachine.app.R.color.white_70))
+            setKeypadEnabled(true)
+        }
+    }
+    
+    /**
+     * Enable or disable the keypad
+     */
+    private fun setKeypadEnabled(enabled: Boolean) {
+        binding.btn0.isEnabled = enabled
+        binding.btn1.isEnabled = enabled
+        binding.btn2.isEnabled = enabled
+        binding.btn3.isEnabled = enabled
+        binding.btn4.isEnabled = enabled
+        binding.btn5.isEnabled = enabled
+        binding.btn6.isEnabled = enabled
+        binding.btn7.isEnabled = enabled
+        binding.btn8.isEnabled = enabled
+        binding.btn9.isEnabled = enabled
+        binding.clearButton.isEnabled = enabled
+        binding.deleteButton.isEnabled = enabled
+        
+        val alpha = if (enabled) 1f else 0.3f
+        binding.btn0.alpha = alpha
+        binding.btn1.alpha = alpha
+        binding.btn2.alpha = alpha
+        binding.btn3.alpha = alpha
+        binding.btn4.alpha = alpha
+        binding.btn5.alpha = alpha
+        binding.btn6.alpha = alpha
+        binding.btn7.alpha = alpha
+        binding.btn8.alpha = alpha
+        binding.btn9.alpha = alpha
+        binding.clearButton.alpha = alpha
+        binding.deleteButton.alpha = alpha
     }
     
     private fun setupFullScreen() {
@@ -110,13 +220,36 @@ class AdminAuthActivity : AppCompatActivity() {
     
     private fun validatePin() {
         if (isValidating) return
+        
+        // Check if locked out
+        val currentTime = System.currentTimeMillis()
+        if (currentTime < lockoutUntil) {
+            val remainingMinutes = (lockoutUntil - currentTime) / 60000
+            binding.subtitleText.text = "Locked: Try again in ${remainingMinutes} minutes"
+            binding.subtitleText.setTextColor(getColor(android.R.color.holo_red_dark))
+            pinCode = ""
+            updatePinDisplay()
+            return
+        }
+        
         isValidating = true
+        AppLog.i(TAG, "PIN validation attempted (attempt ${failedAttempts + 1})")
         
-        AppLog.i(TAG, "PIN validation attempted")
-        
-        if (pinCode == correctPin) {
+        // Verify PIN using secure hash comparison
+        if (AdminPinManager.verifyPin(this, pinCode)) {
             // Successful authentication
             AppLog.i(TAG, "Admin authentication successful")
+            
+            // Check if user is still using default PIN
+            if (AdminPinManager.isDefaultPin(this)) {
+                AppLog.w(TAG, "⚠️ Admin is using default PIN - should be changed!")
+                // TODO: Show warning to change PIN in admin panel
+            }
+            
+            // Reset failed attempts on success
+            failedAttempts = 0
+            lockoutUntil = 0
+            saveRateLimitState()
             
             // Navigate to admin panel
             val intent = Intent(this, AdminPanelActivity::class.java)
@@ -124,18 +257,53 @@ class AdminAuthActivity : AppCompatActivity() {
             finish()
         } else {
             // Failed authentication
-            AppLog.w(TAG, "Failed admin authentication attempt")
+            failedAttempts++
+            AppLog.w(TAG, "Failed admin authentication attempt (${failedAttempts}/${MAX_ATTEMPTS})")
             
-            // Visual feedback for wrong PIN
-            binding.pinDisplay.setTextColor(getColor(android.R.color.holo_red_dark))
-            
-            // Clear PIN and reset after delay
-            binding.root.postDelayed({
-                binding.pinDisplay.setTextColor(getColor(android.R.color.white))
-                pinCode = ""
-                updatePinDisplay()
-                isValidating = false
-            }, 1000)
+            // Check if we've hit the limit
+            if (failedAttempts >= MAX_ATTEMPTS) {
+                lockoutUntil = currentTime + LOCKOUT_DURATION_MS
+                saveRateLimitState()
+                
+                AppLog.w(TAG, "Max attempts reached - locking out for 1 hour")
+                
+                // Show lockout message
+                binding.subtitleText.text = "Too many attempts! Locked for 1 hour"
+                binding.subtitleText.setTextColor(getColor(android.R.color.holo_red_dark))
+                binding.pinDisplay.setTextColor(getColor(android.R.color.holo_red_dark))
+                
+                // Disable keypad
+                binding.root.postDelayed({
+                    setKeypadEnabled(false)
+                    pinCode = ""
+                    updatePinDisplay()
+                    binding.pinDisplay.setTextColor(getColor(android.R.color.white))
+                    isValidating = false
+                    
+                    // Start checking lockout status
+                    checkLockoutStatus()
+                }, 2000)
+            } else {
+                // Save incremented failed attempts
+                saveRateLimitState()
+                
+                // Visual feedback for wrong PIN
+                binding.pinDisplay.setTextColor(getColor(android.R.color.holo_red_dark))
+                
+                val remainingAttempts = MAX_ATTEMPTS - failedAttempts
+                binding.subtitleText.text = "Wrong PIN - $remainingAttempts ${if (remainingAttempts == 1) "attempt" else "attempts"} remaining"
+                binding.subtitleText.setTextColor(getColor(android.R.color.holo_orange_light))
+                
+                // Clear PIN and reset after delay
+                binding.root.postDelayed({
+                    binding.pinDisplay.setTextColor(getColor(android.R.color.white))
+                    binding.subtitleText.text = "Enter Administrator PIN"
+                    binding.subtitleText.setTextColor(getColor(com.waterfountainmachine.app.R.color.white_70))
+                    pinCode = ""
+                    updatePinDisplay()
+                    isValidating = false
+                }, 1500)
+            }
         }
     }
     

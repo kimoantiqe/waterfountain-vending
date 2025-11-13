@@ -37,7 +37,8 @@ object ErrorScreenUtil {
     fun showDailyLimitReached(context: Context) {
         val intent = Intent(context, ErrorActivity::class.java)
         intent.putExtra(ErrorActivity.EXTRA_MESSAGE, ErrorActivity.DEFAULT_DAILY_LIMIT_MESSAGE)
-        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        // Use SINGLE_TOP to reuse existing MainActivity instance for smooth transition
+        intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
         context.startActivity(intent)
         AppLog.i("ErrorScreenUtil", "Showing daily limit reached screen")
     }
@@ -53,7 +54,8 @@ object ErrorScreenUtil {
         val intent = Intent(context, ErrorActivity::class.java)
         intent.putExtra(ErrorActivity.EXTRA_MESSAGE, message)
         intent.putExtra(ErrorActivity.EXTRA_DISPLAY_DURATION, displayDuration)
-        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        // Use SINGLE_TOP to reuse existing MainActivity instance for smooth transition
+        intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
         context.startActivity(intent)
         AppLog.i("ErrorScreenUtil", "Showing error screen: $message")
     }
@@ -64,7 +66,8 @@ object ErrorScreenUtil {
     fun showGenericError(context: Context) {
         val intent = Intent(context, ErrorActivity::class.java)
         intent.putExtra(ErrorActivity.EXTRA_MESSAGE, ErrorActivity.DEFAULT_ERROR_MESSAGE)
-        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        // Use SINGLE_TOP to reuse existing MainActivity instance for smooth transition
+        intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
         context.startActivity(intent)
         AppLog.i("ErrorScreenUtil", "Showing generic error screen")
     }

@@ -36,6 +36,9 @@ class RealAuthenticationRepository(
         // API endpoints
         private const val REQUEST_OTP_ENDPOINT = "requestOtpFn"
         private const val VERIFY_OTP_ENDPOINT = "verifyOtpFn"
+        
+        // Timeout configuration (30 seconds to prevent indefinite hangs)
+        private const val FUNCTION_TIMEOUT_MS = 30_000L
     }
     
     private val functions: FirebaseFunctions = Firebase.functions
@@ -65,9 +68,10 @@ class RealAuthenticationRepository(
                 data = mapOf("phone" to phone)
             )
             
-            // Call Firebase Function (SDK automatically includes App Check token)
+            // Call Firebase Function with 30-second timeout
             val result = functions
                 .getHttpsCallable(REQUEST_OTP_ENDPOINT)
+                .withTimeout(FUNCTION_TIMEOUT_MS, java.util.concurrent.TimeUnit.MILLISECONDS)
                 .call(authenticatedData)
                 .await()
             
@@ -117,9 +121,10 @@ class RealAuthenticationRepository(
                 )
             )
             
-            // Call Firebase Function (SDK automatically includes App Check token)
+            // Call Firebase Function with 30-second timeout
             functions
                 .getHttpsCallable(VERIFY_OTP_ENDPOINT)
+                .withTimeout(FUNCTION_TIMEOUT_MS, java.util.concurrent.TimeUnit.MILLISECONDS)
                 .call(authenticatedData)
                 .await()
             
@@ -150,8 +155,12 @@ class RealAuthenticationRepository(
     ): Map<String, Any> {
         val timestamp = System.currentTimeMillis()
         val nonce = nonceGenerator.generate()
-        val certificate = certificateManager.getCertificatePem()!!
-        val privateKey = certificateManager.getPrivateKey()!!
+        
+        // Safe null checks - throw specific error if certificate/key missing
+        val certificate = certificateManager.getCertificatePem()
+            ?: throw AuthenticationException.CertificateError("Certificate not found. Machine must be enrolled.")
+        val privateKey = certificateManager.getPrivateKey()
+            ?: throw AuthenticationException.CertificateError("Private key not found. Re-enrollment required.")
         
         // Create payload JSON string for signing
         val payloadJson = data.entries.joinToString(",", "{", "}") { (key, value) ->

@@ -25,8 +25,8 @@ class AdminPanelActivity : AppCompatActivity() {
         setupFullScreen()
         setupNavigation()
         
-        // Start with connection management
-        navigateToFragment(ConnectionFragment(), "Connection")
+        // Start with certificate status
+        navigateToFragment(CertificateStatusFragment(), "Certificate Status")
     }
     
     private fun setupFullScreen() {
@@ -38,12 +38,7 @@ class AdminPanelActivity : AppCompatActivity() {
             finish()
         }
         
-        // Navigation buttons
-        binding.connectionButton.setOnClickListener {
-            navigateToFragment(ConnectionFragment(), "Connection")
-            updateNavigationState(binding.connectionButton)
-        }
-        
+        // Navigation buttons (Connection removed - was useless stub code)
         binding.certificateButton.setOnClickListener {
             navigateToFragment(CertificateStatusFragment(), "Certificate Status")
             updateNavigationState(binding.certificateButton)
@@ -60,12 +55,12 @@ class AdminPanelActivity : AppCompatActivity() {
         }
         
         binding.systemButton.setOnClickListener {
-            navigateToFragment(SystemFragment(), "System")
+            navigateToFragment(SystemFragment(), "System Settings")
             updateNavigationState(binding.systemButton)
         }
         
-        // Initially select connection
-        updateNavigationState(binding.connectionButton)
+        // Initially select certificate
+        updateNavigationState(binding.certificateButton)
     }
     
     private fun navigateToFragment(fragment: Fragment, title: String) {
@@ -80,7 +75,6 @@ class AdminPanelActivity : AppCompatActivity() {
     private fun updateNavigationState(selectedButton: View) {
         // Reset all buttons
         listOf(
-            binding.connectionButton, 
             binding.certificateButton,
             binding.hardwareButton, 
             binding.logsButton, 

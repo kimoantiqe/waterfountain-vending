@@ -73,76 +73,6 @@
 
         </androidx.cardview.widget.CardView>
 
-        <!-- Timeout Settings -->
-        <androidx.cardview.widget.CardView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
-            app:cardBackgroundColor="@color/black_80"
-            app:cardCornerRadius="12dp"
-            app:cardElevation="8dp">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="16dp">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Timeout Settings"
-                    android:textColor="@color/white"
-                    android:textSize="18sp"
-                    android:textStyle="bold"
-                    android:layout_marginBottom="12dp" />
-
-                <com.google.android.material.textfield.TextInputLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:hint="Inactivity Timeout (seconds)"
-                    android:textColorHint="@color/white_70"
-                    app:boxStrokeColor="@color/white"
-                    app:hintTextColor="@color/white_70">
-
-                    <com.google.android.material.textfield.TextInputEditText
-                        android:id="@+id/inactivityTimeoutInput"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:textColor="@color/white"
-                        android:inputType="number" />
-
-                </com.google.android.material.textfield.TextInputLayout>
-
-                <com.google.android.material.textfield.TextInputLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:hint="Session Timeout (seconds)"
-                    android:textColorHint="@color/white_70"
-                    app:boxStrokeColor="@color/white"
-                    app:hintTextColor="@color/white_70">
-
-                    <com.google.android.material.textfield.TextInputEditText
-                        android:id="@+id/sessionTimeoutInput"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:textColor="@color/white"
-                        android:inputType="number" />
-
-                </com.google.android.material.textfield.TextInputLayout>
-
-                <Button
-                    android:id="@+id/saveTimeoutButton"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Save Timeout Settings"
-                    android:layout_marginTop="12dp"
-                    style="@style/AdminButtonStyle" />
-
-            </LinearLayout>
-
-        </androidx.cardview.widget.CardView>
-
         <!-- System Toggles -->
         <androidx.cardview.widget.CardView
             android:layout_width="match_parent"
@@ -313,6 +243,17 @@
                         android:layout_height="wrap_content" />
 
                 </LinearLayout>
+                
+                <!-- Change Admin PIN Button -->
+                <Button
+                    android:id="@+id/changeAdminPinButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Change Admin PIN"
+                    android:textColor="@color/white"
+                    android:backgroundTint="@color/admin_accent"
+                    android:layout_marginTop="16dp"
+                    android:textAllCaps="false" />
 
             </LinearLayout>
 
@@ -375,102 +316,15 @@
                     android:text="Return to Main Screen"
                     android:layout_marginBottom="12dp"
                     style="@style/AdminButtonStyle" />
-
+                
+                <!-- Crash Test Button (for testing Crashlytics) -->
                 <Button
-                    android:id="@+id/emergencyShutdownButton"
+                    android:id="@+id/simulateCrashButton"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="⚠ EMERGENCY SHUTDOWN"
+                    android:text="🧪 Test Crash (Crashlytics)"
                     android:textColor="@color/white"
-                    android:backgroundTint="@color/admin_error"
-                    style="@style/AdminButtonStyle" />
-
-            </LinearLayout>
-
-        </androidx.cardview.widget.CardView>
-
-        <!-- Maintenance -->
-        <androidx.cardview.widget.CardView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            app:cardBackgroundColor="@color/black_80"
-            app:cardCornerRadius="12dp"
-            app:cardElevation="8dp">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="16dp">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Maintenance"
-                    android:textColor="@color/white"
-                    android:textSize="18sp"
-                    android:textStyle="bold"
-                    android:layout_marginBottom="12dp" />
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:layout_marginBottom="12dp">
-
-                    <Button
-                        android:id="@+id/updateFirmwareButton"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="Update Firmware"
-                        android:layout_marginEnd="4dp"
-                        style="@style/AdminButtonStyle" />
-
-                    <Button
-                        android:id="@+id/scheduledMaintenanceButton"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="Schedule Maintenance"
-                        android:layout_marginStart="4dp"
-                        style="@style/AdminButtonStyle" />
-
-                </LinearLayout>
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:layout_marginBottom="12dp">
-
-                    <Button
-                        android:id="@+id/backupSettingsButton"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="Backup Settings"
-                        android:layout_marginEnd="8dp"
-                        style="@style/AdminButtonStyle" />
-
-                    <Button
-                        android:id="@+id/restoreSettingsButton"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="Restore Settings"
-                        android:layout_marginStart="8dp"
-                        style="@style/AdminButtonStyle" />
-
-                </LinearLayout>
-
-                <Button
-                    android:id="@+id/factoryResetButton"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="⚠ FACTORY RESET"
-                    android:textColor="@color/white"
-                    android:backgroundTint="@color/admin_error"
+                    android:backgroundTint="#FF6B35"
                     style="@style/AdminButtonStyle" />
 
             </LinearLayout>

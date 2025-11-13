@@ -49,8 +49,8 @@ class WaterFountainManager private constructor(
             AppLog.i(TAG, "========================================")
             AppLog.d(TAG, config.getConfigSummary())
             
-            // Check if we should use real or mock serial communicator
-            val prefs = context.getSharedPreferences("system_settings", Context.MODE_PRIVATE)
+            // Check if we should use real or mock serial communicator (using encrypted preferences)
+            val prefs = com.waterfountainmachine.app.utils.SecurePreferences.getSystemSettings(context)
             val useRealSerial = prefs.getBoolean("use_real_serial", false)
             
             AppLog.i(TAG, "Serial Communicator Configuration:")

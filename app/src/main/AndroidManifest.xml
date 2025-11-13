@@ -15,10 +15,6 @@
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.WRITE_SETTINGS" />
 
-    <!-- SMS permissions (for later implementation) -->
-    <uses-permission android:name="android.permission.SEND_SMS" />
-    <uses-permission android:name="android.permission.RECEIVE_SMS" />
-
     <!-- Camera permission for QR code -->
     <uses-permission android:name="android.permission.CAMERA" />
 
@@ -52,12 +48,6 @@
         </activity>
 
         <activity
-            android:name=".activities.VendingActivity"
-            android:screenOrientation="portrait"
-            android:configChanges="orientation|screenSize|keyboardHidden"
-            android:theme="@style/Theme.WaterFountainMachine" />
-
-        <activity
             android:name=".activities.PINActivity"
             android:screenOrientation="portrait"
             android:configChanges="orientation|screenSize|keyboardHidden"
@@ -76,19 +66,7 @@
             android:theme="@style/Theme.WaterFountainMachine" />
 
         <activity
-            android:name=".activities.QRActivity"
-            android:screenOrientation="portrait"
-            android:configChanges="orientation|screenSize|keyboardHidden"
-            android:theme="@style/Theme.WaterFountainMachine" />
-
-        <activity
             android:name=".activities.VendingAnimationActivity"
-            android:screenOrientation="portrait"
-            android:configChanges="orientation|screenSize|keyboardHidden"
-            android:theme="@style/Theme.WaterFountainMachine" />
-
-        <activity
-            android:name=".activities.PrivacyExplanationActivity"
             android:screenOrientation="portrait"
             android:configChanges="orientation|screenSize|keyboardHidden"
             android:theme="@style/Theme.WaterFountainMachine" />

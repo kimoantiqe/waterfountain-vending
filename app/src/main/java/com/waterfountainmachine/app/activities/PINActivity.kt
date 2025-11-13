@@ -14,6 +14,10 @@ class PINActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // Set window background to black to prevent white flash during transitions
+        window.setBackgroundDrawableResource(android.R.color.black)
+        
         binding = ActivityPinBinding.inflate(layoutInflater)
         setContentView(binding.root)
 

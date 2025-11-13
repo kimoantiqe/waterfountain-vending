@@ -45,6 +45,9 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
+        // Set window background to black to prevent white flash during transitions
+        window.setBackgroundDrawableResource(android.R.color.black)
+        
         AppLog.i(TAG, "Water Fountain Vending Machine starting...")
         
         binding = ActivityMainBinding.inflate(layoutInflater)
@@ -71,8 +74,8 @@ class MainActivity : AppCompatActivity() {
     }
     
     private fun setupKioskMode() {
-        // Check if kiosk mode is enabled in settings
-        val prefs = getSharedPreferences("system_settings", Context.MODE_PRIVATE)
+        // Check if kiosk mode is enabled in settings (using encrypted preferences)
+        val prefs = com.waterfountainmachine.app.utils.SecurePreferences.getSystemSettings(this)
         val kioskModeEnabled = prefs.getBoolean("kiosk_mode", true) // Default to enabled
         
         AppLog.i(TAG, "Kiosk mode setting: ${if (kioskModeEnabled) "ENABLED" else "DISABLED"}")
@@ -131,17 +134,17 @@ class MainActivity : AppCompatActivity() {
                 android.view.MotionEvent.ACTION_DOWN -> {
                     // Create haptic-like ripple effect
                     createRippleEffect(event.x, event.y)
-                    // Animate ONLY the content, not the background
-                    binding.mainContent.animate()
-                        .scaleX(0.98f)
-                        .scaleY(0.98f)
+                    // Animate ONLY the can, not the entire content
+                    binding.canImage.animate()
+                        .scaleX(0.95f)
+                        .scaleY(0.95f)
                         .setDuration(100)
                         .setInterpolator(DecelerateInterpolator())
                         .start()
                 }
                 android.view.MotionEvent.ACTION_UP, android.view.MotionEvent.ACTION_CANCEL -> {
                     // Scale back to normal
-                    binding.mainContent.animate()
+                    binding.canImage.animate()
                         .scaleX(1f)
                         .scaleY(1f)
                         .setDuration(150)
@@ -154,29 +157,43 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupBreathingAnimation() {
-        // Create a smooth color glow animation - gray to light lavender
-        // Elegant subtle glow that complements the purple/blue background
+        // Smooth glow pulse animation - continuous glow that never disappears
+        // Text color pulses from gray to slightly lighter gray-purple (very subtle)
+        val textColorFrom = Color.parseColor("#555555") // Medium Gray (matches other text)
+        val textColorTo = Color.parseColor("#6B657A")   // Slightly lighter gray with subtle hint of purple
         
-        val colorFrom = Color.parseColor("#888888") // Medium Gray
-        val colorTo = Color.parseColor("#E0E0FF")   // Light Lavender/White glow
-        
-        val colorAnimator = ValueAnimator.ofObject(
+        val textColorAnimator = ValueAnimator.ofObject(
             ArgbEvaluator(),
-            colorFrom,
-            colorTo,
-            colorFrom
+            textColorFrom,
+            textColorTo
         ).apply {
-            duration = 6500L // Much slower 4.5-second cycle for very subtle, elegant pulsing
+            duration = 2000L // 2 second smooth pulse
             interpolator = AccelerateDecelerateInterpolator()
             repeatCount = ValueAnimator.INFINITE
-            repeatMode = ValueAnimator.RESTART
+            repeatMode = ValueAnimator.REVERSE // Smooth back and forth
             
             addUpdateListener { animator ->
                 binding.instructionText.setTextColor(animator.animatedValue as Int)
             }
         }
         
-        colorAnimator.start()
+        // Use alpha animation instead of scale for smoother, less jarring effect
+        // More dramatic fade for visibility
+        val alphaAnimator = ObjectAnimator.ofFloat(binding.instructionText, "alpha", 0.5f, 1f).apply {
+            duration = 2500L // Slightly slower for smoother animation
+            interpolator = AccelerateDecelerateInterpolator()
+            repeatCount = ValueAnimator.INFINITE
+            repeatMode = ValueAnimator.REVERSE
+        }
+        
+        // Combine animations (only text, no can animations, no scale)
+        canBobbingAnimator = AnimatorSet().apply {
+            playTogether(
+                textColorAnimator,
+                alphaAnimator
+            )
+            start()
+        }
     }
 
     private fun createRippleEffect(x: Float, y: Float) {
@@ -221,13 +238,13 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun performPressAnimation(onComplete: () -> Unit) {
-        // Create a satisfying press animation before navigation - animate content only
-        val scaleDown = ObjectAnimator.ofFloat(binding.mainContent, "scaleX", 1f, 0.95f)
-        val scaleDownY = ObjectAnimator.ofFloat(binding.mainContent, "scaleY", 1f, 0.95f)
-        val scaleUp = ObjectAnimator.ofFloat(binding.mainContent, "scaleX", 0.95f, 1.02f)
-        val scaleUpY = ObjectAnimator.ofFloat(binding.mainContent, "scaleY", 0.95f, 1.02f)
-        val scaleNormal = ObjectAnimator.ofFloat(binding.mainContent, "scaleX", 1.02f, 1f)
-        val scaleNormalY = ObjectAnimator.ofFloat(binding.mainContent, "scaleY", 1.02f, 1f)
+        // Create a satisfying press animation before navigation - animate can only
+        val scaleDown = ObjectAnimator.ofFloat(binding.canImage, "scaleX", 1f, 0.92f)
+        val scaleDownY = ObjectAnimator.ofFloat(binding.canImage, "scaleY", 1f, 0.92f)
+        val scaleUp = ObjectAnimator.ofFloat(binding.canImage, "scaleX", 0.92f, 1.05f)
+        val scaleUpY = ObjectAnimator.ofFloat(binding.canImage, "scaleY", 0.92f, 1.05f)
+        val scaleNormal = ObjectAnimator.ofFloat(binding.canImage, "scaleX", 1.05f, 1f)
+        val scaleNormalY = ObjectAnimator.ofFloat(binding.canImage, "scaleY", 1.05f, 1f)
 
         val animatorSet = AnimatorSet().apply {
             play(scaleDown).with(scaleDownY)
@@ -367,6 +384,24 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
+    }
+    
+    override fun onStop() {
+        super.onStop()
+        
+        // Pause animations to save resources while in background
+        canBobbingAnimator?.pause()
+        
+        AppLog.d(TAG, "MainActivity stopped - animations paused")
+    }
+    
+    override fun onStart() {
+        super.onStart()
+        
+        // Resume animations when returning to foreground
+        canBobbingAnimator?.resume()
+        
+        AppLog.d(TAG, "MainActivity started - animations resumed")
     }
     
     override fun onDestroy() {

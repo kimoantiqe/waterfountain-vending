@@ -5,9 +5,12 @@ import com.google.firebase.Firebase
 import com.google.firebase.appcheck.appCheck
 import com.google.firebase.appcheck.debug.DebugAppCheckProviderFactory
 import com.google.firebase.initialize
+import com.google.firebase.crashlytics.FirebaseCrashlytics
+import com.google.firebase.analytics.FirebaseAnalytics
 import com.waterfountainmachine.app.auth.AuthModule
 import com.waterfountainmachine.app.security.SecurityModule
 import com.waterfountainmachine.app.hardware.WaterFountainManager
+import com.waterfountainmachine.app.admin.AdminPinManager
 import com.waterfountainmachine.app.utils.AppLog
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -53,6 +56,12 @@ class WaterFountainApplication : Application() {
         AppLog.i(TAG, "Water Fountain Vending Machine Application Starting")
         AppLog.i(TAG, "═══════════════════════════════════════════════")
         
+        // Migrate SharedPreferences to encrypted storage (one-time migration)
+        com.waterfountainmachine.app.utils.SecurePreferences.migrateSystemSettings(this)
+        
+        // Initialize admin PIN system
+        com.waterfountainmachine.app.admin.AdminPinManager.initialize(this)
+        
         // Initialize Firebase
         Firebase.initialize(context = this)
         
@@ -63,6 +72,12 @@ class WaterFountainApplication : Application() {
         )
         AppLog.i(TAG, "Firebase App Check initialized with Debug Provider")
         AppLog.i(TAG, "⚠️ Check logcat for App Check debug token - register it in Firebase Console")
+        
+        // Initialize Firebase Crashlytics
+        initializeCrashlytics()
+        
+        // Initialize Firebase Analytics
+        initializeAnalytics()
         
         // Initialize security module
         initializeSecurityModule()
@@ -75,6 +90,49 @@ class WaterFountainApplication : Application() {
         
         AppLog.i(TAG, "Hardware manager created")
         AppLog.i(TAG, "Initial state: ${hardwareState.name}")
+    }
+    
+    /**
+     * Initialize Firebase Crashlytics for crash reporting
+     */
+    private fun initializeCrashlytics() {
+        try {
+            val crashlytics = FirebaseCrashlytics.getInstance()
+            
+            // ENABLE crash reporting for testing (set to true)
+            // In production, you can keep this enabled or disable for debug builds
+            crashlytics.setCrashlyticsCollectionEnabled(true)
+            
+            // Set custom keys for better crash analysis
+            crashlytics.setCustomKey("app_version", BuildConfig.VERSION_NAME)
+            crashlytics.setCustomKey("build_type", BuildConfig.BUILD_TYPE)
+            crashlytics.setCustomKey("debug_build", BuildConfig.DEBUG)
+            
+            AppLog.i(TAG, "✅ Firebase Crashlytics initialized")
+            AppLog.i(TAG, "📊 Crash reporting: ENABLED (for testing)")
+            AppLog.i(TAG, "💡 Crashes will be sent on next app launch after crash")
+        } catch (e: Exception) {
+            AppLog.e(TAG, "Error initializing Crashlytics", e)
+        }
+    }
+    
+    /**
+     * Initialize Firebase Analytics
+     */
+    private fun initializeAnalytics() {
+        try {
+            val analytics = FirebaseAnalytics.getInstance(this)
+            
+            // Enable analytics collection
+            analytics.setAnalyticsCollectionEnabled(true)
+            
+            // Set default properties
+            analytics.setUserProperty("app_version", BuildConfig.VERSION_NAME)
+            
+            AppLog.i(TAG, "Firebase Analytics initialized")
+        } catch (e: Exception) {
+            AppLog.e(TAG, "Error initializing Analytics", e)
+        }
     }
     
     /**

@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     id("com.google.gms.google-services")
+    id("com.google.firebase.crashlytics")
 }
 
 android {
@@ -20,7 +21,8 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -39,6 +41,7 @@ android {
 
     buildFeatures {
         viewBinding = true
+        buildConfig = true // Enable BuildConfig generation
     }
 
     // Test configuration following Android best practices
@@ -56,6 +59,13 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
             excludes += "/META-INF/LICENSE*"
         }
+    }
+}
+
+// Force consistent dependency versions to avoid conflicts
+configurations.all {
+    resolutionStrategy {
+        force("androidx.constraintlayout:constraintlayout:2.1.4")
     }
 }
 
@@ -78,6 +88,8 @@ dependencies {
     implementation("com.google.firebase:firebase-auth-ktx")
     implementation("com.google.firebase:firebase-appcheck-debug:17.1.1")
     implementation("com.google.firebase:firebase-appcheck-ktx")
+    implementation("com.google.firebase:firebase-crashlytics-ktx")
+    implementation("com.google.firebase:firebase-analytics-ktx")
     
     // Kotlin Coroutines for Firebase async operations
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")

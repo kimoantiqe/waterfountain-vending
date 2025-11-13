@@ -55,7 +55,6 @@ class SystemFragment : Fragment() {
         
         setupSystemControls()
         setupKioskSettings()
-        setupMaintenanceControls()
         loadCurrentSettings()
     }
     
@@ -63,14 +62,6 @@ class SystemFragment : Fragment() {
         // System restart
         binding.restartSystemButton.setOnClickListener {
             restartSystem()
-        }
-        
-        binding.factoryResetButton.setOnClickListener {
-            performFactoryReset()
-        }
-        
-        binding.emergencyShutdownButton.setOnClickListener {
-            emergencyShutdown()
         }
         
         // Exit admin panel
@@ -81,14 +72,19 @@ class SystemFragment : Fragment() {
         binding.returnToMainButton.setOnClickListener {
             returnToMainScreen()
         }
+        
+        // Crash test button (for testing Crashlytics)
+        binding.simulateCrashButton.setOnClickListener {
+            simulateCrashForTesting()
+        }
+        
+        // Change Admin PIN button
+        binding.changeAdminPinButton.setOnClickListener {
+            showChangePinDialog()
+        }
     }
     
     private fun setupKioskSettings() {
-        // Timeout settings
-        binding.saveTimeoutButton.setOnClickListener {
-            saveTimeoutSettings()
-        }
-        
         // Kiosk mode toggle
         binding.kioskModeToggle.setOnCheckedChangeListener { _, isChecked ->
             updateKioskMode(isChecked)
@@ -110,39 +106,8 @@ class SystemFragment : Fragment() {
         }
     }
     
-    private fun setupMaintenanceControls() {
-        binding.scheduledMaintenanceButton.setOnClickListener {
-            scheduleMaintenanceMode()
-        }
-        
-        binding.maintenanceModeToggle.setOnCheckedChangeListener { _, isChecked ->
-            toggleMaintenanceMode(isChecked)
-        }
-        
-        // Hardware communicator mode toggle
-        binding.hardwareModeToggle.setOnCheckedChangeListener { _, isChecked ->
-            updateHardwareMode(isChecked)
-        }
-        
-        binding.updateFirmwareButton.setOnClickListener {
-            checkFirmwareUpdate()
-        }
-        
-        binding.backupSettingsButton.setOnClickListener {
-            backupSystemSettings()
-        }
-        
-        binding.restoreSettingsButton.setOnClickListener {
-            restoreSystemSettings()
-        }
-    }
-    
     private fun loadCurrentSettings() {
-        // Load timeout settings
         val prefs = requireContext().getSharedPreferences("system_settings", 0)
-        
-        binding.inactivityTimeoutInput.setText(prefs.getInt("inactivity_timeout", 30).toString())
-        binding.sessionTimeoutInput.setText(prefs.getInt("session_timeout", 300).toString())
         
         // Load toggle states
         binding.kioskModeToggle.isChecked = prefs.getBoolean("kiosk_mode", true)
@@ -158,37 +123,6 @@ class SystemFragment : Fragment() {
         
         // Load system info
         updateSystemInfo()
-    }
-    
-    private fun saveTimeoutSettings() {
-        try {
-            val inactivityTimeout = binding.inactivityTimeoutInput.text.toString().toIntOrNull() ?: 30
-            val sessionTimeout = binding.sessionTimeoutInput.text.toString().toIntOrNull() ?: 300
-            
-            // Validate ranges
-            if (inactivityTimeout < 10 || inactivityTimeout > 300) {
-                AppLog.w(TAG, "Inactivity timeout must be between 10-300 seconds")
-                return
-            }
-            
-            if (sessionTimeout < 60 || sessionTimeout > 3600) {
-                AppLog.w(TAG, "Session timeout must be between 60-3600 seconds")
-                return
-            }
-            
-            requireContext().getSharedPreferences("system_settings", 0)
-                .edit()
-                .putInt("inactivity_timeout", inactivityTimeout)
-                .putInt("session_timeout", sessionTimeout)
-                .apply()
-            
-            binding.systemStatusText.text = "Timeout settings saved: Inactivity=${inactivityTimeout}s, Session=${sessionTimeout}s"
-            AppLog.i(TAG, "Timeout settings updated: inactivity=${inactivityTimeout}s, session=${sessionTimeout}s")
-            
-        } catch (e: Exception) {
-            AppLog.e(TAG, "Error saving timeout settings", e)
-            binding.systemStatusText.text = "Error saving settings: ${e.message}"
-        }
     }
     
     private fun updateKioskMode(enabled: Boolean) {
@@ -352,266 +286,6 @@ class SystemFragment : Fragment() {
         }
     }
     
-    private fun performFactoryReset() {
-        binding.systemStatusText.text = "⚠ FACTORY RESET - This will erase all data!"
-        
-        // Show confirmation dialog
-        android.app.AlertDialog.Builder(requireContext())
-            .setTitle("Factory Reset")
-            .setMessage("This will erase all settings, logs, and data. Are you sure?")
-            .setPositiveButton("Reset") { _, _ ->
-                executeFactoryReset()
-            }
-            .setNegativeButton("Cancel") { _, _ ->
-                binding.systemStatusText.text = "Factory reset cancelled"
-            }
-            .show()
-    }
-    
-    private fun executeFactoryReset() {
-        lifecycleScope.launch {
-            try {
-                binding.systemStatusText.text = "Performing factory reset..."
-                AppLog.w(TAG, "Factory reset initiated - Erasing all data")
-                
-                // Clear all preferences
-                val systemPrefs = requireContext().getSharedPreferences("system_settings", 0)
-                val adminPrefs = requireContext().getSharedPreferences("admin_settings", 0)
-                
-                AppLog.i(TAG, "Clearing ${systemPrefs.all.size} system settings")
-                systemPrefs.edit().clear().apply()
-                
-                AppLog.i(TAG, "Clearing ${adminPrefs.all.size} admin settings")
-                adminPrefs.edit().clear().apply()
-                
-                // Clear logs
-                AppLog.i(TAG, "Clearing ${LogCollector.getCount()} log entries")
-                LogCollector.clear()
-                
-                // Clear cache and data
-                val cacheCleared = requireContext().cacheDir.deleteRecursively()
-                AppLog.i(TAG, "Cache cleared: $cacheCleared")
-                
-                AppLog.i(TAG, "Restarting application after factory reset")
-                
-                // Restart application
-                val intent = Intent(requireContext(), MainActivity::class.java)
-                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                startActivity(intent)
-                requireActivity().finish()
-                
-            } catch (e: Exception) {
-                AppLog.e(TAG, "Factory reset failed", e)
-                binding.systemStatusText.text = "Factory reset failed: ${e.message}"
-            }
-        }
-    }
-    
-    private fun emergencyShutdown() {
-        android.app.AlertDialog.Builder(requireContext())
-            .setTitle("⚠️ Emergency Shutdown")
-            .setMessage("This will immediately stop all operations and close the application.\n\nAre you sure?")
-            .setPositiveButton("SHUTDOWN") { _, _ ->
-                executeEmergencyShutdown()
-            }
-            .setNegativeButton("Cancel", null)
-            .show()
-    }
-    
-    private fun executeEmergencyShutdown() {
-        binding.systemStatusText.text = "⚠️ EMERGENCY SHUTDOWN INITIATED"
-        AppLog.e(TAG, "EMERGENCY SHUTDOWN INITIATED BY ADMIN")
-        
-        lifecycleScope.launch {
-            try {
-                AppLog.w(TAG, "Stopping all hardware operations")
-                
-                // TODO: Stop all hardware operations
-                // val waterFountainManager = WaterFountainManager.getInstance(requireContext())
-                // waterFountainManager.emergencyStop()
-                
-                AppLog.i(TAG, "Emergency shutdown complete - Exiting application")
-                
-                // Exit application
-                requireActivity().finishAffinity()
-                System.exit(0)
-                
-            } catch (e: Exception) {
-                AppLog.e(TAG, "Emergency shutdown failed", e)
-                binding.systemStatusText.text = "Shutdown failed: ${e.message}"
-            }
-        }
-    }
-    
-    private fun scheduleMaintenanceMode() {
-        AppLog.i(TAG, "Scheduled maintenance requested")
-        
-        // Show dialog to schedule maintenance
-        val timeOptions = arrayOf(
-            "In 1 hour",
-            "In 2 hours",
-            "In 6 hours",
-            "In 12 hours",
-            "In 24 hours",
-            "Custom time"
-        )
-        
-        android.app.AlertDialog.Builder(requireContext())
-            .setTitle("Schedule Maintenance Mode")
-            .setItems(timeOptions) { _, which ->
-                val hours = when (which) {
-                    0 -> 1
-                    1 -> 2
-                    2 -> 6
-                    3 -> 12
-                    4 -> 24
-                    else -> {
-                        AppLog.i(TAG, "Custom time picker not yet implemented")
-                        return@setItems
-                    }
-                }
-                
-                val scheduledTime = System.currentTimeMillis() + (hours * 3600000L)
-                
-                requireContext().getSharedPreferences("system_settings", 0)
-                    .edit()
-                    .putLong("scheduled_maintenance_time", scheduledTime)
-                    .putBoolean("maintenance_scheduled", true)
-                    .apply()
-                
-                val timeStr = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(Date(scheduledTime))
-                binding.systemStatusText.text = "Maintenance scheduled for $timeStr"
-                AppLog.i(TAG, "Maintenance scheduled for $timeStr")
-            }
-            .setNegativeButton("Cancel", null)
-            .show()
-    }
-    
-    private fun checkFirmwareUpdate() {
-        binding.systemStatusText.text = "Checking for firmware updates..."
-        
-        lifecycleScope.launch {
-            try {
-                AppLog.i(TAG, "Firmware update check initiated")
-                
-                // Get current version
-                val packageInfo = requireContext().packageManager.getPackageInfo(requireContext().packageName, 0)
-                val currentVersion = packageInfo.versionName ?: "Unknown"
-                
-                // TODO: Implement actual update check with backend API
-                // For now, just report current version
-                
-                val message = "Current version: $currentVersion\nNo updates available"
-                binding.systemStatusText.text = message
-                AppLog.i(TAG, "Firmware check complete: $currentVersion")
-                
-            } catch (e: Exception) {
-                AppLog.e(TAG, "Firmware update check failed", e)
-                binding.systemStatusText.text = "Update check failed: ${e.message}"
-            }
-        }
-    }
-    
-    private fun backupSystemSettings() {
-        lifecycleScope.launch {
-            try {
-                binding.systemStatusText.text = "Creating system backup..."
-                AppLog.i(TAG, "System backup initiated")
-                
-                val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
-                val fileName = "waterfountain_backup_$timestamp.txt"
-                val file = File(requireContext().cacheDir, fileName)
-                
-                FileWriter(file).use { writer ->
-                    writer.write("Water Fountain Vending Machine - System Backup\n")
-                    writer.write("Generated: ${SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())}\n")
-                    writer.write("=".repeat(50) + "\n\n")
-                    
-                    // Backup system settings
-                    writer.write("SYSTEM SETTINGS:\n")
-                    val systemPrefs = requireContext().getSharedPreferences("system_settings", 0)
-                    systemPrefs.all.forEach { (key, value) ->
-                        writer.write("$key = $value\n")
-                    }
-                    writer.write("\n")
-                    
-                    // Backup admin settings
-                    writer.write("ADMIN SETTINGS:\n")
-                    val adminPrefs = requireContext().getSharedPreferences("admin_settings", 0)
-                    adminPrefs.all.forEach { (key, value) ->
-                        writer.write("$key = $value\n")
-                    }
-                    writer.write("\n")
-                    
-                    // System info
-                    writer.write("SYSTEM INFO:\n")
-                    val packageInfo = requireContext().packageManager.getPackageInfo(requireContext().packageName, 0)
-                    writer.write("App Version: ${packageInfo.versionName}\n")
-                    writer.write("Android Version: ${Build.VERSION.RELEASE}\n")
-                    writer.write("Device Model: ${Build.MODEL}\n")
-                    writer.write("Device Manufacturer: ${Build.MANUFACTURER}\n")
-                    writer.write("\n")
-                    
-                    // Logs summary
-                    writer.write("LOGS SUMMARY:\n")
-                    writer.write("Total logs: ${LogCollector.getCount()}\n")
-                }
-                
-                // Share the backup file
-                shareBackupFile(file)
-                
-                binding.systemStatusText.text = "System backup created successfully"
-                AppLog.i(TAG, "System backup completed: $fileName")
-                
-            } catch (e: Exception) {
-                AppLog.e(TAG, "System backup failed", e)
-                binding.systemStatusText.text = "Backup failed: ${e.message}"
-            }
-        }
-    }
-    
-    private fun shareBackupFile(file: File) {
-        try {
-            val uri = FileProvider.getUriForFile(
-                requireContext(),
-                "${requireContext().packageName}.fileprovider",
-                file
-            )
-            
-            val intent = Intent(Intent.ACTION_SEND).apply {
-                type = "text/plain"
-                putExtra(Intent.EXTRA_STREAM, uri)
-                putExtra(Intent.EXTRA_SUBJECT, "Water Fountain System Backup")
-                putExtra(Intent.EXTRA_TEXT, "System backup file from Water Fountain Vending Machine")
-                flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
-            }
-            
-            startActivity(Intent.createChooser(intent, "Export System Backup"))
-            
-        } catch (e: Exception) {
-            AppLog.e(TAG, "Error sharing backup file", e)
-        }
-    }
-    
-    private fun restoreSystemSettings() {
-        AppLog.i(TAG, "System restore requested")
-        
-        android.app.AlertDialog.Builder(requireContext())
-            .setTitle("Restore System Settings")
-            .setMessage("To restore settings, you need to import a backup file. This feature requires selecting a backup file from storage.\n\nNote: Manual restore is currently required. Import your backup file through Settings > Import.")
-            .setPositiveButton("OK") { _, _ ->
-                binding.systemStatusText.text = "Restore requires manual import"
-            }
-            .show()
-        
-        // TODO: Implement file picker for backup restoration
-        // This would require:
-        // 1. File picker to select backup file
-        // 2. Parse and validate backup file
-        // 3. Restore preferences from backup
-        // 4. Restart application
-    }
-    
     private fun exitAdminPanel() {
         AppLog.i(TAG, "Admin panel exit requested")
         requireActivity().finish()
@@ -672,6 +346,175 @@ class SystemFragment : Fragment() {
         }
     }
     
+    /**
+     * Simulate a crash for testing Firebase Crashlytics
+     * This intentionally throws an exception to test crash reporting
+     */
+    private fun simulateCrashForTesting() {
+        AppLog.w(TAG, "Simulating crash for Crashlytics testing...")
+        
+        // Show confirmation dialog first
+        androidx.appcompat.app.AlertDialog.Builder(requireContext())
+            .setTitle("Test Crash")
+            .setMessage("This will intentionally crash the app to test Firebase Crashlytics.\n\nThe crash will be logged and sent to Firebase Console.\n\nContinue?")
+            .setPositiveButton("Crash Now") { _, _ ->
+                AppLog.e(TAG, "INTENTIONAL CRASH FOR TESTING - Throwing RuntimeException")
+                
+                // Log custom key-value pairs before crash
+                com.google.firebase.crashlytics.FirebaseCrashlytics.getInstance().apply {
+                    setCustomKey("crash_test", true)
+                    setCustomKey("triggered_by", "admin_panel")
+                    setCustomKey("timestamp", System.currentTimeMillis())
+                    log("Admin triggered test crash")
+                }
+                
+                // Force crash
+                throw RuntimeException("TEST CRASH: Intentional crash triggered from Admin Panel for Crashlytics testing")
+            }
+            .setNegativeButton("Cancel", null)
+            .setIcon(android.R.drawable.ic_dialog_alert)
+            .show()
+    }
+    
+    /**
+     * Show dialog to change admin PIN
+     */
+    private fun showChangePinDialog() {
+        val dialogView = layoutInflater.inflate(
+            com.waterfountainmachine.app.R.layout.dialog_change_pin,
+            null
+        )
+        
+        val currentPinInput = dialogView.findViewById<com.google.android.material.textfield.TextInputEditText>(
+            com.waterfountainmachine.app.R.id.currentPinInput
+        )
+        val newPinInput = dialogView.findViewById<com.google.android.material.textfield.TextInputEditText>(
+            com.waterfountainmachine.app.R.id.newPinInput
+        )
+        val confirmPinInput = dialogView.findViewById<com.google.android.material.textfield.TextInputEditText>(
+            com.waterfountainmachine.app.R.id.confirmPinInput
+        )
+        val currentPinLayout = dialogView.findViewById<com.google.android.material.textfield.TextInputLayout>(
+            com.waterfountainmachine.app.R.id.currentPinLayout
+        )
+        val newPinLayout = dialogView.findViewById<com.google.android.material.textfield.TextInputLayout>(
+            com.waterfountainmachine.app.R.id.newPinLayout
+        )
+        val confirmPinLayout = dialogView.findViewById<com.google.android.material.textfield.TextInputLayout>(
+            com.waterfountainmachine.app.R.id.confirmPinLayout
+        )
+        
+        // Apply InputFilter to limit to 8 characters (maxLength doesn't work with numberPassword)
+        val maxLengthFilter = android.text.InputFilter.LengthFilter(8)
+        currentPinInput.filters = arrayOf(maxLengthFilter)
+        newPinInput.filters = arrayOf(maxLengthFilter)
+        confirmPinInput.filters = arrayOf(maxLengthFilter)
+        
+        val dialog = androidx.appcompat.app.AlertDialog.Builder(requireContext())
+            .setView(dialogView)
+            .setCancelable(true)
+            .create()
+        
+        // Cancel button
+        dialogView.findViewById<android.widget.Button>(
+            com.waterfountainmachine.app.R.id.cancelButton
+        ).setOnClickListener {
+            dialog.dismiss()
+        }
+        
+        // Change button
+        dialogView.findViewById<android.widget.Button>(
+            com.waterfountainmachine.app.R.id.changeButton
+        ).setOnClickListener {
+            // Clear previous errors
+            currentPinLayout.error = null
+            newPinLayout.error = null
+            confirmPinLayout.error = null
+            
+            val currentPin = currentPinInput.text?.toString()?.trim() ?: ""
+            val newPin = newPinInput.text?.toString()?.trim() ?: ""
+            val confirmPin = confirmPinInput.text?.toString()?.trim() ?: ""
+            
+            AppLog.d(TAG, "PIN change attempt - Current PIN length: ${currentPin.length}, New PIN length: ${newPin.length}")
+            
+            // Validate current PIN length
+            if (currentPin.isEmpty()) {
+                currentPinLayout.error = "Please enter your current PIN"
+                return@setOnClickListener
+            }
+            
+            if (currentPin.length != 8) {
+                currentPinLayout.error = "PIN must be exactly 8 digits (current: ${currentPin.length})"
+                return@setOnClickListener
+            }
+            
+            if (!currentPin.all { it.isDigit() }) {
+                currentPinLayout.error = "PIN must contain only numbers"
+                return@setOnClickListener
+            }
+            
+            // Verify current PIN
+            if (!com.waterfountainmachine.app.admin.AdminPinManager.verifyPin(requireContext(), currentPin)) {
+                currentPinLayout.error = "Incorrect current PIN"
+                AppLog.w(TAG, "Failed PIN change attempt - incorrect current PIN")
+                return@setOnClickListener
+            }
+            
+            // Validate new PIN
+            if (newPin.isEmpty()) {
+                newPinLayout.error = "Please enter a new PIN"
+                return@setOnClickListener
+            }
+            
+            if (newPin.length != 8) {
+                newPinLayout.error = "New PIN must be exactly 8 digits (current: ${newPin.length})"
+                return@setOnClickListener
+            }
+            
+            if (!newPin.all { it.isDigit() }) {
+                newPinLayout.error = "PIN must contain only numbers"
+                return@setOnClickListener
+            }
+            
+            // Check if new PIN is same as current
+            if (newPin == currentPin) {
+                newPinLayout.error = "New PIN must be different from current PIN"
+                return@setOnClickListener
+            }
+            
+            // Validate confirmation
+            if (confirmPin.isEmpty()) {
+                confirmPinLayout.error = "Please confirm your new PIN"
+                return@setOnClickListener
+            }
+            
+            if (confirmPin != newPin) {
+                confirmPinLayout.error = "PINs do not match"
+                return@setOnClickListener
+            }
+            
+            // Change the PIN
+            if (com.waterfountainmachine.app.admin.AdminPinManager.changePin(requireContext(), currentPin, newPin)) {
+                AppLog.i(TAG, "✅ Admin PIN changed successfully")
+                
+                // Show success message
+                androidx.appcompat.app.AlertDialog.Builder(requireContext())
+                    .setTitle("Success")
+                    .setMessage("Admin PIN has been changed successfully.\n\nPlease remember your new PIN.")
+                    .setPositiveButton("OK", null)
+                    .setIcon(android.R.drawable.ic_dialog_info)
+                    .show()
+                
+                dialog.dismiss()
+            } else {
+                currentPinLayout.error = "Failed to change PIN. Please try again."
+                AppLog.e(TAG, "Failed to change PIN")
+            }
+        }
+        
+        dialog.show()
+    }
+
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null

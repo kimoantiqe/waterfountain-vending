@@ -8,10 +8,18 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
 import com.waterfountainmachine.app.databinding.FragmentCertificateStatusBinding
 import com.waterfountainmachine.app.security.SecurityModule
 import com.waterfountainmachine.app.setup.CertificateSetupActivity
 import com.waterfountainmachine.app.utils.AppLog
+import com.waterfountainmachine.app.config.ApiEnvironment
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.Dispatchers
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import java.util.concurrent.TimeUnit
 
 /**
  * Certificate Status Fragment
@@ -152,25 +160,186 @@ class CertificateStatusFragment : Fragment() {
     }
     
     private fun testConnection() {
-        AppLog.d(TAG, "Testing API connection")
+        AppLog.d(TAG, "Testing API connection with certificate")
         
-        // TODO: Implement actual API connection test
-        // For now, show a simple dialog
+        if (!SecurityModule.isEnrolled()) {
+            AlertDialog.Builder(requireContext())
+                .setTitle("Not Enrolled")
+                .setMessage("Machine must be enrolled before testing connection.")
+                .setPositiveButton("OK", null)
+                .setIcon(android.R.drawable.ic_dialog_alert)
+                .show()
+            return
+        }
         
-        val isEnrolled = SecurityModule.isEnrolled()
-        val isValid = SecurityModule.isEnrolled() && !SecurityModule.isCertificateExpiringSoon()
+        // Show loading state
+        binding.testConnectionButton.isEnabled = false
+        binding.testConnectionButton.text = "Testing..."
         
-        AlertDialog.Builder(requireContext())
-            .setTitle("Connection Test")
-            .setMessage(buildString {
-                append("Enrollment: ${if (isEnrolled) "✓ Yes" else "✗ No"}\n")
-                append("Certificate: ${if (isValid) "✓ Valid" else "⚠ Expiring/Invalid"}\n")
-                append("\n")
-                append("To test real API connection, make a request to the backend.")
-            })
-            .setPositiveButton("OK", null)
-            .show()
+        lifecycleScope.launch {
+            try {
+                val result = testBackendConnection()
+                
+                withContext(Dispatchers.Main) {
+                    AlertDialog.Builder(requireContext())
+                        .setTitle(if (result.success) "✓ Connection Successful" else "✗ Connection Failed")
+                        .setMessage(buildString {
+                            append("Endpoint: ${result.endpoint}\n")
+                            append("Status: ${result.statusCode}\n")
+                            append("Response Time: ${result.responseTime}ms\n\n")
+                            
+                            if (result.success) {
+                                append("✓ Certificate authentication successful\n")
+                                append("✓ Backend is reachable\n")
+                                append("✓ Machine is properly enrolled")
+                            } else {
+                                append("Error: ${result.error}\n\n")
+                                append("Possible causes:\n")
+                                append("• Certificate expired or invalid\n")
+                                append("• Network connectivity issues\n")
+                                append("• Backend server unavailable")
+                            }
+                        })
+                        .setPositiveButton("OK", null)
+                        .setIcon(if (result.success) 
+                            android.R.drawable.ic_dialog_info 
+                            else android.R.drawable.ic_dialog_alert)
+                        .show()
+                }
+            } catch (e: Exception) {
+                AppLog.e(TAG, "Connection test failed", e)
+                
+                withContext(Dispatchers.Main) {
+                    AlertDialog.Builder(requireContext())
+                        .setTitle("Connection Test Failed")
+                        .setMessage("Failed to test connection: ${e.message}")
+                        .setPositiveButton("OK", null)
+                        .setIcon(android.R.drawable.ic_dialog_alert)
+                        .show()
+                }
+            } finally {
+                withContext(Dispatchers.Main) {
+                    binding.testConnectionButton.isEnabled = true
+                    binding.testConnectionButton.text = "Test Connection"
+                }
+            }
+        }
     }
+    
+    /**
+     * Test backend connection with certificate authentication
+     */
+    private suspend fun testBackendConnection(): ConnectionTestResult = withContext(Dispatchers.IO) {
+        val startTime = System.currentTimeMillis()
+        
+        try {
+            // Get backend URL
+            val baseUrl = ApiEnvironment.getCurrent().baseUrl
+            val healthEndpoint = "$baseUrl/api/v1/health"
+            
+            AppLog.d(TAG, "Testing connection to: $healthEndpoint")
+            
+            // Build HTTP client with certificate authentication
+            val sslContext = SecurityModule.getSslContext()
+            val client = OkHttpClient.Builder()
+                .sslSocketFactory(sslContext.socketFactory, SecurityModule.getTrustManager())
+                .connectTimeout(10, TimeUnit.SECONDS)
+                .readTimeout(10, TimeUnit.SECONDS)
+                .build()
+            
+            // Make request
+            val request = Request.Builder()
+                .url(healthEndpoint)
+                .get()
+                .build()
+            
+            val response = client.newCall(request).execute()
+            val responseTime = System.currentTimeMillis() - startTime
+            val statusCode = response.code()
+            
+            response.use {
+                when {
+                    statusCode in 200..299 -> {
+                        AppLog.i(TAG, "✓ Connection test successful: $statusCode in ${responseTime}ms")
+                        ConnectionTestResult(
+                            success = true,
+                            endpoint = healthEndpoint,
+                            statusCode = statusCode,
+                            responseTime = responseTime,
+                            error = null
+                        )
+                    }
+                    statusCode == 401 -> {
+                        AppLog.w(TAG, "✗ Connection test failed: Unauthorized (certificate issue)")
+                        ConnectionTestResult(
+                            success = false,
+                            endpoint = healthEndpoint,
+                            statusCode = statusCode,
+                            responseTime = responseTime,
+                            error = "Certificate authentication failed (401 Unauthorized)"
+                        )
+                    }
+                    else -> {
+                        AppLog.w(TAG, "✗ Connection test failed: HTTP $statusCode")
+                        ConnectionTestResult(
+                            success = false,
+                            endpoint = healthEndpoint,
+                            statusCode = statusCode,
+                            responseTime = responseTime,
+                            error = "HTTP $statusCode: ${response.message()}"
+                        )
+                    }
+                }
+            }
+        } catch (e: java.net.UnknownHostException) {
+            AppLog.e(TAG, "Connection test failed: Unknown host", e)
+            ConnectionTestResult(
+                success = false,
+                endpoint = ApiEnvironment.getCurrent().baseUrl,
+                statusCode = 0,
+                responseTime = System.currentTimeMillis() - startTime,
+                error = "Cannot reach backend server (DNS/Network issue)"
+            )
+        } catch (e: javax.net.ssl.SSLException) {
+            AppLog.e(TAG, "Connection test failed: SSL error", e)
+            ConnectionTestResult(
+                success = false,
+                endpoint = ApiEnvironment.getCurrent().baseUrl,
+                statusCode = 0,
+                responseTime = System.currentTimeMillis() - startTime,
+                error = "SSL/Certificate error: ${e.message}"
+            )
+        } catch (e: java.net.SocketTimeoutException) {
+            AppLog.e(TAG, "Connection test failed: Timeout", e)
+            ConnectionTestResult(
+                success = false,
+                endpoint = ApiEnvironment.getCurrent().baseUrl,
+                statusCode = 0,
+                responseTime = System.currentTimeMillis() - startTime,
+                error = "Connection timeout (backend not responding)"
+            )
+        } catch (e: Exception) {
+            AppLog.e(TAG, "Connection test failed: ${e.javaClass.simpleName}", e)
+            ConnectionTestResult(
+                success = false,
+                endpoint = ApiEnvironment.getCurrent().baseUrl,
+                statusCode = 0,
+                responseTime = System.currentTimeMillis() - startTime,
+                error = "${e.javaClass.simpleName}: ${e.message}"
+            )
+        }
+    }
+    
+    /**
+     * Result of connection test
+     */
+    private data class ConnectionTestResult(
+        val success: Boolean,
+        val endpoint: String,
+        val statusCode: Int,
+        val responseTime: Long,
+        val error: String?
+    )
     
     private fun confirmReenrollment() {
         AlertDialog.Builder(requireContext())

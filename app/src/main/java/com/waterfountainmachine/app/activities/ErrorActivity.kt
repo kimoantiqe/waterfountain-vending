@@ -63,6 +63,9 @@ class ErrorActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
+        // Set window background to black to prevent white flash
+        window.setBackgroundDrawableResource(android.R.color.black)
+        
         binding = ActivityErrorBinding.inflate(layoutInflater)
         setContentView(binding.root)
         
@@ -77,29 +80,21 @@ class ErrorActivity : AppCompatActivity() {
         
         AppLog.i(TAG, "ErrorActivity shown: ${binding.messageText.text}")
         
-        // Start the display -> fade out -> return sequence
-        // Note: Fade in is handled by overridePendingTransition in the calling activity
+        // Start the display -> return sequence
+        // Note: Fade transitions are handled by overridePendingTransition
         lifecycleScope.launch {
             delay(displayDuration)
-            fadeOut()
-            delay(FADE_OUT_DURATION) // Wait for fade out animation to complete
             returnToMainScreen()
-        }
-    }
-    
-    private fun fadeOut() {
-        ObjectAnimator.ofFloat(binding.root, "alpha", 1f, 0f).apply {
-            duration = FADE_OUT_DURATION
-            start()
         }
     }
     
     private fun returnToMainScreen() {
         val intent = Intent(this, MainActivity::class.java)
-        intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK
+        // Use SINGLE_TOP to reuse existing MainActivity instance for smooth transition
+        intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
         startActivity(intent)
-        finish()
         overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
+        finish()
     }
     
     override fun onBackPressed() {

@@ -48,6 +48,7 @@ class SMSVerifyActivity : AppCompatActivity() {
     // Verification state
     private var isVerifying = false
     private var failedAttempts = 0
+    private val MAX_RETRY_ATTEMPTS = 2 // Allow 2 retries (3 total attempts)
     
     companion object {
         private const val TAG = "SMSVerifyActivity"
@@ -63,6 +64,10 @@ class SMSVerifyActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // Set window background to black to prevent white flash during transitions
+        window.setBackgroundDrawableResource(android.R.color.black)
+        
         binding = ActivitySmsVerifyBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
@@ -115,10 +120,11 @@ class SMSVerifyActivity : AppCompatActivity() {
 
     private fun returnToMainScreen() {
         val intent = Intent(this, MainActivity::class.java)
-        intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK
+        // Use SINGLE_TOP to reuse existing MainActivity instance for smooth transition
+        intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
         startActivity(intent)
-        finish()
         overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
+        finish()
     }
 
     private fun setupQuestionMarkAnimation() {
@@ -364,16 +370,68 @@ class SMSVerifyActivity : AppCompatActivity() {
                 
                 result.onSuccess { response ->
                     AppLog.i(TAG, "OTP verification successful: ${response.message}")
+                    // Reset failed attempts on success
+                    failedAttempts = 0
                     // SMS verification successful - navigate to vending animation
                     navigateToVendingAnimation()
                 }.onFailure { error ->
                     val errorMessage = error.message ?: "Verification failed"
                     AppLog.w(TAG, "OTP verification failed: $errorMessage", error)
-                    handleVerificationError(errorMessage)
+                    
+                    // Increment failed attempts
+                    failedAttempts++
+                    AppLog.d(TAG, "Failed attempt $failedAttempts of ${MAX_RETRY_ATTEMPTS + 1}")
+                    
+                    // Check if this is an invalid code error that can be retried
+                    val isInvalidCodeError = error is com.waterfountainmachine.app.auth.AuthenticationException.InvalidOtpError ||
+                                            errorMessage.contains("invalid", ignoreCase = true) ||
+                                            errorMessage.contains("incorrect", ignoreCase = true) ||
+                                            errorMessage.contains("wrong", ignoreCase = true)
+                    
+                    if (isInvalidCodeError && failedAttempts <= MAX_RETRY_ATTEMPTS) {
+                        // Show retry message and allow user to try again
+                        val attemptsRemaining = MAX_RETRY_ATTEMPTS + 1 - failedAttempts
+                        showIncorrectCodeHint(attemptsRemaining)
+                        // clearOtpCode() is now called inside showIncorrectCodeHint() with proper timing
+                        setLoadingState(false)
+                        isVerifying = false
+                    } else {
+                        // Max attempts reached or non-retryable error - go to error screen
+                        when (error) {
+                            is com.waterfountainmachine.app.auth.AuthenticationException.CertificateError -> {
+                                showError("System configuration error.\nPlease contact support.")
+                            }
+                            is com.waterfountainmachine.app.auth.AuthenticationException.ServerError -> {
+                                showError("Unable to verify code.\nPlease try again later.")
+                            }
+                            is com.waterfountainmachine.app.auth.AuthenticationException.NetworkError -> {
+                                showError("Network error.\nPlease check your connection.")
+                            }
+                            else -> {
+                                if (failedAttempts > MAX_RETRY_ATTEMPTS) {
+                                    showError("Too many incorrect attempts.\nPlease try again later.")
+                                } else {
+                                    showError("Unable to verify code.\nPlease try again.")
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch (e: com.waterfountainmachine.app.auth.AuthenticationException) {
+                AppLog.e(TAG, "Authentication exception", e)
+                
+                // All authentication exceptions navigate to error screen
+                when (e) {
+                    is com.waterfountainmachine.app.auth.AuthenticationException.CertificateError -> {
+                        showError("System configuration error.\nPlease contact support.")
+                    }
+                    else -> {
+                        showError("Authentication error.\nPlease try again.")
+                    }
                 }
             } catch (e: Exception) {
                 AppLog.e(TAG, "Verification error", e)
-                handleVerificationError("Verification failed. Please try again.")
+                showError("An unexpected error occurred.\nPlease try again.")
             }
         }
     }
@@ -507,13 +565,23 @@ class SMSVerifyActivity : AppCompatActivity() {
     }
     
     /**
-     * Show error message to user
+     * Show error by navigating to error screen
+     * All errors in SMS verification flow should show the error screen
      */
     private fun showError(message: String) {
-        // TODO: Show a proper error dialog or toast
-        // For now, use a toast
-        android.widget.Toast.makeText(this, message, android.widget.Toast.LENGTH_LONG).show()
-        AppLog.e(TAG, "Error shown to user: $message")
+        navigateToErrorScreen(message)
+    }
+    
+    /**
+     * Navigate to error screen for all errors
+     */
+    private fun navigateToErrorScreen(message: String) {
+        AppLog.e(TAG, "Error occurred - navigating to error screen: $message")
+        val intent = Intent(this, ErrorActivity::class.java)
+        intent.putExtra(ErrorActivity.EXTRA_MESSAGE, message)
+        startActivity(intent)
+        finish()
+        overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
     }
     
     private fun animateKeypadError() {
@@ -728,6 +796,49 @@ class SMSVerifyActivity : AppCompatActivity() {
     }
     
     /**
+     * Show hint when OTP code is incorrect with remaining attempts
+     * Clears the code and turns empty boxes red simultaneously
+     */
+    private fun showIncorrectCodeHint(attemptsRemaining: Int) {
+        AppLog.d(TAG, "Showing incorrect code hint. Attempts remaining: $attemptsRemaining")
+        
+        // First clear the OTP code
+        otpCode = ""
+        
+        // Now set all EMPTY boxes to error state (shake and turn red)
+        val boxes = getOtpBoxes()
+        
+        for (box in boxes) {
+            // Clear the text
+            box.text = ""
+            // Set red background
+            box.setBackgroundResource(R.drawable.otp_box_error)
+            
+            // Shake animation
+            val shake = ObjectAnimator.ofFloat(box, "translationX", 0f, -15f, 15f, -10f, 10f, -5f, 5f, 0f)
+            shake.duration = 600
+            shake.interpolator = AccelerateDecelerateInterpolator()
+            shake.start()
+        }
+        
+        // Auto-restore to normal state after 1.5 seconds
+        binding.otpBox1.postDelayed({
+            updateOtpBoxes()
+            updateButtonDisabledState(binding.verifyOtpButton, false)
+        }, 1500)
+    }
+    
+    /**
+     * Clear the OTP code and reset UI
+     */
+    private fun clearOtpCode() {
+        AppLog.d(TAG, "Clearing OTP code")
+        otpCode = ""
+        updateOtpBoxes()
+        updateButtonDisabledState(binding.verifyOtpButton, false)
+    }
+    
+    /**
      * Update button appearance to make disabled state very obvious with smooth fade
      */
     private fun updateButtonDisabledState(button: androidx.appcompat.widget.AppCompatButton, isEnabled: Boolean) {
@@ -889,9 +1000,13 @@ class SMSVerifyActivity : AppCompatActivity() {
                 }.onFailure { error ->
                     val errorMessage = error.message ?: "Failed to resend code"
                     AppLog.e(TAG, "OTP resend failed: $errorMessage", error)
+                    
+                    // Navigate to error screen for resend failures
+                    showError("Unable to resend verification code.\nPlease try again later.")
                 }
             } catch (e: Exception) {
                 AppLog.e(TAG, "Unexpected error resending OTP", e)
+                showError("An unexpected error occurred.\nPlease try again.")
             }
         }
     }
