@@ -72,6 +72,7 @@ class WaterFountainConfig private constructor(context: Context) {
         // Admin Security
         const val ADMIN_MAX_ATTEMPTS = 3
         const val ADMIN_LOCKOUT_DURATION_MS = 60 * 60 * 1000L // 1 hour
+        const val ADMIN_LOCKOUT_MINUTES = 60L // 1 hour in minutes
         
         // Progress Ring Animation
         const val PROGRESS_RING_COLOR_FADE_PERCENT = 8f // First 8% of progress

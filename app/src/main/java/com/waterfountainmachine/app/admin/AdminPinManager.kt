@@ -15,18 +15,22 @@ import java.util.Base64
  * - Uses cryptographically secure random salt
  * - Stored in EncryptedSharedPreferences (AES-256-GCM)
  * - Constant-time comparison to prevent timing attacks
+ * - Rate limiting with lockout mechanism
  * 
  * Security Features:
  * - PIN never stored in plaintext
  * - Unique salt per device prevents rainbow table attacks
  * - Encrypted storage provides defense-in-depth
  * - Secure random number generation
+ * - 3 attempts lockout for 1 hour
  */
 object AdminPinManager {
     
     private const val TAG = "AdminPinManager"
     private const val PREF_PIN_HASH = "admin_pin_hash"
     private const val PREF_PIN_SALT = "admin_pin_salt"
+    private const val PREF_FAILED_ATTEMPTS = "admin_failed_attempts"
+    private const val PREF_LOCKOUT_UNTIL = "admin_lockout_until"
     private const val DEFAULT_PIN = "01121999" // Default PIN for initial setup
     
     /**
@@ -174,6 +178,46 @@ object AdminPinManager {
      */
     fun isDefaultPin(context: Context): Boolean {
         return verifyPin(context, DEFAULT_PIN)
+    }
+    
+    /**
+     * Get current rate limit state (failed attempts and lockout time)
+     * 
+     * @param context Application context
+     * @return Pair of (failedAttempts, lockoutUntilTimestamp)
+     */
+    fun getRateLimitState(context: Context): Pair<Int, Long> {
+        val prefs = SecurePreferences.getSystemSettings(context)
+        val attempts = prefs.getInt(PREF_FAILED_ATTEMPTS, 0)
+        val lockout = prefs.getLong(PREF_LOCKOUT_UNTIL, 0L)
+        return Pair(attempts, lockout)
+    }
+    
+    /**
+     * Save rate limit state
+     * 
+     * @param context Application context
+     * @param failedAttempts Number of failed attempts
+     * @param lockoutUntilTimestamp Timestamp when lockout expires (0 if not locked out)
+     */
+    fun saveRateLimitState(context: Context, failedAttempts: Int, lockoutUntilTimestamp: Long) {
+        val prefs = SecurePreferences.getSystemSettings(context)
+        prefs.edit()
+            .putInt(PREF_FAILED_ATTEMPTS, failedAttempts)
+            .putLong(PREF_LOCKOUT_UNTIL, lockoutUntilTimestamp)
+            .apply()
+        AppLog.d(TAG, "Rate limit state saved: attempts=$failedAttempts, lockout=$lockoutUntilTimestamp")
+    }
+    
+    /**
+     * Validate PIN (for ViewModel use - returns only boolean, no context side effects)
+     * 
+     * @param context Application context
+     * @param pin PIN to validate
+     * @return true if PIN is correct, false otherwise
+     */
+    fun validatePin(context: Context, pin: String): Boolean {
+        return verifyPin(context, pin)
     }
     
     /**
