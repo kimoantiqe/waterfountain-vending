@@ -8,6 +8,7 @@ import com.waterfountainmachine.app.databinding.ActivityAdminAuthBinding
 import com.waterfountainmachine.app.utils.AppLog
 import com.waterfountainmachine.app.utils.FullScreenUtils
 import com.waterfountainmachine.app.utils.HardwareKeyHandler
+import com.waterfountainmachine.app.config.WaterFountainConfig
 
 class AdminAuthActivity : AppCompatActivity() {
     
@@ -23,8 +24,6 @@ class AdminAuthActivity : AppCompatActivity() {
     
     companion object {
         private const val TAG = "AdminAuthActivity"
-        private const val MAX_ATTEMPTS = 3
-        private const val LOCKOUT_DURATION_MS = 60 * 60 * 1000L // 1 hour
         private const val PREFS_NAME = "admin_auth_prefs"
         private const val KEY_FAILED_ATTEMPTS = "failed_attempts"
         private const val KEY_LOCKOUT_UNTIL = "lockout_until"
@@ -258,11 +257,11 @@ class AdminAuthActivity : AppCompatActivity() {
         } else {
             // Failed authentication
             failedAttempts++
-            AppLog.w(TAG, "Failed admin authentication attempt (${failedAttempts}/${MAX_ATTEMPTS})")
+            AppLog.w(TAG, "Failed admin authentication attempt (${failedAttempts}/${WaterFountainConfig.ADMIN_MAX_ATTEMPTS})")
             
             // Check if we've hit the limit
-            if (failedAttempts >= MAX_ATTEMPTS) {
-                lockoutUntil = currentTime + LOCKOUT_DURATION_MS
+            if (failedAttempts >= WaterFountainConfig.ADMIN_MAX_ATTEMPTS) {
+                lockoutUntil = currentTime + WaterFountainConfig.ADMIN_LOCKOUT_DURATION_MS
                 saveRateLimitState()
                 
                 AppLog.w(TAG, "Max attempts reached - locking out for 1 hour")
@@ -290,7 +289,7 @@ class AdminAuthActivity : AppCompatActivity() {
                 // Visual feedback for wrong PIN
                 binding.pinDisplay.setTextColor(getColor(android.R.color.holo_red_dark))
                 
-                val remainingAttempts = MAX_ATTEMPTS - failedAttempts
+                val remainingAttempts = WaterFountainConfig.ADMIN_MAX_ATTEMPTS - failedAttempts
                 binding.subtitleText.text = "Wrong PIN - $remainingAttempts ${if (remainingAttempts == 1) "attempt" else "attempts"} remaining"
                 binding.subtitleText.setTextColor(getColor(android.R.color.holo_orange_light))
                 

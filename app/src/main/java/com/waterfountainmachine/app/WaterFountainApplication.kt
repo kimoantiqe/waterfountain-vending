@@ -12,6 +12,7 @@ import com.waterfountainmachine.app.security.SecurityModule
 import com.waterfountainmachine.app.hardware.WaterFountainManager
 import com.waterfountainmachine.app.admin.AdminPinManager
 import com.waterfountainmachine.app.utils.AppLog
+import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -20,7 +21,10 @@ import kotlinx.coroutines.launch
 /**
  * Application class for Water Fountain Vending Machine
  * Manages global hardware state and initialization
+ * 
+ * @HiltAndroidApp - Triggers Hilt code generation and enables DI
  */
+@HiltAndroidApp
 class WaterFountainApplication : Application() {
     
     companion object {

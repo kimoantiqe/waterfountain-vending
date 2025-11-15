@@ -6,6 +6,7 @@ import android.graphics.*
 import android.util.AttributeSet
 import android.view.View
 import android.view.animation.DecelerateInterpolator
+import com.waterfountainmachine.app.config.WaterFountainConfig
 import kotlin.math.cos
 import kotlin.math.sin
 
@@ -16,68 +17,47 @@ class ProgressRingView @JvmOverloads constructor(
 ) : View(context, attrs, defStyleAttr) {
 
     companion object {
-        // Ring dimensions
-        private const val RING_STROKE_WIDTH = 50f
-        private const val INNER_GLOW_STROKE_WIDTH = 70f
-        private const val OUTER_GLOW_STROKE_WIDTH = 100f
-        private const val SOFT_EDGE_STROKE_WIDTH = 60f
-        
-        // Blur radii
-        private const val INNER_GLOW_BLUR_RADIUS = 35f
-        private const val OUTER_GLOW_BLUR_RADIUS = 60f
-        private const val SOFT_EDGE_BLUR_RADIUS = 20f
-        
-        // Alpha values
-        private const val BACKGROUND_RING_ALPHA = 30
-        private const val OUTER_GLOW_MAX_ALPHA = 140
-        private const val INNER_GLOW_MAX_ALPHA = 190
-        
-        // Padding to prevent clipping
-        private const val VIEW_PADDING = 120
-        
-        // Animation thresholds
-        private const val RADIUS_SCALE_FACTOR = 0.42f
-        private const val GLOW_RADIUS_OFFSET = 150f
+        private const val TAG = "ProgressRingView"
     }
 
     // Background ring - subtle and elegant
     private val ringPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
-        strokeWidth = RING_STROKE_WIDTH
+        strokeWidth = WaterFountainConfig.RING_STROKE_WIDTH
         strokeCap = Paint.Cap.ROUND
         color = Color.parseColor("#555555")
-        alpha = BACKGROUND_RING_ALPHA
+        alpha = WaterFountainConfig.BACKGROUND_RING_ALPHA
     }
 
     // Progress ring - bold and beautiful with grayish-purple colors
     private val progressPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
-        strokeWidth = RING_STROKE_WIDTH
+        strokeWidth = WaterFountainConfig.RING_STROKE_WIDTH
         strokeCap = Paint.Cap.ROUND
     }
 
     // Inner glow layer
     private val innerGlowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
-        strokeWidth = INNER_GLOW_STROKE_WIDTH
+        strokeWidth = WaterFountainConfig.INNER_GLOW_STROKE_WIDTH
         strokeCap = Paint.Cap.ROUND
-        maskFilter = BlurMaskFilter(INNER_GLOW_BLUR_RADIUS, BlurMaskFilter.Blur.NORMAL)
+        maskFilter = BlurMaskFilter(WaterFountainConfig.INNER_GLOW_BLUR_RADIUS, BlurMaskFilter.Blur.NORMAL)
     }
 
     // Outer glow layer
     private val outerGlowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
-        strokeWidth = OUTER_GLOW_STROKE_WIDTH
+        strokeWidth = WaterFountainConfig.OUTER_GLOW_STROKE_WIDTH
         strokeCap = Paint.Cap.ROUND
-        maskFilter = BlurMaskFilter(OUTER_GLOW_BLUR_RADIUS, BlurMaskFilter.Blur.NORMAL)
+        maskFilter = BlurMaskFilter(WaterFountainConfig.OUTER_GLOW_BLUR_RADIUS, BlurMaskFilter.Blur.NORMAL)
     }
     
     // Soft edge paint for smooth transitions at start/end
     private val softEdgePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
-        strokeWidth = SOFT_EDGE_STROKE_WIDTH
+        strokeWidth = WaterFountainConfig.SOFT_EDGE_STROKE_WIDTH
         strokeCap = Paint.Cap.ROUND
-        maskFilter = BlurMaskFilter(SOFT_EDGE_BLUR_RADIUS, BlurMaskFilter.Blur.NORMAL)
+        maskFilter = BlurMaskFilter(WaterFountainConfig.SOFT_EDGE_BLUR_RADIUS, BlurMaskFilter.Blur.NORMAL)
     }
 
     // Completion burst glow
@@ -95,7 +75,7 @@ class ProgressRingView @JvmOverloads constructor(
         setLayerType(LAYER_TYPE_HARDWARE, null)
         
         // Add padding to prevent clipping of glows and effects
-        setPadding(VIEW_PADDING, VIEW_PADDING, VIEW_PADDING, VIEW_PADDING)
+        setPadding(WaterFountainConfig.VIEW_PADDING, WaterFountainConfig.VIEW_PADDING, WaterFountainConfig.VIEW_PADDING, WaterFountainConfig.VIEW_PADDING)
     }
 
     fun animateProgress(duration: Long = 5000) {
@@ -145,7 +125,7 @@ class ProgressRingView @JvmOverloads constructor(
         val centerY = paddingTop + availableHeight / 2f
         
         // Use smaller radius to account for padding and prevent clipping
-        val radius = (availableWidth.coerceAtMost(availableHeight) * RADIUS_SCALE_FACTOR)
+        val radius = (availableWidth.coerceAtMost(availableHeight) * WaterFountainConfig.RADIUS_SCALE_FACTOR)
 
         rect.set(
             centerX - radius,
@@ -160,7 +140,7 @@ class ProgressRingView @JvmOverloads constructor(
             val saveCount = canvas.save()
             
             // Create circular clipping path for burst glow
-            val glowRadius = radius + GLOW_RADIUS_OFFSET
+            val glowRadius = radius + WaterFountainConfig.GLOW_RADIUS_OFFSET
             
             burstGlowPaint.shader = RadialGradient(
                 centerX, centerY, glowRadius,
@@ -235,12 +215,12 @@ class ProgressRingView @JvmOverloads constructor(
             
             // Draw outer glow (most diffuse) - with smooth fade-in
             outerGlowPaint.shader = gradient
-            outerGlowPaint.alpha = (OUTER_GLOW_MAX_ALPHA * combinedAlpha).toInt()
+            outerGlowPaint.alpha = (WaterFountainConfig.OUTER_GLOW_MAX_ALPHA * combinedAlpha).toInt()
             canvas.drawArc(rect, -90f, sweepAngle, false, outerGlowPaint)
             
             // Draw inner glow (brighter) - with smooth fade-in
             innerGlowPaint.shader = gradient
-            innerGlowPaint.alpha = (INNER_GLOW_MAX_ALPHA * combinedAlpha).toInt()
+            innerGlowPaint.alpha = (WaterFountainConfig.INNER_GLOW_MAX_ALPHA * combinedAlpha).toInt()
             canvas.drawArc(rect, -90f, sweepAngle, false, innerGlowPaint)
             
             // Draw main progress ring (crisp and bold) - with smooth fade-in

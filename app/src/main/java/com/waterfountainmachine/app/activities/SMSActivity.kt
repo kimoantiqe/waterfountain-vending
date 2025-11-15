@@ -18,9 +18,12 @@ import com.waterfountainmachine.app.utils.AnimationUtils
 import com.waterfountainmachine.app.utils.InactivityTimer
 import com.waterfountainmachine.app.utils.AppLog
 import com.waterfountainmachine.app.utils.SoundManager
+import com.waterfountainmachine.app.config.WaterFountainConfig
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.CancellationException
 
 class SMSActivity : AppCompatActivity() {
 
@@ -40,14 +43,16 @@ class SMSActivity : AppCompatActivity() {
     // Loading state for API calls
     private var isLoading = false
     
+    // Coroutine jobs for cancellation
+    private var otpJob: Job? = null
+    private var animationJob: Job? = null
+    
     // QR code cache (simple in-memory cache)
     private var cachedQRCode: android.graphics.Bitmap? = null
     private var cachedQRCodeText: String? = null
     
     companion object {
         private const val TAG = "SMSActivity"
-        private const val MAX_PHONE_LENGTH = 10
-        private const val INACTIVITY_TIMEOUT_MS = 60_000L // 1 minute
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -82,7 +87,7 @@ class SMSActivity : AppCompatActivity() {
         setupQuestionMarkAnimation()
         setupModalFunctionality()
         
-        inactivityTimer = InactivityTimer(INACTIVITY_TIMEOUT_MS) { returnToMainScreen() }
+        inactivityTimer = InactivityTimer(WaterFountainConfig.INACTIVITY_TIMEOUT_MS) { returnToMainScreen() }
         inactivityTimer.start()
     }
 
@@ -93,7 +98,10 @@ class SMSActivity : AppCompatActivity() {
 
     private fun setupBackButton() {
         binding.backButton.setOnClickListener {
-            returnToMainScreen()
+            // Prevent navigation during loading
+            if (!isLoading) {
+                returnToMainScreen()
+            }
         }
     }
 
@@ -264,7 +272,7 @@ class SMSActivity : AppCompatActivity() {
     }
 
     private fun sendCodeAndNavigate() {
-        if (phoneNumber.length == MAX_PHONE_LENGTH && !isLoading) {
+        if (phoneNumber.length == WaterFountainConfig.MAX_PHONE_LENGTH && !isLoading) {
             // Mock mode check: Show error screen for phone number 1111111111
             if (phoneNumber == "1111111111") {
                 AppLog.d(TAG, "Mock mode: Navigating to ErrorActivity for phone 1111111111")
@@ -282,8 +290,11 @@ class SMSActivity : AppCompatActivity() {
             // Format phone with country code (+1 for US)
             val formattedPhone = "+1$phoneNumber"
             
-            lifecycleScope.launch {
+            otpJob = lifecycleScope.launch {
                 try {
+                    // Check if still active
+                    if (!isActive) return@launch
+                    
                     AppLog.d(TAG, "Requesting OTP for phone: +1***-***-${phoneNumber.takeLast(4)}")
                     
                     // Start timer to ensure minimum spinner display time
@@ -293,11 +304,16 @@ class SMSActivity : AppCompatActivity() {
                     // Request OTP via repository
                     val result = authRepository.requestOtp(formattedPhone)
                     
+                    // Check if still active before proceeding
+                    if (!isActive) return@launch
+                    
                     // Calculate remaining time to show spinner
                     val elapsedTime = System.currentTimeMillis() - startTime
                     val remainingTime = minDisplayTime - elapsedTime
                     if (remainingTime > 0) {
                         delay(remainingTime)
+                        // Check again after delay
+                        if (!isActive) return@launch
                     }
                     
                     result.onSuccess { response ->
@@ -348,6 +364,11 @@ class SMSActivity : AppCompatActivity() {
                             showError("Authentication error.\nPlease try again.")
                         }
                     }
+                } catch (e: CancellationException) {
+                    // Coroutine was cancelled - this is normal, just log and rethrow
+                    AppLog.d(TAG, "OTP request cancelled")
+                    hideLoading()
+                    throw e
                 } catch (e: Exception) {
                     hideLoading()
                     AppLog.e(TAG, "Unexpected error requesting OTP", e)
@@ -405,7 +426,7 @@ class SMSActivity : AppCompatActivity() {
             }
             .start()
         
-        val isComplete = phoneNumber.length == MAX_PHONE_LENGTH
+        val isComplete = phoneNumber.length == WaterFountainConfig.MAX_PHONE_LENGTH
         // Update button visual state after fade in
         binding.verifyButton.postDelayed({
             updateButtonDisabledState(binding.verifyButton, isComplete)
@@ -446,10 +467,10 @@ class SMSActivity : AppCompatActivity() {
     }
 
     private fun addDigit(digit: String) {
-        if (phoneNumber.length < MAX_PHONE_LENGTH) {
+        if (phoneNumber.length < WaterFountainConfig.MAX_PHONE_LENGTH) {
             phoneNumber += digit
             updatePhoneDisplayWithAnimation()
-            val isComplete = phoneNumber.length == MAX_PHONE_LENGTH
+            val isComplete = phoneNumber.length == WaterFountainConfig.MAX_PHONE_LENGTH
             // Don't change isEnabled, just visual state
             updateButtonDisabledState(binding.verifyButton, isComplete)
         }
@@ -462,13 +483,19 @@ class SMSActivity : AppCompatActivity() {
                 android.view.animation.AnimationUtils.loadAnimation(this, R.anim.number_disappear)
             )
             
-            lifecycleScope.launch {
-                delay(100)
-                phoneNumber = phoneNumber.dropLast(1)
-                updatePhoneDisplay()
-                val isComplete = phoneNumber.length == MAX_PHONE_LENGTH
-                // Don't change isEnabled, just visual state
-                updateButtonDisabledState(binding.verifyButton, isComplete)
+            animationJob?.cancel()
+            animationJob = lifecycleScope.launch {
+                try {
+                    delay(100)
+                    if (!isActive) return@launch
+                    phoneNumber = phoneNumber.dropLast(1)
+                    updatePhoneDisplay()
+                    val isComplete = phoneNumber.length == WaterFountainConfig.MAX_PHONE_LENGTH
+                    // Don't change isEnabled, just visual state
+                    updateButtonDisabledState(binding.verifyButton, isComplete)
+                } catch (e: CancellationException) {
+                    // Normal cancellation, ignore
+                }
             }
         }
     }
@@ -578,7 +605,7 @@ class SMSActivity : AppCompatActivity() {
         binding.verifyButton.setOnClickListener {
             inactivityTimer.reset()
             
-            if (phoneNumber.length == MAX_PHONE_LENGTH) {
+            if (phoneNumber.length == WaterFountainConfig.MAX_PHONE_LENGTH) {
                 performButtonAnimation(binding.verifyButton) {
                     sendCodeAndNavigate()
                 }
@@ -733,6 +760,10 @@ class SMSActivity : AppCompatActivity() {
         cachedQRCode?.recycle()
         cachedQRCode = null
         cachedQRCodeText = null
+        
+        // Cancel any active coroutines
+        otpJob?.cancel(CancellationException("Activity destroyed"))
+        animationJob?.cancel(CancellationException("Activity destroyed"))
     }
 
     override fun onResume() {
@@ -744,5 +775,17 @@ class SMSActivity : AppCompatActivity() {
     override fun onPause() {
         super.onPause()
         inactivityTimer.stop()
+        
+        // Cancel any active coroutines when pausing
+        otpJob?.cancel(CancellationException("Activity paused"))
+        animationJob?.cancel(CancellationException("Activity paused"))
+    }
+
+    override fun onBackPressed() {
+        // Prevent back button navigation during loading
+        if (!isLoading) {
+            @Suppress("DEPRECATION")
+            super.onBackPressed()
+        }
     }
 }

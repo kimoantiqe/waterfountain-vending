@@ -22,6 +22,7 @@ import com.waterfountainmachine.app.utils.AppLog
 import com.waterfountainmachine.app.views.ProgressRingView
 import com.waterfountainmachine.app.utils.FullScreenUtils
 import com.waterfountainmachine.app.utils.SoundManager
+import com.waterfountainmachine.app.config.WaterFountainConfig
 import nl.dionsegijn.konfetti.core.Party
 import nl.dionsegijn.konfetti.core.Position
 import nl.dionsegijn.konfetti.core.emitter.Emitter
@@ -66,21 +67,7 @@ class VendingAnimationActivity : AppCompatActivity() {
     
     companion object {
         private const val TAG = "VendingAnimationActivity"
-        private const val FADE_IN_DELAY_MS = 50L  // Start almost immediately for smooth page transition
-        private const val PROGRESS_START_DELAY_MS = 1000L
-        private const val PROGRESS_DURATION_MS = 14000L
-        private const val RING_COMPLETION_DELAY_MS = 15000L
-        private const val MORPH_TO_LOGO_DELAY_MS = 15500L
-        private const val SHOW_COMPLETION_DELAY_MS = 16500L
-        private const val RETURN_TO_MAIN_DELAY_MS = 21000L
-        
-        // Confetti configuration
-        private const val CONFETTI_SPEED = 20f
-        private const val CONFETTI_MAX_SPEED = 40f
-        private const val CONFETTI_DAMPING = 0.9f
-        private const val CONFETTI_SPREAD = 90
-        private const val CONFETTI_DURATION_MS = 4500L
-        private const val CONFETTI_PARTICLES_PER_SECOND = 30
+        // All constants moved to WaterFountainConfig for centralization
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -166,27 +153,27 @@ class VendingAnimationActivity : AppCompatActivity() {
         // Use coroutines for sequential animations instead of Handler chains
         lifecycleScope.launch {
             // Phase 1: Fade in text and ring (0-1s)
-            delay(FADE_IN_DELAY_MS)
+            delay(WaterFountainConfig.ANIMATION_FADE_IN_DELAY_MS)
             fadeInElements()
 
             // Phase 2: Start ring progress (1-7s)
-            delay(PROGRESS_START_DELAY_MS - FADE_IN_DELAY_MS)
-            binding.progressRing.animateProgress(PROGRESS_DURATION_MS)
+            delay(WaterFountainConfig.ANIMATION_PROGRESS_START_DELAY_MS - WaterFountainConfig.ANIMATION_FADE_IN_DELAY_MS)
+            binding.progressRing.animateProgress(WaterFountainConfig.ANIMATION_PROGRESS_DURATION_MS)
 
             // Phase 3: Ring completion snap (7s)
-            delay(RING_COMPLETION_DELAY_MS - PROGRESS_START_DELAY_MS)
+            delay(WaterFountainConfig.ANIMATION_RING_COMPLETION_DELAY_MS - WaterFountainConfig.ANIMATION_PROGRESS_START_DELAY_MS)
             ringCompletionSnap()
 
             // Phase 4: Morph to logo (7.5-8.5s)
-            delay(MORPH_TO_LOGO_DELAY_MS - RING_COMPLETION_DELAY_MS)
+            delay(WaterFountainConfig.ANIMATION_MORPH_TO_LOGO_DELAY_MS - WaterFountainConfig.ANIMATION_RING_COMPLETION_DELAY_MS)
             morphToLogo()
 
             // Phase 5: Show completion text + confetti (8.5-9.5s)
-            delay(SHOW_COMPLETION_DELAY_MS - MORPH_TO_LOGO_DELAY_MS)
+            delay(WaterFountainConfig.ANIMATION_SHOW_COMPLETION_DELAY_MS - WaterFountainConfig.ANIMATION_MORPH_TO_LOGO_DELAY_MS)
             showCompletion()
 
             // Phase 6: Return to main screen (12s)
-            delay(RETURN_TO_MAIN_DELAY_MS - SHOW_COMPLETION_DELAY_MS)
+            delay(WaterFountainConfig.ANIMATION_RETURN_TO_MAIN_DELAY_MS - WaterFountainConfig.ANIMATION_SHOW_COMPLETION_DELAY_MS)
             returnToMainScreen()
         }
     }
@@ -306,98 +293,98 @@ class VendingAnimationActivity : AppCompatActivity() {
         val parties = listOf(
             // Top left
             Party(
-                speed = 20f,
-                maxSpeed = 40f,
-                damping = 0.9f,
+                speed = WaterFountainConfig.CONFETTI_SPEED,
+                maxSpeed = WaterFountainConfig.CONFETTI_MAX_SPEED,
+                damping = WaterFountainConfig.CONFETTI_DAMPING,
                 angle = 270,
-                spread = 90,
+                spread = WaterFountainConfig.CONFETTI_SPREAD,
                 colors = listOf(0xFFFFFF, 0xF5F3EB, 0xE6E6E6, 0xBDC3C7).map { it.toInt() },
                 size = listOf(Size(12), Size(16), Size(20), Size(24)), // Much bigger custom sizes
-                emitter = Emitter(duration = 4500, TimeUnit.MILLISECONDS).perSecond(30),
+                emitter = Emitter(duration = WaterFountainConfig.CONFETTI_DURATION_MS, TimeUnit.MILLISECONDS).perSecond(WaterFountainConfig.CONFETTI_PARTICLES_PER_SECOND),
                 position = Position.Relative(0.0, 0.0)
             ),
             // Top center
             Party(
-                speed = 20f,
-                maxSpeed = 40f,
-                damping = 0.9f,
+                speed = WaterFountainConfig.CONFETTI_SPEED,
+                maxSpeed = WaterFountainConfig.CONFETTI_MAX_SPEED,
+                damping = WaterFountainConfig.CONFETTI_DAMPING,
                 angle = 270,
-                spread = 90,
+                spread = WaterFountainConfig.CONFETTI_SPREAD,
                 colors = listOf(0xFFFFFF, 0xF5F3EB, 0xE6E6E6, 0xBDC3C7).map { it.toInt() },
                 size = listOf(Size(12), Size(16), Size(20), Size(24)),
-                emitter = Emitter(duration = 4500, TimeUnit.MILLISECONDS).perSecond(30),
+                emitter = Emitter(duration = WaterFountainConfig.CONFETTI_DURATION_MS, TimeUnit.MILLISECONDS).perSecond(WaterFountainConfig.CONFETTI_PARTICLES_PER_SECOND),
                 position = Position.Relative(0.5, 0.0)
             ),
             // Top right
             Party(
-                speed = 20f,
-                maxSpeed = 40f,
-                damping = 0.9f,
+                speed = WaterFountainConfig.CONFETTI_SPEED,
+                maxSpeed = WaterFountainConfig.CONFETTI_MAX_SPEED,
+                damping = WaterFountainConfig.CONFETTI_DAMPING,
                 angle = 270,
-                spread = 90,
+                spread = WaterFountainConfig.CONFETTI_SPREAD,
                 colors = listOf(0xFFFFFF, 0xF5F3EB, 0xE6E6E6, 0xBDC3C7).map { it.toInt() },
                 size = listOf(Size(12), Size(16), Size(20), Size(24)),
-                emitter = Emitter(duration = 4500, TimeUnit.MILLISECONDS).perSecond(30),
+                emitter = Emitter(duration = WaterFountainConfig.CONFETTI_DURATION_MS, TimeUnit.MILLISECONDS).perSecond(WaterFountainConfig.CONFETTI_PARTICLES_PER_SECOND),
                 position = Position.Relative(1.0, 0.0)
             ),
             // Center left
             Party(
                 speed = 15f,
                 maxSpeed = 35f,
-                damping = 0.9f,
+                damping = WaterFountainConfig.CONFETTI_DAMPING,
                 angle = 0,
                 spread = 180,
                 colors = listOf(0xFFFFFF, 0xF5F3EB, 0xE6E6E6, 0xBDC3C7).map { it.toInt() },
                 size = listOf(Size(12), Size(16), Size(20), Size(24)),
-                emitter = Emitter(duration = 4500, TimeUnit.MILLISECONDS).perSecond(25),
+                emitter = Emitter(duration = WaterFountainConfig.CONFETTI_DURATION_MS, TimeUnit.MILLISECONDS).perSecond(25),
                 position = Position.Relative(0.0, 0.5)
             ),
             // Center right
             Party(
                 speed = 15f,
                 maxSpeed = 35f,
-                damping = 0.9f,
+                damping = WaterFountainConfig.CONFETTI_DAMPING,
                 angle = 180,
                 spread = 180,
                 colors = listOf(0xFFFFFF, 0xF5F3EB, 0xE6E6E6, 0xBDC3C7).map { it.toInt() },
                 size = listOf(Size(12), Size(16), Size(20), Size(24)),
-                emitter = Emitter(duration = 4500, TimeUnit.MILLISECONDS).perSecond(25),
+                emitter = Emitter(duration = WaterFountainConfig.CONFETTI_DURATION_MS, TimeUnit.MILLISECONDS).perSecond(25),
                 position = Position.Relative(1.0, 0.5)
             ),
             // Bottom left
             Party(
-                speed = 20f,
-                maxSpeed = 40f,
-                damping = 0.9f,
+                speed = WaterFountainConfig.CONFETTI_SPEED,
+                maxSpeed = WaterFountainConfig.CONFETTI_MAX_SPEED,
+                damping = WaterFountainConfig.CONFETTI_DAMPING,
                 angle = 90,
-                spread = 90,
+                spread = WaterFountainConfig.CONFETTI_SPREAD,
                 colors = listOf(0xFFFFFF, 0xF5F3EB, 0xE6E6E6, 0xBDC3C7).map { it.toInt() },
                 size = listOf(Size(12), Size(16), Size(20), Size(24)),
-                emitter = Emitter(duration = 4500, TimeUnit.MILLISECONDS).perSecond(30),
+                emitter = Emitter(duration = WaterFountainConfig.CONFETTI_DURATION_MS, TimeUnit.MILLISECONDS).perSecond(WaterFountainConfig.CONFETTI_PARTICLES_PER_SECOND),
                 position = Position.Relative(0.0, 1.0)
             ),
             // Bottom center
             Party(
-                speed = 20f,
-                maxSpeed = 40f,
-                damping = 0.9f,
+                speed = WaterFountainConfig.CONFETTI_SPEED,
+                maxSpeed = WaterFountainConfig.CONFETTI_MAX_SPEED,
+                damping = WaterFountainConfig.CONFETTI_DAMPING,
                 angle = 90,
-                spread = 90,
+                spread = WaterFountainConfig.CONFETTI_SPREAD,
                 colors = listOf(0xFFFFFF, 0xF5F3EB, 0xE6E6E6, 0xBDC3C7).map { it.toInt() },
                 size = listOf(Size(12), Size(16), Size(20), Size(24)),
-                emitter = Emitter(duration = 4500, TimeUnit.MILLISECONDS).perSecond(30),
+                emitter = Emitter(duration = WaterFountainConfig.CONFETTI_DURATION_MS, TimeUnit.MILLISECONDS).perSecond(WaterFountainConfig.CONFETTI_PARTICLES_PER_SECOND),
                 position = Position.Relative(0.5, 1.0)
             ),
             // Bottom right
             Party(
-                speed = 20f,
-                maxSpeed = 40f,
-                damping = 0.9f,
+                speed = WaterFountainConfig.CONFETTI_SPEED,
+                maxSpeed = WaterFountainConfig.CONFETTI_MAX_SPEED,
+                damping = WaterFountainConfig.CONFETTI_DAMPING,
                 angle = 90,
-                spread = 90,
+                spread = WaterFountainConfig.CONFETTI_SPREAD,
                 colors = listOf(0xFFFFFF, 0xF5F3EB, 0xE6E6E6, 0xBDC3C7).map { it.toInt() },
                 size = listOf(Size(12), Size(16), Size(20), Size(24)),
-                emitter = Emitter(duration = 4500, TimeUnit.MILLISECONDS).perSecond(30),
+                emitter = Emitter(duration = WaterFountainConfig.CONFETTI_DURATION_MS, TimeUnit.MILLISECONDS).perSecond(WaterFountainConfig.CONFETTI_PARTICLES_PER_SECOND),
                 position = Position.Relative(1.0, 1.0)
             )
         )
@@ -423,8 +410,15 @@ class VendingAnimationActivity : AppCompatActivity() {
         // Intentionally not calling super.onBackPressed() to prevent user from interrupting animation
     }
     
+    override fun onPause() {
+        super.onPause()
+        // Clean up callbacks when activity is paused to prevent memory leaks
+        binding.logoImage.removeCallbacks(logoDelayedRunnable)
+        binding.root.removeCallbacks(confettiDelayedRunnable)
+    }
+    
     override fun onDestroy() {
-        // Clean up any pending callbacks to prevent memory leaks
+        // Additional cleanup in onDestroy as safety net
         binding.logoImage.removeCallbacks(logoDelayedRunnable)
         binding.root.removeCallbacks(confettiDelayedRunnable)
         

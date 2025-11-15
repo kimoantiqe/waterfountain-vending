@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- Base configuration for all connections -->
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <!-- Trust system CAs for general HTTPS -->
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+    
+    <!-- Firebase and Google services certificate pinning -->
+    <domain-config cleartextTrafficPermitted="false">
+        <!-- Firebase Functions -->
+        <domain includeSubdomains="true">cloudfunctions.net</domain>
+        <domain includeSubdomains="true">firebase.googleapis.com</domain>
+        <domain includeSubdomains="true">firebaseinstallations.googleapis.com</domain>
+        
+        <!-- Firebase Auth -->
+        <domain includeSubdomains="true">identitytoolkit.googleapis.com</domain>
+        <domain includeSubdomains="true">securetoken.googleapis.com</domain>
+        
+        <!-- Firebase Crashlytics -->
+        <domain includeSubdomains="true">firebaselogging.googleapis.com</domain>
+        <domain includeSubdomains="true">firebaselogging-pa.googleapis.com</domain>
+        
+        <!-- Firebase Analytics -->
+        <domain includeSubdomains="true">app-measurement.com</domain>
+        
+        <pin-set expiration="2026-12-31">
+            <!-- Google Trust Services (GTS) Root CA -->
+            <!-- Subject: CN=GTS Root R1, O=Google Trust Services LLC, C=US -->
+            <!-- Valid until: June 22, 2036 -->
+            <pin digest="SHA-256">hxqRlPTu1bMS/0DITB1SSu0vd4u/8l8TjPgfaAp63Gc=</pin>
+            
+            <!-- Google Trust Services (GTS) CA 1C3 -->
+            <!-- Intermediate CA used by Firebase services -->
+            <pin digest="SHA-256">f8NnEFh3Wh1GZ77fJD5W7dCYfvGjX2LZlKLw3vVJqJs=</pin>
+            
+            <!-- Backup pin - GlobalSign Root CA - R2 -->
+            <!-- Used by some Google services -->
+            <pin digest="SHA-256">iie1VXtL7HzAMF+/PVPR9xzT80kQxdZeJ+zduCB3uj0=</pin>
+        </pin-set>
+        
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </domain-config>
+    
+    <!-- Debug/localhost exceptions (only active in debug builds) -->
+    <debug-overrides>
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="user" />
+        </trust-anchors>
+    </debug-overrides>
+</network-security-config>
