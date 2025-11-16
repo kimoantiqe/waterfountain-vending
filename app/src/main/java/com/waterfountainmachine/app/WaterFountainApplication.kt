@@ -7,7 +7,7 @@ import com.google.firebase.appcheck.debug.DebugAppCheckProviderFactory
 import com.google.firebase.initialize
 import com.google.firebase.crashlytics.FirebaseCrashlytics
 import com.google.firebase.analytics.FirebaseAnalytics
-import com.waterfountainmachine.app.auth.AuthModule
+import com.waterfountainmachine.app.di.AuthModule
 import com.waterfountainmachine.app.security.SecurityModule
 import com.waterfountainmachine.app.hardware.WaterFountainManager
 import com.waterfountainmachine.app.admin.AdminPinManager
@@ -168,17 +168,22 @@ class WaterFountainApplication : Application() {
      */
     private fun initializeAuthModule() {
         try {
+            AppLog.i(TAG, "═══════════════════════════════════════════════")
+            AppLog.i(TAG, "Initializing AuthModule...")
+            
             // Load saved API mode preference (default to mock mode for development)
             val useMockMode = AuthModule.loadApiModePreference(this)
+            AppLog.i(TAG, "Loaded API mode preference: useMockMode=$useMockMode")
             
             // Initialize AuthModule
             AuthModule.initialize(this, useMockMode)
             
-            val mode = if (useMockMode) "MOCK" else "REAL"
-            AppLog.i(TAG, "AuthModule initialized in $mode mode")
+            val mode = if (useMockMode) "MOCK" else "REAL API"
+            AppLog.i(TAG, "✅ AuthModule initialized in $mode mode")
+            AppLog.i(TAG, "═══════════════════════════════════════════════")
         } catch (e: Exception) {
             // Fallback to mock mode if initialization fails
-            AppLog.e(TAG, "Error initializing AuthModule, falling back to mock mode", e)
+            AppLog.e(TAG, "❌ Error initializing AuthModule, falling back to mock mode", e)
             AuthModule.initialize(this, useMockMode = true)
         }
     }
