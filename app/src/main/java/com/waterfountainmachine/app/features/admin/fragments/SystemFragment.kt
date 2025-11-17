@@ -86,6 +86,35 @@ class SystemFragment : Fragment() {
     }
     
     private fun setupKioskSettings() {
+        // Note: Listeners are set up AFTER loading settings to prevent triggering on initial load
+        // This prevents the restart dialog from appearing every time the screen is opened
+    }
+    
+    private fun loadCurrentSettings() {
+        val prefs = requireContext().getSharedPreferences("system_settings", 0)
+        
+        // Load toggle states WITHOUT triggering listeners
+        binding.kioskModeToggle.isChecked = prefs.getBoolean("kiosk_mode", true)
+        
+        // Load API mode (default to mock mode for safety)
+        val useMockMode = AuthModule.loadApiModePreference(requireContext())
+        binding.apiModeToggle.isChecked = !useMockMode // Toggle shows "Use Real API"
+        
+        binding.demoModeToggle.isChecked = prefs.getBoolean("demo_mode", false)
+        binding.debugModeToggle.isChecked = prefs.getBoolean("debug_mode", false)
+        binding.adminLoggingToggle.isChecked = com.waterfountainmachine.app.utils.AdminDebugConfig.isAdminLoggingEnabled(requireContext())
+        binding.maintenanceModeToggle.isChecked = prefs.getBoolean("maintenance_mode", false)
+        binding.hardwareModeToggle.isChecked = prefs.getBoolean("use_real_serial", false)
+        
+        // NOW set up listeners AFTER loading initial states
+        // This prevents the restart dialog from appearing when entering the screen
+        setupToggleListeners()
+        
+        // Load system info
+        updateSystemInfo()
+    }
+    
+    private fun setupToggleListeners() {
         // Kiosk mode toggle
         binding.kioskModeToggle.setOnCheckedChangeListener { _, isChecked ->
             updateKioskMode(isChecked)
@@ -110,26 +139,6 @@ class SystemFragment : Fragment() {
         binding.adminLoggingToggle.setOnCheckedChangeListener { _, isChecked ->
             updateAdminLogging(isChecked)
         }
-    }
-    
-    private fun loadCurrentSettings() {
-        val prefs = requireContext().getSharedPreferences("system_settings", 0)
-        
-        // Load toggle states
-        binding.kioskModeToggle.isChecked = prefs.getBoolean("kiosk_mode", true)
-        
-        // Load API mode (default to mock mode for safety)
-        val useMockMode = AuthModule.loadApiModePreference(requireContext())
-        binding.apiModeToggle.isChecked = !useMockMode // Toggle shows "Use Real API"
-        
-        binding.demoModeToggle.isChecked = prefs.getBoolean("demo_mode", false)
-        binding.debugModeToggle.isChecked = prefs.getBoolean("debug_mode", false)
-        binding.adminLoggingToggle.isChecked = com.waterfountainmachine.app.utils.AdminDebugConfig.isAdminLoggingEnabled(requireContext())
-        binding.maintenanceModeToggle.isChecked = prefs.getBoolean("maintenance_mode", false)
-        binding.hardwareModeToggle.isChecked = prefs.getBoolean("use_real_serial", false)
-        
-        // Load system info
-        updateSystemInfo()
     }
     
     private fun updateKioskMode(enabled: Boolean) {
