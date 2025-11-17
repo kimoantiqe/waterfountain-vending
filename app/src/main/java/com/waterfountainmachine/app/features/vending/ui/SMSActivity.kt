@@ -177,9 +177,11 @@ class SMSActivity : AppCompatActivity() {
     }
 
     private fun setupQuestionMarkAnimation() {
+        // PNG image already contains the question mark, no separate animation needed
+        // Just apply subtle floating animation to the button itself
         questionMarkAnimator = AnimationUtils.setupQuestionMarkAnimation(
             button = binding.questionMarkButton,
-            icon = binding.questionMarkIcon,
+            icon = null,  // No separate icon, using PNG
             rootView = binding.root
         )
     }

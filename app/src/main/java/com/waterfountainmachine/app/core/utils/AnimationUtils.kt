@@ -15,13 +15,13 @@ object AnimationUtils {
      * Create and start a repeating question mark animation.
      * 
      * @param button The button view to animate
-     * @param icon The icon view inside the button to rotate
+     * @param icon The icon view inside the button to rotate (nullable for PNG-based buttons)
      * @param rootView The root view to post delayed callbacks on
      * @return The AnimatorSet for the animation (can be stopped if needed)
      */
     fun setupQuestionMarkAnimation(
         button: View,
-        icon: View,
+        icon: View?,
         rootView: View
     ): AnimatorSet {
         // Create shake animation
@@ -29,13 +29,6 @@ object AnimationUtils {
             button, 
             "translationX", 
             0f, -12f, 12f, -8f, 8f, -4f, 4f, 0f
-        ).apply { duration = 1000 }
-        
-        // Create rotation animation
-        val rotate = ObjectAnimator.ofFloat(
-            icon, 
-            "rotation", 
-            0f, 20f, -20f, 15f, -15f, 8f, -8f, 0f
         ).apply { duration = 1000 }
         
         // Create scale animations
@@ -46,7 +39,18 @@ object AnimationUtils {
             .apply { duration = 1000 }
         
         val animator = AnimatorSet().apply {
-            playTogether(shakeX, rotate, scaleX, scaleY)
+            // Only add rotation animation if icon view exists
+            if (icon != null) {
+                val rotate = ObjectAnimator.ofFloat(
+                    icon, 
+                    "rotation", 
+                    0f, 20f, -20f, 15f, -15f, 8f, -8f, 0f
+                ).apply { duration = 1000 }
+                playTogether(shakeX, rotate, scaleX, scaleY)
+            } else {
+                // For PNG buttons, just shake and scale the button itself
+                playTogether(shakeX, scaleX, scaleY)
+            }
             interpolator = AccelerateDecelerateInterpolator()
             startDelay = 1000
         }
