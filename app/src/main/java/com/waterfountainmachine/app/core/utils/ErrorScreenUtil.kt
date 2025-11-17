@@ -13,6 +13,8 @@ import com.waterfountainmachine.app.activities.ErrorActivity
  * - Network failures
  * - Hardware failures
  * 
+ * All error messages use UserErrorMessages constants for consistency.
+ * 
  * Usage examples:
  * ```kotlin
  * // Show daily limit reached
@@ -21,7 +23,7 @@ import com.waterfountainmachine.app.activities.ErrorActivity
  * // Show custom error with custom duration
  * ErrorScreenUtil.showError(
  *     context,
- *     "Unable to connect to server.\nPlease try again later.",
+ *     UserErrorMessages.NETWORK_ERROR,
  *     displayDuration = 10000L // 10 seconds
  * )
  * 
@@ -36,7 +38,7 @@ object ErrorScreenUtil {
      */
     fun showDailyLimitReached(context: Context) {
         val intent = Intent(context, ErrorActivity::class.java)
-        intent.putExtra(ErrorActivity.EXTRA_MESSAGE, ErrorActivity.DEFAULT_DAILY_LIMIT_MESSAGE)
+        intent.putExtra(ErrorActivity.EXTRA_MESSAGE, UserErrorMessages.DAILY_LIMIT_REACHED)
         // Use SINGLE_TOP to reuse existing MainActivity instance for smooth transition
         intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
         context.startActivity(intent)
@@ -47,7 +49,7 @@ object ErrorScreenUtil {
      * Show custom error screen with optional custom display duration
      * 
      * @param context The context to start the activity from
-     * @param message The error message to display
+     * @param message The error message to display (use UserErrorMessages constants)
      * @param displayDuration How long to display the message in milliseconds (default: 15 seconds)
      */
     fun showError(context: Context, message: String, displayDuration: Long = 15000L) {
@@ -65,7 +67,7 @@ object ErrorScreenUtil {
      */
     fun showGenericError(context: Context) {
         val intent = Intent(context, ErrorActivity::class.java)
-        intent.putExtra(ErrorActivity.EXTRA_MESSAGE, ErrorActivity.DEFAULT_ERROR_MESSAGE)
+        intent.putExtra(ErrorActivity.EXTRA_MESSAGE, UserErrorMessages.GENERIC_ERROR)
         // Use SINGLE_TOP to reuse existing MainActivity instance for smooth transition
         intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
         context.startActivity(intent)
@@ -78,7 +80,7 @@ object ErrorScreenUtil {
     fun showNetworkError(context: Context) {
         showError(
             context,
-            "Network connection lost.\nPlease check your connection and try again.",
+            UserErrorMessages.NETWORK_ERROR,
             displayDuration = 12000L
         )
     }
@@ -89,7 +91,7 @@ object ErrorScreenUtil {
     fun showHardwareError(context: Context) {
         showError(
             context,
-            "Hardware error detected.\nPlease contact support.",
+            UserErrorMessages.HARDWARE_NOT_READY,
             displayDuration = 12000L
         )
     }

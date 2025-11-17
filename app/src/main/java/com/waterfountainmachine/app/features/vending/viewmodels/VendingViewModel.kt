@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.waterfountainmachine.app.di.IODispatcher
 import com.waterfountainmachine.app.hardware.WaterFountainManager
 import com.waterfountainmachine.app.utils.AppLog
+import com.waterfountainmachine.app.utils.UserErrorMessages
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
@@ -69,15 +70,17 @@ class VendingViewModel @Inject constructor(
                 val isConnected = waterFountainManager.isConnected()
                 
                 if (isConnected) {
-                    AppLog.i(TAG, "Hardware connected and ready")
+                    AppLog.i(TAG, "✅ Hardware connected and ready")
                     _uiState.value = VendingUiState.Ready
                 } else {
-                    AppLog.w(TAG, "Hardware not connected")
-                    _uiState.value = VendingUiState.HardwareError("Hardware not connected")
+                    AppLog.w(TAG, "⚠️ Hardware not connected")
+                    _uiState.value = VendingUiState.HardwareError(UserErrorMessages.HARDWARE_NOT_READY)
                 }
             } catch (e: Exception) {
-                AppLog.e(TAG, "Error checking hardware connection", e)
-                _uiState.value = VendingUiState.HardwareError("Connection error: ${e.message}")
+                // Log technical error details for admin review
+                AppLog.e(TAG, "Hardware connection error: ${e.javaClass.simpleName} - ${e.message}", e)
+                // Show user-friendly error
+                _uiState.value = VendingUiState.HardwareError(UserErrorMessages.HARDWARE_NOT_READY)
             }
         }
     }
@@ -111,19 +114,21 @@ class VendingViewModel @Inject constructor(
                 }
 
                 if (result.success) {
-                    AppLog.i(TAG, "Water dispensing completed successfully from slot ${result.slot}")
+                    AppLog.i(TAG, "✅ Water dispensing completed successfully from slot ${result.slot}")
                     _progress.value = 100
                     _uiState.value = VendingUiState.DispensingComplete
                 } else {
-                    AppLog.e(TAG, "Water dispensing failed: ${result.errorMessage}")
-                    _uiState.value = VendingUiState.DispensingError(
-                        result.errorMessage ?: "Dispensing failed"
-                    )
+                    // Log technical error details for admin review
+                    AppLog.e(TAG, "❌ Water dispensing failed: ${result.errorMessage} (slot: ${result.slot})")
+                    // Show user-friendly error
+                    _uiState.value = VendingUiState.DispensingError(UserErrorMessages.DISPENSING_FAILED)
                 }
 
             } catch (e: Exception) {
-                AppLog.e(TAG, "Error during water dispensing", e)
-                _uiState.value = VendingUiState.DispensingError("Error: ${e.message}")
+                // Log technical error details for admin review
+                AppLog.e(TAG, "Exception during water dispensing: ${e.javaClass.simpleName} - ${e.message}", e)
+                // Show user-friendly error
+                _uiState.value = VendingUiState.DispensingError(UserErrorMessages.DISPENSING_FAILED)
             } finally {
                 // Exit critical state
                 _isInCriticalState.value = false

@@ -11,6 +11,7 @@ import androidx.lifecycle.lifecycleScope
 import com.waterfountainmachine.app.databinding.ActivityErrorBinding
 import com.waterfountainmachine.app.utils.AppLog
 import com.waterfountainmachine.app.utils.FullScreenUtils
+import com.waterfountainmachine.app.utils.UserErrorMessages
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -32,12 +33,12 @@ import kotlinx.coroutines.launch
  * ```kotlin
  * // Daily limit reached
  * val intent = Intent(this, ErrorActivity::class.java)
- * intent.putExtra(ErrorActivity.EXTRA_MESSAGE, ErrorActivity.DEFAULT_DAILY_LIMIT_MESSAGE)
+ * intent.putExtra(ErrorActivity.EXTRA_MESSAGE, UserErrorMessages.DAILY_LIMIT_REACHED)
  * startActivity(intent)
  * 
  * // Custom error
  * val intent = Intent(this, ErrorActivity::class.java)
- * intent.putExtra(ErrorActivity.EXTRA_MESSAGE, "Custom error message")
+ * intent.putExtra(ErrorActivity.EXTRA_MESSAGE, UserErrorMessages.GENERIC_ERROR)
  * startActivity(intent)
  * ```
  */
@@ -52,9 +53,9 @@ class ErrorActivity : AppCompatActivity() {
         const val EXTRA_MESSAGE = "message"
         const val EXTRA_DISPLAY_DURATION = "display_duration"
         
-        // Default messages
-        const val DEFAULT_DAILY_LIMIT_MESSAGE = "We are very sorry,\nPlease visit us tomorrow."
-        const val DEFAULT_ERROR_MESSAGE = "An error occurred.\nPlease try again."
+        // Default messages (use UserErrorMessages constants)
+        const val DEFAULT_DAILY_LIMIT_MESSAGE = UserErrorMessages.DAILY_LIMIT_REACHED
+        const val DEFAULT_ERROR_MESSAGE = UserErrorMessages.GENERIC_ERROR
         
         // Timing constants
         private const val FADE_IN_DURATION = 500L

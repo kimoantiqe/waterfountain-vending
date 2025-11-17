@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.waterfountainmachine.app.auth.AuthenticationException
 import com.waterfountainmachine.app.auth.IAuthenticationRepository
 import com.waterfountainmachine.app.utils.AppLog
+import com.waterfountainmachine.app.utils.UserErrorMessages
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -132,11 +133,15 @@ class SMSVerifyViewModel @Inject constructor(
                     _failedAttempts.value = 0
                     _uiState.value = SMSVerifyUiState.VerificationSuccess
                 }.onFailure { error ->
+                    // Log technical error details for admin review
+                    AppLog.e(TAG, "OTP verification failed: ${error.message}", error)
                     handleVerificationError(error)
                 }
             } catch (e: Exception) {
-                AppLog.e(TAG, "Verification error", e)
-                _uiState.value = SMSVerifyUiState.Error("An unexpected error occurred.\nPlease try again.")
+                // Log technical error details for admin review
+                AppLog.e(TAG, "Unexpected exception during verification: ${e.javaClass.simpleName}", e)
+                // Show generic user-friendly error
+                _uiState.value = SMSVerifyUiState.Error(UserErrorMessages.GENERIC_ERROR)
             } finally {
                 _isInCriticalState.value = false
             }
@@ -148,7 +153,7 @@ class SMSVerifyViewModel @Inject constructor(
      */
     private fun handleVerificationError(error: Throwable) {
         val errorMessage = error.message ?: "Verification failed"
-        AppLog.w(TAG, "OTP verification failed: $errorMessage", error)
+        AppLog.w(TAG, "OTP verification failed: $errorMessage (${error.javaClass.simpleName})", error)
 
         // Increment failed attempts
         _failedAttempts.value++
@@ -163,18 +168,30 @@ class SMSVerifyViewModel @Inject constructor(
         if (isInvalidCodeError && _failedAttempts.value <= MAX_RETRY_ATTEMPTS) {
             // Show retry message and allow user to try again
             val attemptsRemaining = MAX_RETRY_ATTEMPTS + 1 - _failedAttempts.value
+            AppLog.i(TAG, "Allowing retry. Attempts remaining: $attemptsRemaining")
             _uiState.value = SMSVerifyUiState.IncorrectOtp(attemptsRemaining)
         } else {
-            // Max attempts reached or non-retryable error - go to error screen
+            // Max attempts reached or non-retryable error - show user-friendly error
             val errorMsg = when (error) {
-                is AuthenticationException.CertificateError -> "System configuration error.\nPlease contact support."
-                is AuthenticationException.ServerError -> "Unable to verify code.\nPlease try again later."
-                is AuthenticationException.NetworkError -> "Network error.\nPlease check your connection."
+                is AuthenticationException.CertificateError -> {
+                    AppLog.e(TAG, "Certificate error during verification")
+                    UserErrorMessages.GENERIC_ERROR
+                }
+                is AuthenticationException.ServerError -> {
+                    AppLog.e(TAG, "Server error during verification")
+                    UserErrorMessages.SERVICE_UNAVAILABLE
+                }
+                is AuthenticationException.NetworkError -> {
+                    AppLog.e(TAG, "Network error during verification")
+                    UserErrorMessages.NETWORK_ERROR
+                }
                 else -> {
                     if (_failedAttempts.value > MAX_RETRY_ATTEMPTS) {
-                        "Too many incorrect attempts.\nPlease try again later."
+                        AppLog.w(TAG, "Max OTP attempts exceeded (${_failedAttempts.value})")
+                        UserErrorMessages.TOO_MANY_OTP_ATTEMPTS
                     } else {
-                        "Unable to verify code.\nPlease try again."
+                        AppLog.e(TAG, "Unexpected verification error: ${error.javaClass.simpleName}")
+                        UserErrorMessages.GENERIC_ERROR
                     }
                 }
             }
@@ -204,10 +221,10 @@ class SMSVerifyViewModel @Inject constructor(
                     startOtpTimer()
                     _uiState.value = SMSVerifyUiState.OtpResent
                 }.onFailure { error ->
-                    AppLog.e(TAG, "Failed to resend OTP", error)
-                    _uiState.value = SMSVerifyUiState.ResendError(
-                        error.message ?: "Failed to resend code.\nPlease try again."
-                    )
+                    // Log technical error details for admin review
+                    AppLog.e(TAG, "Failed to resend OTP: ${error.message}", error)
+                    // Show generic user-friendly error
+                    _uiState.value = SMSVerifyUiState.ResendError(UserErrorMessages.GENERIC_ERROR)
                 }
             } finally {
                 _isInCriticalState.value = false

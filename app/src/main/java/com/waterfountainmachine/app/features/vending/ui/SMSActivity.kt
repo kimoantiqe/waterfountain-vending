@@ -15,6 +15,7 @@ import com.waterfountainmachine.app.utils.AnimationUtils
 import com.waterfountainmachine.app.utils.InactivityTimer
 import com.waterfountainmachine.app.utils.AppLog
 import com.waterfountainmachine.app.utils.SoundManager
+import com.waterfountainmachine.app.utils.UserErrorMessages
 import com.waterfountainmachine.app.config.WaterFountainConfig
 import com.waterfountainmachine.app.viewmodels.SMSViewModel
 import com.waterfountainmachine.app.viewmodels.SMSUiState
@@ -125,7 +126,7 @@ class SMSActivity : AppCompatActivity() {
             }
             is SMSUiState.InvalidPhoneNumber -> {
                 // Show validation error
-                showError("Please enter a valid 10-digit phone number")
+                showError(UserErrorMessages.INVALID_PHONE_NUMBER)
             }
             is SMSUiState.RequestingOtp -> {
                 // Show loading state
@@ -140,7 +141,7 @@ class SMSActivity : AppCompatActivity() {
             is SMSUiState.DailyLimitReached -> {
                 // Navigate to error screen with daily limit message
                 hideLoading()
-                navigateToError(ErrorActivity.DEFAULT_DAILY_LIMIT_MESSAGE)
+                navigateToError(UserErrorMessages.DAILY_LIMIT_REACHED)
             }
             is SMSUiState.Error -> {
                 // Show error screen

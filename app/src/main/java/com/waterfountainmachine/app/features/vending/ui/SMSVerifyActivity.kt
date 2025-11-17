@@ -18,6 +18,7 @@ import com.waterfountainmachine.app.utils.AnimationUtils
 import com.waterfountainmachine.app.utils.InactivityTimer
 import com.waterfountainmachine.app.utils.AppLog
 import com.waterfountainmachine.app.utils.SoundManager
+import com.waterfountainmachine.app.utils.UserErrorMessages
 import com.waterfountainmachine.app.viewmodels.SMSVerifyViewModel
 import com.waterfountainmachine.app.viewmodels.SMSVerifyUiState
 import dagger.hilt.android.AndroidEntryPoint
@@ -880,7 +881,7 @@ class SMSVerifyActivity : AppCompatActivity() {
      * Show OTP expired message
      */
     private fun showOtpExpiredMessage() {
-        showError("Verification code has expired.\nPlease request a new code.")
+        showError(UserErrorMessages.SESSION_EXPIRED)
     }
 
     override fun onDestroy() {

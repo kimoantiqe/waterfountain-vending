@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.waterfountainmachine.app.auth.IAuthenticationRepository
 import com.waterfountainmachine.app.config.WaterFountainConfig
 import com.waterfountainmachine.app.utils.AppLog
+import com.waterfountainmachine.app.utils.UserErrorMessages
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -127,7 +128,7 @@ class SMSViewModel @Inject constructor(
         // Validate phone number length
         if (phone.length != PHONE_LENGTH) {
             _uiState.value = SMSUiState.InvalidPhoneNumber
-            AppLog.w(TAG, "Invalid phone number length: ${phone.length}")
+            AppLog.w(TAG, "Invalid phone number length: ${phone.length} (expected $PHONE_LENGTH)")
             return
         }
 
@@ -159,27 +160,36 @@ class SMSViewModel @Inject constructor(
                     )
                 } else {
                     val error = result.exceptionOrNull()
-                    AppLog.e(TAG, "OTP request failed", error)
+                    // Log technical error details for admin review
+                    AppLog.e(TAG, "OTP request failed: ${error?.message}", error)
                     
-                    // Categorize error
-                    val errorMessage = when {
+                    // Categorize error and show user-friendly message
+                    when {
                         error?.message?.contains("daily limit", ignoreCase = true) == true -> {
+                            AppLog.w(TAG, "Daily limit reached for phone: ${getMaskedPhoneNumber()}")
                             _uiState.value = SMSUiState.DailyLimitReached
                             return@launch
                         }
-                        error?.message?.contains("network", ignoreCase = true) == true -> 
-                            "Network error. Please check your connection."
-                        error?.message?.contains("timeout", ignoreCase = true) == true -> 
-                            "Request timed out. Please try again."
-                        else -> error?.message ?: "Failed to send OTP. Please try again."
+                        error?.message?.contains("network", ignoreCase = true) == true -> {
+                            AppLog.w(TAG, "Network error during OTP request")
+                            _uiState.value = SMSUiState.Error(UserErrorMessages.NETWORK_ERROR)
+                        }
+                        error?.message?.contains("timeout", ignoreCase = true) == true -> {
+                            AppLog.w(TAG, "Request timeout during OTP request")
+                            _uiState.value = SMSUiState.Error(UserErrorMessages.NETWORK_ERROR)
+                        }
+                        else -> {
+                            AppLog.e(TAG, "Unexpected OTP request error: ${error?.javaClass?.simpleName}")
+                            _uiState.value = SMSUiState.Error(UserErrorMessages.GENERIC_ERROR)
+                        }
                     }
-                    
-                    _uiState.value = SMSUiState.Error(errorMessage)
                 }
 
             } catch (e: Exception) {
-                AppLog.e(TAG, "Unexpected error requesting OTP", e)
-                _uiState.value = SMSUiState.Error("Unexpected error: ${e.message}")
+                // Log technical error details for admin review
+                AppLog.e(TAG, "Unexpected exception requesting OTP: ${e.javaClass.simpleName}", e)
+                // Show generic user-friendly error
+                _uiState.value = SMSUiState.Error(UserErrorMessages.GENERIC_ERROR)
             } finally {
                 // Exit critical state
                 _isInCriticalState.value = false
