@@ -44,11 +44,15 @@ class SMSVerifyActivity : AppCompatActivity() {
     // Water fountain hardware manager
     private lateinit var waterFountainManager: WaterFountainManager
     
+    // Debounce flag for question mark button
+    private var isQuestionMarkClickable = true
+    
     companion object {
         private const val TAG = "SMSVerifyActivity"
         private const val MAX_OTP_LENGTH = 6
         private const val INACTIVITY_TIMEOUT_MS = 300_000L // 5 minutes
         private const val ANIMATION_DURATION_MS = 300L
+        private const val QUESTION_MARK_DEBOUNCE_MS = 400L
         const val EXTRA_PHONE_NUMBER = "phoneNumber"
         const val EXTRA_PHONE_VISIBILITY = "phoneVisibility"
     }
@@ -201,11 +205,34 @@ class SMSVerifyActivity : AppCompatActivity() {
     }
 
     private fun setupModalFunctionality() {
-        // Question mark button click
+        // Question mark button click - toggle modal open/close with debounce
         binding.questionMarkButton.setOnClickListener {
+            // Debounce to prevent spam clicking
+            if (!isQuestionMarkClickable) {
+                return@setOnClickListener
+            }
+            
             soundManager.playSound(R.raw.click, 0.6f)
             inactivityTimer.reset()
-            showModal()
+            
+            // Disable clicking temporarily
+            isQuestionMarkClickable = false
+            binding.questionMarkButton.postDelayed({
+                isQuestionMarkClickable = true
+            }, QUESTION_MARK_DEBOUNCE_MS)
+            
+            // Check if QR modal is open - if so, close it instead of toggling info modal
+            if (binding.qrModalOverlay.visibility == View.VISIBLE) {
+                hideQrCodeModal()
+                return@setOnClickListener
+            }
+            
+            // Toggle info modal: close if open, open if closed
+            if (binding.modalOverlay.visibility == View.VISIBLE) {
+                hideModal()
+            } else {
+                showModal()
+            }
         }
 
         // Close modal button click
@@ -226,12 +253,17 @@ class SMSVerifyActivity : AppCompatActivity() {
             // Do nothing - prevent click from bubbling up
         }
 
-        // Show QR Code button click
+        // Show QR Code button click - transition from info modal to QR modal
         binding.showQrCodeButton.setOnClickListener {
             soundManager.playSound(R.raw.click, 0.6f)
             inactivityTimer.reset()
-            hideModal()
-            showQrCodeModal()
+            
+            // Hide info modal first, then show QR modal to avoid double overlay
+            AnimationUtils.hideModalAnimation(binding.modalContent) {
+                binding.modalOverlay.visibility = View.GONE
+                // Show QR modal after info modal is hidden
+                showQrCodeModal()
+            }
         }
 
         // Close QR modal button click

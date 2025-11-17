@@ -39,8 +39,12 @@ class SMSActivity : AppCompatActivity() {
     private var cachedQRCode: android.graphics.Bitmap? = null
     private var cachedQRCodeText: String? = null
     
+    // Debounce flag for question mark button
+    private var isQuestionMarkClickable = true
+    
     companion object {
         private const val TAG = "SMSActivity"
+        private const val QUESTION_MARK_DEBOUNCE_MS = 400L
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -181,11 +185,34 @@ class SMSActivity : AppCompatActivity() {
     }
 
     private fun setupModalFunctionality() {
-        // Question mark button click
+        // Question mark button click - toggle modal open/close with debounce
         binding.questionMarkButton.setOnClickListener {
+            // Debounce to prevent spam clicking
+            if (!isQuestionMarkClickable) {
+                return@setOnClickListener
+            }
+            
             soundManager.playSound(R.raw.click, 0.6f)
             inactivityTimer.reset()
-            showModal()
+            
+            // Disable clicking temporarily
+            isQuestionMarkClickable = false
+            binding.questionMarkButton.postDelayed({
+                isQuestionMarkClickable = true
+            }, QUESTION_MARK_DEBOUNCE_MS)
+            
+            // Check if QR modal is open - if so, close it instead of toggling info modal
+            if (binding.qrModalOverlay.visibility == View.VISIBLE) {
+                hideQrCodeModal()
+                return@setOnClickListener
+            }
+            
+            // Toggle info modal: close if open, open if closed
+            if (binding.modalOverlay.visibility == View.VISIBLE) {
+                hideModal()
+            } else {
+                showModal()
+            }
         }
 
         // Close modal button click
@@ -206,12 +233,17 @@ class SMSActivity : AppCompatActivity() {
             // Do nothing - prevent click from bubbling up
         }
 
-        // Show QR Code button click
+        // Show QR Code button click - transition from info modal to QR modal
         binding.showQrCodeButton.setOnClickListener {
             soundManager.playSound(R.raw.click, 0.6f)
             inactivityTimer.reset()
-            hideModal()
-            showQrCodeModal()
+            
+            // Hide info modal first, then show QR modal to avoid double overlay
+            AnimationUtils.hideModalAnimation(binding.modalContent) {
+                binding.modalOverlay.visibility = View.GONE
+                // Show QR modal after info modal is hidden
+                showQrCodeModal()
+            }
         }
 
         // Close QR modal button click
