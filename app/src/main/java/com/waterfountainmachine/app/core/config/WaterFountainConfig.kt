@@ -44,12 +44,12 @@ class WaterFountainConfig private constructor(context: Context) {
         
         // Animation Timings (VendingAnimationActivity)
         const val ANIMATION_FADE_IN_DELAY_MS = 50L
-        const val ANIMATION_PROGRESS_START_DELAY_MS = 1000L
-        const val ANIMATION_PROGRESS_DURATION_MS = 14000L
-        const val ANIMATION_RING_COMPLETION_DELAY_MS = 15000L
-        const val ANIMATION_MORPH_TO_LOGO_DELAY_MS = 15500L
-        const val ANIMATION_SHOW_COMPLETION_DELAY_MS = 16500L
-        const val ANIMATION_RETURN_TO_MAIN_DELAY_MS = 21000L
+        const val ANIMATION_PROGRESS_START_DELAY_MS = 100L  // Start ring almost immediately
+        const val ANIMATION_PROGRESS_DURATION_MS = 1900L    // Ring fills in ~1.9 seconds
+        const val ANIMATION_RING_COMPLETION_DELAY_MS = 2000L // Ring completes at 2s
+        const val ANIMATION_MORPH_TO_LOGO_DELAY_MS = 2000L   // Logo shows at 2s
+        const val ANIMATION_SHOW_COMPLETION_DELAY_MS = 4000L // Fireworks + confetti at 4s
+        const val ANIMATION_RETURN_TO_MAIN_DELAY_MS = 8000L  // Return to main at 8s
         
         // Confetti Configuration
         const val CONFETTI_SPEED = 20f

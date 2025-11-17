@@ -104,19 +104,58 @@ class SoundManager(private val context: Context) {
             // Release previous MediaPlayer if exists
             stopLongSound()
             
-            mediaPlayer = MediaPlayer.create(context, resourceId).apply {
-                isLooping = looping
+            // Create and prepare MediaPlayer manually for better control
+            mediaPlayer = MediaPlayer().apply {
+                // Set audio attributes for high quality playback
+                setAudioAttributes(
+                    AudioAttributes.Builder()
+                        .setUsage(AudioAttributes.USAGE_MEDIA)
+                        .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                        .build()
+                )
+                
+                // Set data source
+                val afd = context.resources.openRawResourceFd(resourceId)
+                setDataSource(afd.fileDescriptor, afd.startOffset, afd.length)
+                afd.close()
+                
+                // Prepare asynchronously to prevent any blocking
+                prepareAsync()
+                
+                // Configure volume
                 setVolume(volume, volume)
-                setOnCompletionListener {
-                    if (!looping) {
+                
+                // Set up completion listener for manual looping (more reliable than isLooping)
+                setOnCompletionListener { mp ->
+                    if (looping && mp != null) {
+                        try {
+                            // Immediately seek to start and replay for seamless looping
+                            mp.seekTo(0)
+                            mp.start()
+                            AppLog.d(TAG, "Looping sound: resourceId=$resourceId")
+                        } catch (e: Exception) {
+                            AppLog.e(TAG, "Error looping sound: resourceId=$resourceId", e)
+                        }
+                    } else {
                         release()
                         mediaPlayer = null
                     }
                 }
-                start()
+                
+                // Start playback when prepared
+                setOnPreparedListener { mp ->
+                    mp.start()
+                    AppLog.d(TAG, "Started long sound: resourceId=$resourceId, volume=$volume, looping=$looping, audioSessionId=${mp.audioSessionId}")
+                }
+                
+                // Handle errors
+                setOnErrorListener { mp, what, extra ->
+                    AppLog.e(TAG, "MediaPlayer error: what=$what, extra=$extra, resourceId=$resourceId")
+                    false // Return false to trigger OnCompletionListener
+                }
             }
             
-            AppLog.d(TAG, "Playing long sound: resourceId=$resourceId, volume=$volume, looping=$looping")
+            AppLog.d(TAG, "Preparing long sound: resourceId=$resourceId, volume=$volume, looping=$looping")
         } catch (e: Exception) {
             AppLog.e(TAG, "Error playing long sound: resourceId=$resourceId", e)
         }
@@ -127,12 +166,49 @@ class SoundManager(private val context: Context) {
      */
     fun stopLongSound() {
         mediaPlayer?.apply {
-            if (isPlaying) {
-                stop()
+            try {
+                // Clear completion listener to prevent any loop attempts during shutdown
+                setOnCompletionListener(null)
+                
+                if (isPlaying) {
+                    stop()
+                }
+                reset()
+                release()
+                AppLog.d(TAG, "Long sound stopped and released")
+            } catch (e: Exception) {
+                AppLog.e(TAG, "Error stopping long sound", e)
             }
-            release()
         }
         mediaPlayer = null
+    }
+    
+    /**
+     * Set the playback speed/rate for the currently playing long sound.
+     * @param rate Playback rate (0.5 = half speed, 1.0 = normal, 2.0 = double speed)
+     *             Range: 0.5 to 2.0
+     */
+    fun setPlaybackRate(rate: Float) {
+        try {
+            mediaPlayer?.let { player ->
+                if (player.isPlaying) {
+                    val clampedRate = rate.coerceIn(0.5f, 2.0f)
+                    player.playbackParams = player.playbackParams.setSpeed(clampedRate)
+                    AppLog.d(TAG, "Playback rate set to: $clampedRate")
+                } else {
+                    AppLog.w(TAG, "Cannot set playback rate: MediaPlayer not playing")
+                }
+            } ?: AppLog.w(TAG, "Cannot set playback rate: MediaPlayer is null")
+        } catch (e: Exception) {
+            AppLog.e(TAG, "Error setting playback rate: $rate", e)
+        }
+    }
+    
+    /**
+     * Check if a long sound is currently playing
+     */
+    fun isLongSoundPlaying(): Boolean {
+        return mediaPlayer?.isPlaying ?: false
     }
     
     /**

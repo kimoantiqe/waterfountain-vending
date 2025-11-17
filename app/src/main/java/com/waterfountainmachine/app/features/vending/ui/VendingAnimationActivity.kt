@@ -87,7 +87,8 @@ class VendingAnimationActivity : AppCompatActivity() {
         
         // Initialize sound manager
         soundManager = SoundManager(this)
-        soundManager.loadSound(R.raw.vend)
+        soundManager.loadSound(R.raw.fireworks)
+        soundManager.loadSound(R.raw.loading)
 
         // Setup ViewModel observers
         setupViewModelObservers()
@@ -180,24 +181,40 @@ class VendingAnimationActivity : AppCompatActivity() {
             delay(WaterFountainConfig.ANIMATION_FADE_IN_DELAY_MS)
             fadeInElements()
 
-            // Phase 2: Start ring progress (1-7s)
+            // Phase 2: Start ring progress AND start loading sound (1s)
             delay(WaterFountainConfig.ANIMATION_PROGRESS_START_DELAY_MS - WaterFountainConfig.ANIMATION_FADE_IN_DELAY_MS)
-            binding.progressRing.animateProgress(WaterFountainConfig.ANIMATION_PROGRESS_DURATION_MS)
+            
+            // Start the loading sound (NOT looping - you'll provide perfectly looped 15s file)
+            soundManager.playLongSound(R.raw.loading, volume = 0.6f, looping = false)
+            
+            // Start ring animation - 15 seconds total
+            val ringDuration = 15000L
+            binding.progressRing.animateProgress(ringDuration)
 
-            // Phase 3: Ring completion snap (7s)
-            delay(WaterFountainConfig.ANIMATION_RING_COMPLETION_DELAY_MS - WaterFountainConfig.ANIMATION_PROGRESS_START_DELAY_MS)
+            // Phase 3: Ring completion at 15s mark
+            delay(ringDuration)
+            
+            // Stop loading sound (should be finished by now anyway)
+            soundManager.stopLongSound()
+            
+            // Start fireworks.mp3 (this is the sync point!)
+            soundManager.playLongSound(R.raw.fireworks, volume = 0.8f, looping = false)
+            
+            // Fireworks Timeline:
+            // 0:00-0:02 = Ring snap animation (15s-17s total)
             ringCompletionSnap()
-
-            // Phase 4: Morph to logo (7.5-8.5s)
-            delay(WaterFountainConfig.ANIMATION_MORPH_TO_LOGO_DELAY_MS - WaterFountainConfig.ANIMATION_RING_COMPLETION_DELAY_MS)
             morphToLogo()
 
-            // Phase 5: Show completion text + confetti (8.5-9.5s)
-            delay(WaterFountainConfig.ANIMATION_SHOW_COMPLETION_DELAY_MS - WaterFountainConfig.ANIMATION_MORPH_TO_LOGO_DELAY_MS)
+            // Phase 4: 0:02-0:04 into fireworks = Logo fully visible (17s-19s total)
+            delay(2000L)
+            // Logo is already showing from morphToLogo, this is just a timing marker
+
+            // Phase 5: 0:04 into fireworks = Confetti starts (19s total)
+            delay(2000L) // 2 more seconds (4s into fireworks)
             showCompletion()
 
-            // Phase 6: Return to main screen (12s)
-            delay(WaterFountainConfig.ANIMATION_RETURN_TO_MAIN_DELAY_MS - WaterFountainConfig.ANIMATION_SHOW_COMPLETION_DELAY_MS)
+            // Phase 6: Wait for fireworks to finish, then return to main (21s+ total)
+            delay(5000L) // Wait 5 more seconds after confetti (gives 9s total for fireworks)
             returnToMainScreen()
         }
     }
@@ -282,8 +299,7 @@ class VendingAnimationActivity : AppCompatActivity() {
     }
 
     private fun showCompletion() {
-        // Play vend sound
-        soundManager.playSound(R.raw.vend, 0.8f)
+        // Fireworks sound is already playing, just show the visuals
         
         // Dramatic logo pulse with glow effect, then shrink significantly
         val scaleX = ObjectAnimator.ofFloat(binding.logoImage, "scaleX", 1f, 1.15f, 1.05f, 1f, 0.85f, 0.7f)
@@ -442,6 +458,9 @@ class VendingAnimationActivity : AppCompatActivity() {
         // Clean up callbacks when activity is paused to prevent memory leaks
         binding.logoImage.removeCallbacks(logoDelayedRunnable)
         binding.root.removeCallbacks(confettiDelayedRunnable)
+        
+        // Stop loading sound if playing
+        soundManager.stopLongSound()
     }
     
     override fun onDestroy() {
@@ -449,7 +468,7 @@ class VendingAnimationActivity : AppCompatActivity() {
         binding.logoImage.removeCallbacks(logoDelayedRunnable)
         binding.root.removeCallbacks(confettiDelayedRunnable)
         
-        // Clean up sound manager
+        // Clean up sound manager (this will also stop any playing sounds)
         soundManager.release()
         
         super.onDestroy()

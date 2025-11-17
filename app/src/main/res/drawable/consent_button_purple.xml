@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    
+    <!-- Disabled state -->
+    <item android:state_enabled="false">
+        <layer-list>
+            <item>
+                <shape android:shape="rectangle">
+                    <corners android:radius="20dp"/>
+                    <solid android:color="#40555555"/>
+                </shape>
+            </item>
+            <item android:top="1dp" android:bottom="999dp">
+                <shape android:shape="rectangle">
+                    <corners android:topLeftRadius="20dp" android:topRightRadius="20dp"/>
+                    <solid android:color="#10FFFFFF"/>
+                </shape>
+            </item>
+        </layer-list>
+    </item>
+
+    <!-- Pressed state - darker purple -->
+    <item android:state_pressed="true">
+        <layer-list>
+            <!-- Base darker purple -->
+            <item>
+                <shape android:shape="rectangle">
+                    <corners android:radius="20dp"/>
+                    <solid android:color="#7B6B98"/>
+                </shape>
+            </item>
+            <!-- Top highlight -->
+            <item android:top="1dp" android:bottom="999dp">
+                <shape android:shape="rectangle">
+                    <corners android:topLeftRadius="20dp" android:topRightRadius="20dp"/>
+                    <solid android:color="#20FFFFFF"/>
+                </shape>
+            </item>
+        </layer-list>
+    </item>
+
+    <!-- Normal state - solid purple -->
+    <item>
+        <layer-list>
+            <!-- Base solid purple -->
+            <item>
+                <shape android:shape="rectangle">
+                    <corners android:radius="20dp"/>
+                    <solid android:color="#8B7BA8"/>
+                </shape>
+            </item>
+            <!-- Top highlight for glass effect -->
+            <item android:top="1dp" android:bottom="999dp">
+                <shape android:shape="rectangle">
+                    <corners android:topLeftRadius="20dp" android:topRightRadius="20dp"/>
+                    <solid android:color="#25FFFFFF"/>
+                </shape>
+            </item>
+        </layer-list>
+    </item>
+    
+</selector>

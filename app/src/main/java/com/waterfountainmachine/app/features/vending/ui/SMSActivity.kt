@@ -6,6 +6,7 @@ import android.content.Intent
 import android.os.Bundle
 import android.view.View
 import android.view.animation.AccelerateDecelerateInterpolator
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.waterfountainmachine.app.R
@@ -62,6 +63,7 @@ class SMSActivity : AppCompatActivity() {
         soundManager = SoundManager(this)
         soundManager.loadSound(R.raw.click)
         soundManager.loadSound(R.raw.correct)
+        soundManager.loadSound(R.raw.questionmark)
         
         // Initialize inactivity timer FIRST (needed by observers)
         inactivityTimer = InactivityTimer(WaterFountainConfig.INACTIVITY_TIMEOUT_MS) { returnToMainScreen() }
@@ -194,7 +196,7 @@ class SMSActivity : AppCompatActivity() {
                 return@setOnClickListener
             }
             
-            soundManager.playSound(R.raw.click, 0.6f)
+            soundManager.playSound(R.raw.questionmark, 0.6f)
             inactivityTimer.reset()
             
             // Disable clicking temporarily
@@ -355,6 +357,55 @@ class SMSActivity : AppCompatActivity() {
             inactivityTimer.reset()
             viewModel.togglePhoneVisibility()
         }
+    }
+
+    /**
+     * Show beautiful custom consent dialog before sending verification code
+     */
+    private fun showConsentDialogAndSendCode() {
+        // Inflate custom layout
+        val dialogView = layoutInflater.inflate(R.layout.dialog_consent, null)
+        
+        // Create dialog with custom view
+        val dialog = AlertDialog.Builder(this)
+            .setView(dialogView)
+            .setCancelable(false) // Must explicitly choose
+            .create()
+        
+        // Make dialog background transparent so custom background shows
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+        
+        // Set up button listeners
+        val btnCancel = dialogView.findViewById<androidx.appcompat.widget.AppCompatButton>(R.id.btnCancel)
+        val btnAgree = dialogView.findViewById<androidx.appcompat.widget.AppCompatButton>(R.id.btnAgree)
+        
+        btnCancel.setOnClickListener {
+            soundManager.playSound(R.raw.click, 0.5f)
+            dialog.dismiss()
+            // User stays on phone entry screen
+        }
+        
+        btnAgree.setOnClickListener {
+            dialog.dismiss()
+            performButtonAnimation(binding.verifyButton) {
+                sendCodeAndNavigate()
+            }
+        }
+        
+        // Show dialog with fade-in animation
+        dialog.show()
+        
+        // Animate dialog entrance
+        dialogView.alpha = 0f
+        dialogView.scaleX = 0.9f
+        dialogView.scaleY = 0.9f
+        dialogView.animate()
+            .alpha(1f)
+            .scaleX(1f)
+            .scaleY(1f)
+            .setDuration(250)
+            .setInterpolator(AccelerateDecelerateInterpolator())
+            .start()
     }
 
     /**
@@ -601,14 +652,13 @@ class SMSActivity : AppCompatActivity() {
     }
 
     private fun setupKeypadListeners() {
-        // Set up send code button listener - show hint if incomplete
+        // Set up send code button listener - show consent popup if complete
         binding.verifyButton.setOnClickListener {
             inactivityTimer.reset()
             
             if (viewModel.phoneNumber.value.length == WaterFountainConfig.MAX_PHONE_LENGTH) {
-                performButtonAnimation(binding.verifyButton) {
-                    sendCodeAndNavigate()
-                }
+                // Show consent dialog BEFORE sending code
+                showConsentDialogAndSendCode()
             } else {
                 // Show hint that number is incomplete
                 showIncompleteNumberHint()

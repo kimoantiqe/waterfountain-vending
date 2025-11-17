@@ -73,6 +73,7 @@ class MainActivity : AppCompatActivity() {
         soundManager = SoundManager(this)
         // Pre-load sounds for instant playback
         soundManager.loadSound(R.raw.click)
+        soundManager.loadSound(R.raw.start)
         AppLog.i(TAG, "SoundManager initialized and sounds loaded")
     }
     
@@ -130,6 +131,9 @@ class MainActivity : AppCompatActivity() {
             // Only navigate if not already navigating
             if (!isNavigating) {
                 AppLog.d(TAG, "Screen tapped, launching SMSActivity")
+                
+                // Play start sound
+                soundManager.playSound(R.raw.start, volume = 1.0f)
                 
                 isNavigating = true
                 performPressAnimation {

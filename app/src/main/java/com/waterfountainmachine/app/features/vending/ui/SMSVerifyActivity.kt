@@ -79,6 +79,7 @@ class SMSVerifyActivity : AppCompatActivity() {
         soundManager = SoundManager(this)
         soundManager.loadSound(R.raw.click)
         soundManager.loadSound(R.raw.correct)
+        soundManager.loadSound(R.raw.questionmark)
         
         initializeViews()
         setupKeypadListeners()
@@ -214,7 +215,7 @@ class SMSVerifyActivity : AppCompatActivity() {
                 return@setOnClickListener
             }
             
-            soundManager.playSound(R.raw.click, 0.6f)
+            soundManager.playSound(R.raw.questionmark, 0.6f)
             inactivityTimer.reset()
             
             // Disable clicking temporarily
@@ -887,10 +888,18 @@ class SMSVerifyActivity : AppCompatActivity() {
     private fun updateTimerDisplay(timeRemaining: Int) {
         val minutes = timeRemaining / 60
         val seconds = timeRemaining % 60
-        binding.resendCodeButton.text = String.format("Resend Code (%d:%02d)", minutes, seconds)
         
-        // Disable button while timer is running
-        binding.resendCodeButton.isEnabled = timeRemaining == 0
+        if (timeRemaining > 0) {
+            // Show timer, hide resend button
+            binding.timerLayout.visibility = View.VISIBLE
+            binding.resendCodeButton.visibility = View.GONE
+            binding.timerText.text = String.format("%d:%02d", minutes, seconds)
+        } else {
+            // Hide timer, show resend button
+            binding.timerLayout.visibility = View.GONE
+            binding.resendCodeButton.visibility = View.VISIBLE
+            binding.resendCodeButton.isEnabled = true
+        }
     }
 
     /**

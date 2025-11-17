@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    
+    <!-- Disabled state -->
+    <item android:state_enabled="false">
+        <layer-list>
+            <item>
+                <shape android:shape="rectangle">
+                    <corners android:radius="20dp"/>
+                    <solid android:color="#40000000"/>
+                    <stroke android:width="2dp" android:color="#40555555"/>
+                </shape>
+            </item>
+            <item android:top="1dp" android:bottom="999dp">
+                <shape android:shape="rectangle">
+                    <corners android:topLeftRadius="20dp" android:topRightRadius="20dp"/>
+                    <solid android:color="#10FFFFFF"/>
+                </shape>
+            </item>
+        </layer-list>
+    </item>
+
+    <!-- Pressed state - enhanced purple glow -->
+    <item android:state_pressed="true">
+        <layer-list>
+            <!-- Outer purple glow -->
+            <item android:left="-4dp" android:top="-4dp" android:right="-4dp" android:bottom="-4dp">
+                <shape android:shape="rectangle">
+                    <corners android:radius="24dp"/>
+                    <solid android:color="#40AFA0EE"/>
+                </shape>
+            </item>
+            <item android:left="-2dp" android:top="-2dp" android:right="-2dp" android:bottom="-2dp">
+                <shape android:shape="rectangle">
+                    <corners android:radius="22dp"/>
+                    <solid android:color="#50C4B5F2"/>
+                </shape>
+            </item>
+            <!-- Base glass with purple tint -->
+            <item>
+                <shape android:shape="rectangle">
+                    <corners android:radius="20dp"/>
+                    <solid android:color="#90FFFFFF"/>
+                    <stroke android:width="2dp" android:color="#C0C4B5F2"/>
+                </shape>
+            </item>
+            <!-- Top highlight -->
+            <item android:top="1dp" android:bottom="999dp">
+                <shape android:shape="rectangle">
+                    <corners android:topLeftRadius="20dp" android:topRightRadius="20dp"/>
+                    <solid android:color="#30FFFFFF"/>
+                </shape>
+            </item>
+        </layer-list>
+    </item>
+
+    <!-- Normal state - purple tinted glass -->
+    <item>
+        <layer-list>
+            <!-- Subtle purple shadow -->
+            <item android:left="-1dp" android:top="-1dp" android:right="-1dp" android:bottom="-1dp">
+                <shape android:shape="rectangle">
+                    <corners android:radius="21dp"/>
+                    <solid android:color="#20AFA0EE"/>
+                </shape>
+            </item>
+            <!-- Base purple-tinted glass -->
+            <item>
+                <shape android:shape="rectangle">
+                    <corners android:radius="20dp"/>
+                    <solid android:color="#85FFFFFF"/>
+                    <stroke android:width="2dp" android:color="#80AFA0EE"/>
+                </shape>
+            </item>
+            <!-- Top highlight -->
+            <item android:top="1dp" android:bottom="999dp">
+                <shape android:shape="rectangle">
+                    <corners android:topLeftRadius="20dp" android:topRightRadius="20dp"/>
+                    <solid android:color="#25FFFFFF"/>
+                </shape>
+            </item>
+        </layer-list>
+    </item>
+    
+</selector>

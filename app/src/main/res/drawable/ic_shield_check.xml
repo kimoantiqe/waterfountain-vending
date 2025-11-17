@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="100dp"
+    android:height="100dp"
+    android:viewportWidth="100"
+    android:viewportHeight="100">
+    
+    <!-- Shield outline with gradient (placeholder) -->
+    <path
+        android:pathData="M50,10 L50,10 C30,15 20,20 20,40 C20,60 35,75 50,90 C65,75 80,60 80,40 C80,20 70,15 50,10 Z"
+        android:strokeWidth="3"
+        android:strokeColor="#4A90E2"
+        android:fillColor="#E8F4FD" />
+    
+    <!-- Checkmark -->
+    <path
+        android:pathData="M35,50 L45,60 L65,35"
+        android:strokeWidth="5"
+        android:strokeColor="#50C878"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:fillColor="@android:color/transparent" />
+    
+</vector>
