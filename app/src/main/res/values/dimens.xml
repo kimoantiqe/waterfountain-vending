@@ -61,10 +61,10 @@
     <dimen name="action_button_text_size">32sp</dimen>
     <dimen name="action_button_margin">12dp</dimen>
     
-    <!-- Question Mark Button -->
-    <dimen name="question_button_size">160dp</dimen>
+    <!-- Question Mark Button (doubled in size) -->
+    <dimen name="question_button_size">200dp</dimen>
     <dimen name="question_button_bottom_margin">90dp</dimen>
-    <dimen name="question_icon_size">64sp</dimen>
+    <dimen name="question_icon_size">128sp</dimen>
     
     <!-- Modal -->
     <dimen name="modal_width">650dp</dimen>

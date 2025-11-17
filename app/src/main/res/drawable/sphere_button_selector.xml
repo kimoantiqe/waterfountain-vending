@@ -1,11 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Pressed state - lights up -->
-    <item android:state_pressed="true" android:drawable="@drawable/sphere_background_pressed" />
+    <!-- Pressed state - slightly darker/scaled -->
+    <item android:state_pressed="true">
+        <bitmap
+            android:src="@drawable/question_sphere"
+            android:alpha="0.8"
+            android:gravity="center" />
+    </item>
     
-    <!-- Focused state - lights up when navigated with keyboard/remote -->
-    <item android:state_focused="true" android:drawable="@drawable/sphere_background_pressed" />
+    <!-- Focused state - slightly darker/scaled when navigated with keyboard/remote -->
+    <item android:state_focused="true">
+        <bitmap
+            android:src="@drawable/question_sphere"
+            android:alpha="0.8"
+            android:gravity="center" />
+    </item>
     
-    <!-- Default state - normal sphere -->
-    <item android:drawable="@drawable/sphere_background" />
+    <!-- Default state - PNG sphere -->
+    <item>
+        <bitmap
+            android:src="@drawable/question_sphere"
+            android:gravity="center" />
+    </item>
 </selector>
