@@ -13,6 +13,7 @@ import com.waterfountainmachine.app.databinding.FragmentCertificateStatusBinding
 import com.waterfountainmachine.app.security.SecurityModule
 import com.waterfountainmachine.app.setup.CertificateSetupActivity
 import com.waterfountainmachine.app.utils.AppLog
+import com.waterfountainmachine.app.utils.AdminDebugConfig
 import com.waterfountainmachine.app.config.ApiEnvironment
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -154,13 +155,13 @@ class CertificateStatusFragment : Fragment() {
     }
     
     private fun startEnrollment() {
-        AppLog.d(TAG, "Starting enrollment process")
+        AdminDebugConfig.logAdmin(requireContext(), TAG, "Starting enrollment process")
         val intent = Intent(requireContext(), CertificateSetupActivity::class.java)
         startActivity(intent)
     }
     
     private fun testConnection() {
-        AppLog.d(TAG, "Testing API connection with certificate")
+        AdminDebugConfig.logAdmin(requireContext(), TAG, "Testing API connection with certificate")
         
         if (!SecurityModule.isEnrolled()) {
             AlertDialog.Builder(requireContext())
@@ -237,7 +238,7 @@ class CertificateStatusFragment : Fragment() {
             val baseUrl = ApiEnvironment.getCurrent().baseUrl
             val healthEndpoint = "$baseUrl/api/v1/health"
             
-            AppLog.d(TAG, "Testing connection to: $healthEndpoint")
+            AdminDebugConfig.logAdmin(requireContext(), TAG, "Testing connection to: $healthEndpoint")
             
             // Build HTTP client with certificate authentication
             val sslContext = SecurityModule.getSslContext()
@@ -260,7 +261,7 @@ class CertificateStatusFragment : Fragment() {
             response.use {
                 when {
                     statusCode in 200..299 -> {
-                        AppLog.i(TAG, "✓ Connection test successful: $statusCode in ${responseTime}ms")
+                        AdminDebugConfig.logAdminInfo(requireContext(), TAG, "✓ Connection test successful: $statusCode in ${responseTime}ms")
                         ConnectionTestResult(
                             success = true,
                             endpoint = healthEndpoint,
@@ -270,7 +271,7 @@ class CertificateStatusFragment : Fragment() {
                         )
                     }
                     statusCode == 401 -> {
-                        AppLog.w(TAG, "✗ Connection test failed: Unauthorized (certificate issue)")
+                        AdminDebugConfig.logAdminWarning(requireContext(), TAG, "✗ Connection test failed: Unauthorized (certificate issue)")
                         ConnectionTestResult(
                             success = false,
                             endpoint = healthEndpoint,
@@ -280,7 +281,7 @@ class CertificateStatusFragment : Fragment() {
                         )
                     }
                     else -> {
-                        AppLog.w(TAG, "✗ Connection test failed: HTTP $statusCode")
+                        AdminDebugConfig.logAdminWarning(requireContext(), TAG, "✗ Connection test failed: HTTP $statusCode")
                         ConnectionTestResult(
                             success = false,
                             endpoint = healthEndpoint,
@@ -353,7 +354,7 @@ class CertificateStatusFragment : Fragment() {
     }
     
     private fun performReenrollment() {
-        AppLog.d(TAG, "Performing re-enrollment")
+        AdminDebugConfig.logAdmin(requireContext(), TAG, "Performing re-enrollment")
         
         // Delete existing certificate
         SecurityModule.unenroll()
@@ -378,7 +379,7 @@ class CertificateStatusFragment : Fragment() {
     }
     
     private fun performUnenrollment() {
-        AppLog.d(TAG, "Performing unenrollment")
+        AdminDebugConfig.logAdmin(requireContext(), TAG, "Performing unenrollment")
         
         try {
             SecurityModule.unenroll()

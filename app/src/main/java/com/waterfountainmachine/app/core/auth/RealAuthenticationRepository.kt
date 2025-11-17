@@ -75,11 +75,23 @@ class RealAuthenticationRepository(
                 .call(authenticatedData)
                 .await()
             
-            AppLog.i(TAG, "OTP request successful")
+            // Extract response data
+            val responseData = result.data as? Map<*, *>
+            val success = responseData?.get("success") as? Boolean ?: false
+            val message = responseData?.get("message") as? String ?: "OTP sent"
+            
+            if (!success) {
+                AppLog.w(TAG, "OTP request returned success=false: $message")
+                return Result.failure(
+                    AuthenticationException.NetworkError("Failed to send OTP: $message")
+                )
+            }
+            
+            AppLog.i(TAG, "OTP request successful: $message")
             Result.success(
                 OtpRequestResponse(
                     success = true,
-                    message = "OTP sent successfully"
+                    message = message
                 )
             )
         } catch (e: FirebaseFunctionsException) {
@@ -122,17 +134,31 @@ class RealAuthenticationRepository(
             )
             
             // Call Firebase Function with 30-second timeout
-            functions
+            val result = functions
                 .getHttpsCallable(VERIFY_OTP_ENDPOINT)
                 .withTimeout(FUNCTION_TIMEOUT_MS, java.util.concurrent.TimeUnit.MILLISECONDS)
                 .call(authenticatedData)
                 .await()
             
-            AppLog.i(TAG, "OTP verification successful")
+            // Extract response data
+            val responseData = result.data as? Map<*, *>
+            val success = responseData?.get("success") as? Boolean ?: false
+            val message = responseData?.get("message") as? String ?: "OTP verified"
+            val sessionToken = responseData?.get("sessionToken") as? String
+            
+            if (!success) {
+                AppLog.w(TAG, "OTP verification returned success=false: $message")
+                return Result.failure(
+                    AuthenticationException.InvalidOtpError("Invalid OTP: $message")
+                )
+            }
+            
+            AppLog.i(TAG, "OTP verification successful: $message")
             Result.success(
                 OtpVerifyResponse(
                     success = true,
-                    message = "OTP verified successfully"
+                    message = message,
+                    sessionToken = sessionToken
                 )
             )
         } catch (e: FirebaseFunctionsException) {

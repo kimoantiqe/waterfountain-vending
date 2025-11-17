@@ -15,6 +15,7 @@ import com.waterfountainmachine.app.admin.adapters.LogEntryAdapter
 import com.waterfountainmachine.app.admin.models.LogEntry
 import com.waterfountainmachine.app.utils.LogCollector
 import com.waterfountainmachine.app.utils.AppLog
+import com.waterfountainmachine.app.utils.AdminDebugConfig
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 import java.io.File
@@ -166,7 +167,7 @@ class LogsFragment : Fragment() {
                 logsAdapter.submitList(emptyList())
                 binding.logStatusText.text = "Logs cleared"
                 binding.logCountText.text = "0 entries"
-                AppLog.i("LogsFragment", "All logs cleared")
+                AdminDebugConfig.logAdminInfo(requireContext(), "LogsFragment", "All logs cleared")
                 
             } catch (e: Exception) {
                 binding.logStatusText.text = "Error clearing logs: ${e.message}"
@@ -182,9 +183,9 @@ class LogsFragment : Fragment() {
                 
                 if (file != null) {
                     shareLogFile(file)
-                    AppLog.i("LogsFragment", "Logs exported successfully")
+                    AdminDebugConfig.logAdminInfo(requireContext(), "LogsFragment", "Logs exported successfully")
                 } else {
-                    AppLog.w("LogsFragment", "Failed to export logs")
+                    AdminDebugConfig.logAdminWarning(requireContext(), "LogsFragment", "Failed to export logs")
                 }
                 
             } catch (e: Exception) {

@@ -82,10 +82,10 @@ dependencies {
     implementation("com.google.android.material:material:1.11.0")
     
     // Security - for EncryptedSharedPreferences
-    implementation("androidx.security:security-crypto:1.1.0-alpha06")
+    implementation("androidx.security:security-crypto:1.1.0") // Updated from alpha06 to stable
     
     // Firebase - for backend integration
-    implementation(platform("com.google.firebase:firebase-bom:32.7.0"))
+    implementation(platform("com.google.firebase:firebase-bom:32.7.0")) // Keeping stable version for compatibility
     implementation("com.google.firebase:firebase-functions-ktx")
     implementation("com.google.firebase:firebase-auth-ktx")
     implementation("com.google.firebase:firebase-appcheck-debug:17.1.1")

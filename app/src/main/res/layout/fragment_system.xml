@@ -112,7 +112,7 @@
                         android:textColor="@color/white_70"
                         android:textSize="14sp" />
 
-                    <Switch
+                    <androidx.appcompat.widget.SwitchCompat
                         android:id="@+id/kioskModeToggle"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content" />
@@ -140,7 +140,7 @@
                             android:textColor="@color/white_70"
                             android:textSize="14sp" />
 
-                        <Switch
+                        <androidx.appcompat.widget.SwitchCompat
                             android:id="@+id/apiModeToggle"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content" />
@@ -172,7 +172,7 @@
                         android:textColor="@color/white_70"
                         android:textSize="14sp" />
 
-                    <Switch
+                    <androidx.appcompat.widget.SwitchCompat
                         android:id="@+id/demoModeToggle"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content" />
@@ -194,8 +194,31 @@
                         android:textColor="@color/white_70"
                         android:textSize="14sp" />
 
-                    <Switch
+                    <androidx.appcompat.widget.SwitchCompat
                         android:id="@+id/debugModeToggle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" />
+
+                </LinearLayout>
+
+                <!-- Admin Logging Toggle -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="12dp">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Admin Logging (Auto-disables in 1h)"
+                        android:textColor="@color/white_70"
+                        android:textSize="14sp" />
+
+                    <androidx.appcompat.widget.SwitchCompat
+                        android:id="@+id/adminLoggingToggle"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content" />
 
@@ -216,7 +239,7 @@
                         android:textColor="@color/white_70"
                         android:textSize="14sp" />
 
-                    <Switch
+                    <androidx.appcompat.widget.SwitchCompat
                         android:id="@+id/maintenanceModeToggle"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content" />
@@ -237,7 +260,7 @@
                         android:textColor="@color/white_70"
                         android:textSize="14sp" />
 
-                    <Switch
+                    <androidx.appcompat.widget.SwitchCompat
                         android:id="@+id/hardwareModeToggle"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content" />

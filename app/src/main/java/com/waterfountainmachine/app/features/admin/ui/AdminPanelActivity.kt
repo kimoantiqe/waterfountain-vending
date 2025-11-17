@@ -9,24 +9,42 @@ import androidx.fragment.app.Fragment
 import com.waterfountainmachine.app.R
 import com.waterfountainmachine.app.admin.fragments.*
 import com.waterfountainmachine.app.databinding.ActivityAdminPanelBinding
+import com.waterfountainmachine.app.utils.AppLog
 import com.waterfountainmachine.app.utils.FullScreenUtils
 import com.waterfountainmachine.app.utils.HardwareKeyHandler
+import com.waterfountainmachine.app.utils.InactivityTimer
 
 class AdminPanelActivity : AppCompatActivity() {
     
     private lateinit var binding: ActivityAdminPanelBinding
+    private lateinit var inactivityTimer: InactivityTimer
     private var currentFragment: Fragment? = null
+    
+    companion object {
+        private const val TAG = "AdminPanelActivity"
+        private const val ADMIN_PANEL_TIMEOUT_MS = 5 * 60 * 1000L // 5 minutes for admin panel
+    }
     
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityAdminPanelBinding.inflate(layoutInflater)
         setContentView(binding.root)
         
+        // Initialize inactivity timer with 5-minute timeout
+        inactivityTimer = InactivityTimer(ADMIN_PANEL_TIMEOUT_MS) {
+            AppLog.w(TAG, "Admin panel timeout - closing")
+            finish()
+        }
+        
         setupFullScreen()
         setupNavigation()
         
         // Start with certificate status
         navigateToFragment(CertificateStatusFragment(), "Certificate Status")
+        
+        // Start inactivity timer
+        inactivityTimer.start()
+        AppLog.d(TAG, "Admin panel started with ${ADMIN_PANEL_TIMEOUT_MS/1000}s timeout")
     }
     
     private fun setupFullScreen() {
@@ -87,6 +105,26 @@ class AdminPanelActivity : AppCompatActivity() {
         // Highlight selected button
         selectedButton.isSelected = true
         selectedButton.alpha = 1.0f
+    }
+    
+    override fun onUserInteraction() {
+        super.onUserInteraction()
+        inactivityTimer.reset()
+    }
+    
+    override fun onPause() {
+        super.onPause()
+        inactivityTimer.pause()
+    }
+    
+    override fun onResume() {
+        super.onResume()
+        inactivityTimer.resume()
+    }
+    
+    override fun onDestroy() {
+        super.onDestroy()
+        inactivityTimer.cancel()
     }
     
     override fun onBackPressed() {

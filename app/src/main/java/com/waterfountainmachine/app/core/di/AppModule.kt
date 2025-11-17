@@ -42,8 +42,7 @@ object AppModule {
     @Provides
     @Singleton
     fun provideWaterFountainManager(
-        @ApplicationContext context: Context,
-        config: WaterFountainConfig
+        @ApplicationContext context: Context
     ): WaterFountainManager {
         return WaterFountainManager.getInstance(context)
     }

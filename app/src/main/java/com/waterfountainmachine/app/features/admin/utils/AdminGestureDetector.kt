@@ -6,6 +6,7 @@ import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.View
 import com.waterfountainmachine.app.utils.AppLog
+import com.waterfountainmachine.app.utils.AdminDebugConfig
 
 /**
  * Utility class to detect secret admin access triggers:
@@ -78,16 +79,16 @@ class AdminGestureDetector(
             val currentTime = System.currentTimeMillis()
             val timeSinceLastPress = currentTime - lastKeyPressTime
             
-            AppLog.d(TAG, "Enter key ACTION_DOWN received (time since last: ${timeSinceLastPress}ms)")
+            AdminDebugConfig.logAdmin(context, TAG, "Enter key ACTION_DOWN received (time since last: ${timeSinceLastPress}ms)")
             
             // Check if this is within the rapid-press window
             if (lastKeyPressTime > 0 && timeSinceLastPress < keyPressTimeout) {
                 keyPressCount++
-                AppLog.d(TAG, "Rapid press detected! Count: $keyPressCount/$requiredKeyPresses (within ${timeSinceLastPress}ms)")
+                AdminDebugConfig.logAdmin(context, TAG, "Rapid press detected! Count: $keyPressCount/$requiredKeyPresses (within ${timeSinceLastPress}ms)")
                 
                 // Triple-press detected!
                 if (keyPressCount >= requiredKeyPresses) {
-                    AppLog.i(TAG, "*** ADMIN ACCESS TRIGGERED via USB keyboard! ***")
+                    AdminDebugConfig.logAdminInfo(context, TAG, "*** ADMIN ACCESS TRIGGERED via USB keyboard! ***")
                     onGestureDetected()
                     keyPressCount = 0 // Reset for next gesture
                     lastKeyPressTime = 0L
@@ -96,10 +97,10 @@ class AdminGestureDetector(
             } else {
                 // First press or timeout expired
                 if (lastKeyPressTime > 0) {
-                    AppLog.d(TAG, "Timeout expired (${timeSinceLastPress}ms > ${keyPressTimeout}ms), resetting counter")
+                    AdminDebugConfig.logAdmin(context, TAG, "Timeout expired (${timeSinceLastPress}ms > ${keyPressTimeout}ms), resetting counter")
                 }
                 keyPressCount = 1
-                AppLog.d(TAG, "Starting new sequence: 1/$requiredKeyPresses")
+                AdminDebugConfig.logAdmin(context, TAG, "Starting new sequence: 1/$requiredKeyPresses")
             }
             
             lastKeyPressTime = currentTime

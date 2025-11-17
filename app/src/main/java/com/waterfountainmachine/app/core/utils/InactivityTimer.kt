@@ -102,4 +102,12 @@ class InactivityTimer(
         handler.removeCallbacksAndMessages(null)
         isInCriticalState = false
     }
+    
+    /**
+     * Cancel the timer (alias for cleanup)
+     * For compatibility with different coding styles
+     */
+    fun cancel() {
+        cleanup()
+    }
 }

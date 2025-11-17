@@ -174,6 +174,7 @@ class ProgressRingView @JvmOverloads constructor(
             
             // Adjust gradient positions to map only to the drawn portion
             // The last color should appear at the end of the sweep, not wrap around
+            @Suppress("UNUSED_VARIABLE")
             val colors = intArrayOf(
                 Color.parseColor("#D8CFFF"),  // Light lavender at start (top of circle)
                 Color.parseColor("#C4B5F2"),  // Medium-light lavender

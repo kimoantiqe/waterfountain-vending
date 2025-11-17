@@ -8,11 +8,13 @@ import com.waterfountainmachine.app.databinding.ActivityAdminAuthBinding
 import com.waterfountainmachine.app.utils.AppLog
 import com.waterfountainmachine.app.utils.FullScreenUtils
 import com.waterfountainmachine.app.utils.HardwareKeyHandler
+import com.waterfountainmachine.app.utils.InactivityTimer
 import com.waterfountainmachine.app.config.WaterFountainConfig
 
 class AdminAuthActivity : AppCompatActivity() {
     
     private lateinit var binding: ActivityAdminAuthBinding
+    private lateinit var inactivityTimer: InactivityTimer
     private var pinCode = ""
     // PIN now stored as salted hash in EncryptedSharedPreferences
     // Managed by AdminPinManager for security
@@ -27,12 +29,19 @@ class AdminAuthActivity : AppCompatActivity() {
         private const val PREFS_NAME = "admin_auth_prefs"
         private const val KEY_FAILED_ATTEMPTS = "failed_attempts"
         private const val KEY_LOCKOUT_UNTIL = "lockout_until"
+        private const val ADMIN_TIMEOUT_MS = 60_000L // 60 seconds for admin auth
     }
     
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityAdminAuthBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        
+        // Initialize inactivity timer BEFORE other setup
+        inactivityTimer = InactivityTimer(ADMIN_TIMEOUT_MS) {
+            AppLog.w(TAG, "Admin auth timeout - returning to main screen")
+            returnToMainScreen()
+        }
         
         // Load rate limiting state from encrypted preferences
         loadRateLimitState()
@@ -43,6 +52,10 @@ class AdminAuthActivity : AppCompatActivity() {
         
         // Check if currently locked out
         checkLockoutStatus()
+        
+        // Start inactivity timer
+        inactivityTimer.start()
+        AppLog.d(TAG, "Admin auth activity started with ${ADMIN_TIMEOUT_MS/1000}s timeout")
     }
     
     /**
@@ -304,6 +317,30 @@ class AdminAuthActivity : AppCompatActivity() {
                 }, 1500)
             }
         }
+    }
+    
+    private fun returnToMainScreen() {
+        finish()
+    }
+    
+    override fun onUserInteraction() {
+        super.onUserInteraction()
+        inactivityTimer.reset()
+    }
+    
+    override fun onPause() {
+        super.onPause()
+        inactivityTimer.pause()
+    }
+    
+    override fun onResume() {
+        super.onResume()
+        inactivityTimer.resume()
+    }
+    
+    override fun onDestroy() {
+        super.onDestroy()
+        inactivityTimer.cancel()
     }
     
     override fun onBackPressed() {

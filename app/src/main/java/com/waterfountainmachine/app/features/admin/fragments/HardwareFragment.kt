@@ -9,6 +9,7 @@ import androidx.lifecycle.lifecycleScope
 import com.waterfountainmachine.app.databinding.FragmentHardwareBinding
 import com.waterfountainmachine.app.hardware.WaterFountainManager
 import com.waterfountainmachine.app.utils.AppLog
+import com.waterfountainmachine.app.utils.AdminDebugConfig
 import kotlinx.coroutines.launch
 
 class HardwareFragment : Fragment() {
@@ -147,10 +148,10 @@ class HardwareFragment : Fragment() {
                 val success = waterFountainManager.resetSlot(currentSlot)
                 
                 if (success) {
-                    AppLog.i(TAG, "Slot $currentSlot reset successfully")
+                    AdminDebugConfig.logAdminInfo(requireContext(), TAG, "Slot $currentSlot reset successfully")
                     updateSlotDisplay()
                 } else {
-                    AppLog.w(TAG, "Failed to reset slot $currentSlot")
+                    AdminDebugConfig.logAdminWarning(requireContext(), TAG, "Failed to reset slot $currentSlot")
                 }
             } catch (e: Exception) {
                 AppLog.e(TAG, "Error resetting slot: ${e.message}", e)
@@ -181,7 +182,7 @@ class HardwareFragment : Fragment() {
                 }
                 
                 binding.systemStatusText.text = "Reset complete: $successCount/10 slots"
-                AppLog.i(TAG, "Reset complete: $successCount/10 slots")
+                AdminDebugConfig.logAdminInfo(requireContext(), TAG, "Reset complete: $successCount/10 slots")
                 
                 updateSlotDisplay()
                 runInitialDiagnostics()
@@ -200,12 +201,12 @@ class HardwareFragment : Fragment() {
         
         // Check if system is connected first
         if (!waterFountainManager.isConnected()) {
-            AppLog.w(TAG, "Hardware not initialized - cannot test dispenser")
+            AdminDebugConfig.logAdminWarning(requireContext(), TAG, "Hardware not initialized - cannot test dispenser")
             binding.dispenserStatusText.text = "Hardware not ready"
             return
         }
         
-        AppLog.i(TAG, "Testing water dispenser on slot $currentSlot")
+        AdminDebugConfig.logAdminInfo(requireContext(), TAG, "Testing water dispenser on slot $currentSlot")
         isProcessing = true
         binding.dispenserStatusText.text = "Testing water dispenser slot $currentSlot..."
         binding.testDispenserButton.isEnabled = false
@@ -216,11 +217,11 @@ class HardwareFragment : Fragment() {
                 
                 binding.dispenserStatusText.text = if (success) {
                     binding.dispenserStatusIndicator.setBackgroundResource(android.R.drawable.presence_online)
-                    AppLog.i(TAG, "Dispenser test on slot $currentSlot: SUCCESS")
+                    AdminDebugConfig.logAdminInfo(requireContext(), TAG, "Dispenser test on slot $currentSlot: SUCCESS")
                     "✓ Dispenser test passed (slot $currentSlot)"
                 } else {
                     binding.dispenserStatusIndicator.setBackgroundResource(android.R.drawable.presence_busy)
-                    AppLog.w(TAG, "Dispenser test on slot $currentSlot: FAILED")
+                    AdminDebugConfig.logAdminWarning(requireContext(), TAG, "Dispenser test on slot $currentSlot: FAILED")
                     "✗ Dispenser test failed (slot $currentSlot)"
                 }
             } catch (e: Exception) {
@@ -238,7 +239,7 @@ class HardwareFragment : Fragment() {
         if (isProcessing) return
         
         if (!waterFountainManager.isConnected()) {
-            AppLog.w(TAG, "Hardware not initialized - attempting to initialize")
+            AdminDebugConfig.logAdminWarning(requireContext(), TAG, "Hardware not initialized - attempting to initialize")
             initializeHardware()
             return
         }
@@ -266,7 +267,7 @@ class HardwareFragment : Fragment() {
                     else android.R.drawable.presence_online
                 )
                 
-                AppLog.i(TAG, "Diagnostics complete")
+                AdminDebugConfig.logAdminInfo(requireContext(), TAG, "Diagnostics complete")
                 
             } catch (e: Exception) {
                 binding.systemStatusText.text = "Diagnostics failed: ${e.message}"

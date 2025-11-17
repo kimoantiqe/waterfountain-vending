@@ -10,6 +10,7 @@ import androidx.lifecycle.lifecycleScope
 import com.waterfountainmachine.app.R
 import com.waterfountainmachine.app.databinding.FragmentConnectionTestBinding
 import com.waterfountainmachine.app.utils.AppLog
+import com.waterfountainmachine.app.utils.AdminDebugConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -73,7 +74,7 @@ class HardwareConnectionFragment : Fragment() {
                 // Update UI - Testing state
                 updateUITesting()
                 
-                AppLog.d(TAG, "Starting connection test to $TEST_HOST:$TEST_PORT")
+                AdminDebugConfig.logAdmin(requireContext(), TAG, "Starting connection test to $TEST_HOST:$TEST_PORT")
                 
                 // Perform connection test
                 val startTime = System.currentTimeMillis()
@@ -85,10 +86,10 @@ class HardwareConnectionFragment : Fragment() {
                 // Update UI - Show result
                 if (result) {
                     updateUISuccess(latency)
-                    AppLog.i(TAG, "✅ Connection successful: ${latency}ms")
+                    AdminDebugConfig.logAdminInfo(requireContext(), TAG, "✅ Connection successful: ${latency}ms")
                 } else {
                     updateUIFailure()
-                    AppLog.w(TAG, "❌ Connection failed")
+                    AdminDebugConfig.logAdminWarning(requireContext(), TAG, "❌ Connection failed")
                 }
                 
             } catch (e: Exception) {
@@ -203,7 +204,7 @@ class HardwareConnectionFragment : Fragment() {
                 true
             }
         } catch (e: IOException) {
-            AppLog.d(TAG, "Connection test failed: ${e.message}")
+            AdminDebugConfig.logAdmin(requireContext(), TAG, "Connection test failed: ${e.message}")
             false
         }
     }

@@ -130,7 +130,6 @@ object SlotValidator {
         
         // Try to find slot in same "row" (tens digit)
         val row = slot / 10
-        val baseSlot = row * 10
         
         return when {
             slot in 1..8 -> slot.coerceIn(1, 8)

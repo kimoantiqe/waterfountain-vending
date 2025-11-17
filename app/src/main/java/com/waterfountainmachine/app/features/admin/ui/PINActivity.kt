@@ -1,5 +1,7 @@
 package com.waterfountainmachine.app.activities
 
+import android.app.Activity.OVERRIDE_TRANSITION_CLOSE
+import android.os.Build
 import android.os.Bundle
 import android.view.KeyEvent
 import androidx.activity.OnBackPressedCallback
@@ -45,12 +47,22 @@ class PINActivity : AppCompatActivity() {
 
     private fun returnToVendingScreen() {
         finish()
-        overrideActivityTransition(OVERRIDE_TRANSITION_CLOSE, android.R.anim.fade_in, android.R.anim.fade_out)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            overrideActivityTransition(OVERRIDE_TRANSITION_CLOSE, android.R.anim.fade_in, android.R.anim.fade_out)
+        } else {
+            @Suppress("DEPRECATION")
+            overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
+        }
     }
 
     private fun returnToMainScreen() {
         finish()
-        overrideActivityTransition(OVERRIDE_TRANSITION_CLOSE, android.R.anim.fade_in, android.R.anim.fade_out)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            overrideActivityTransition(OVERRIDE_TRANSITION_CLOSE, android.R.anim.fade_in, android.R.anim.fade_out)
+        } else {
+            @Suppress("DEPRECATION")
+            overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
+        }
     }
 
     override fun onUserInteraction() {

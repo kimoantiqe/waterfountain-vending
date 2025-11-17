@@ -2,6 +2,7 @@ package com.waterfountainmachine.app.admin
 
 import android.content.Context
 import com.waterfountainmachine.app.utils.AppLog
+import com.waterfountainmachine.app.utils.AdminDebugConfig
 import com.waterfountainmachine.app.utils.SecurePreferences
 import java.security.MessageDigest
 import java.security.SecureRandom
@@ -42,10 +43,10 @@ object AdminPinManager {
         
         // Check if PIN already configured
         if (!prefs.contains(PREF_PIN_HASH)) {
-            AppLog.i(TAG, "No admin PIN configured, setting default PIN")
+            AdminDebugConfig.logAdminInfo(context, TAG, "No admin PIN configured, setting default PIN")
             setPin(context, DEFAULT_PIN)
         } else {
-            AppLog.d(TAG, "Admin PIN already configured")
+            AdminDebugConfig.logAdmin(context, TAG, "Admin PIN already configured")
         }
     }
     
@@ -58,7 +59,7 @@ object AdminPinManager {
      */
     fun verifyPin(context: Context, pin: String): Boolean {
         try {
-            AppLog.d(TAG, "Verifying PIN of length: ${pin.length}")
+            AdminDebugConfig.logAdmin(context, TAG, "Verifying PIN of length: ${pin.length}")
             
             val prefs = SecurePreferences.getSystemSettings(context)
             
@@ -70,7 +71,7 @@ object AdminPinManager {
                 return false
             }
             
-            AppLog.d(TAG, "Found stored hash and salt")
+            AdminDebugConfig.logAdmin(context, TAG, "Found stored hash and salt")
             
             // Decode salt
             val salt = Base64.getDecoder().decode(storedSalt)
@@ -78,15 +79,15 @@ object AdminPinManager {
             // Hash the provided PIN with stored salt
             val providedHash = hashPin(pin, salt)
             
-            AppLog.d(TAG, "Generated hash for comparison")
+            AdminDebugConfig.logAdmin(context, TAG, "Generated hash for comparison")
             
             // Constant-time comparison to prevent timing attacks
             val result = constantTimeCompare(providedHash, storedHash)
             
             if (result) {
-                AppLog.i(TAG, "✅ PIN verification successful")
+                AdminDebugConfig.logAdminInfo(context, TAG, "✅ PIN verification successful")
             } else {
-                AppLog.w(TAG, "❌ PIN verification failed - incorrect PIN")
+                AppLog.w(TAG, "❌ PIN verification failed - incorrect PIN") // SECURITY: Always logged
             }
             
             return result
@@ -124,7 +125,7 @@ object AdminPinManager {
                 .putString(PREF_PIN_SALT, Base64.getEncoder().encodeToString(salt))
                 .apply()
             
-            AppLog.i(TAG, "Admin PIN updated successfully")
+            AdminDebugConfig.logAdminInfo(context, TAG, "Admin PIN updated successfully")
             return true
         } catch (e: Exception) {
             AppLog.e(TAG, "Error setting PIN", e)
@@ -144,13 +145,13 @@ object AdminPinManager {
         try {
             // Verify current PIN first
             if (!verifyPin(context, currentPin)) {
-                AppLog.w(TAG, "PIN change failed: Current PIN incorrect")
+                AppLog.w(TAG, "PIN change failed: Current PIN incorrect") // SECURITY: Always logged
                 return false
             }
             
             // Prevent setting PIN to same value
             if (currentPin == newPin) {
-                AppLog.w(TAG, "PIN change failed: New PIN same as current")
+                AppLog.w(TAG, "PIN change failed: New PIN same as current") // SECURITY: Always logged
                 return false
             }
             
@@ -158,7 +159,7 @@ object AdminPinManager {
             val success = setPin(context, newPin)
             
             if (success) {
-                AppLog.i(TAG, "✅ Admin PIN changed successfully")
+                AdminDebugConfig.logAdminInfo(context, TAG, "✅ Admin PIN changed successfully")
                 
                 // Log to Crashlytics for audit trail (without actual PIN values)
                 com.google.firebase.crashlytics.FirebaseCrashlytics.getInstance().log(
@@ -206,7 +207,7 @@ object AdminPinManager {
             .putInt(PREF_FAILED_ATTEMPTS, failedAttempts)
             .putLong(PREF_LOCKOUT_UNTIL, lockoutUntilTimestamp)
             .apply()
-        AppLog.d(TAG, "Rate limit state saved: attempts=$failedAttempts, lockout=$lockoutUntilTimestamp")
+        AdminDebugConfig.logAdmin(context, TAG, "Rate limit state saved: attempts=$failedAttempts, lockout=$lockoutUntilTimestamp")
     }
     
     /**

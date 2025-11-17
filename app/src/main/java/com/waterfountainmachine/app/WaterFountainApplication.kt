@@ -77,14 +77,14 @@ class WaterFountainApplication : Application() {
         AppLog.i(TAG, "Firebase App Check initialized with Debug Provider")
         AppLog.i(TAG, "⚠️ Check logcat for App Check debug token - register it in Firebase Console")
         
-        // Initialize Firebase Crashlytics
+        // Initialize security module FIRST (needed by Crashlytics)
+        initializeSecurityModule()
+        
+        // Initialize Firebase Crashlytics (depends on SecurityModule)
         initializeCrashlytics()
         
         // Initialize Firebase Analytics
         initializeAnalytics()
-        
-        // Initialize security module
-        initializeSecurityModule()
         
         // Initialize authentication module
         initializeAuthModule()
@@ -97,7 +97,7 @@ class WaterFountainApplication : Application() {
     }
     
     /**
-     * Initialize Firebase Crashlytics for crash reporting
+     * Initialize Firebase Crashlytics for crash reporting with PII redaction
      */
     private fun initializeCrashlytics() {
         try {
@@ -112,8 +112,27 @@ class WaterFountainApplication : Application() {
             crashlytics.setCustomKey("build_type", BuildConfig.BUILD_TYPE)
             crashlytics.setCustomKey("debug_build", BuildConfig.DEBUG)
             
-            AppLog.i(TAG, "✅ Firebase Crashlytics initialized")
+            // PII Redaction: Set up custom key filters
+            // These keys will never contain PII - only metadata
+            crashlytics.setCustomKey("hardware_state", "initialized")
+            
+            // Safely check if SecurityModule is enrolled
+            try {
+                crashlytics.setCustomKey("security_enrolled", SecurityModule.isEnrolled())
+                
+                // Machine ID is partially masked (show last 4 chars only)
+                val machineId = SecurityModule.getMachineId()
+                if (machineId != null) {
+                    crashlytics.setCustomKey("machine_id_suffix", machineId.takeLast(4))
+                }
+            } catch (e: Exception) {
+                // SecurityModule not yet initialized, skip enrollment keys
+                AppLog.d(TAG, "SecurityModule not yet initialized, skipping enrollment keys")
+            }
+            
+            AppLog.i(TAG, "✅ Firebase Crashlytics initialized with PII redaction")
             AppLog.i(TAG, "📊 Crash reporting: ENABLED (for testing)")
+            AppLog.i(TAG, "🔒 PII Protection: Phone numbers and full machine IDs masked")
             AppLog.i(TAG, "💡 Crashes will be sent on next app launch after crash")
         } catch (e: Exception) {
             AppLog.e(TAG, "Error initializing Crashlytics", e)

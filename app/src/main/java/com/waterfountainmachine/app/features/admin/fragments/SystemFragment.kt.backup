@@ -213,7 +213,7 @@ class SystemFragment : Fragment() {
                     .apply()
                 
                 binding.systemStatusText.text = "Demo mode ${if (enabled) "enabled" else "disabled"}"
-                AdminDebugConfig.logAdminInfo(requireContext(), TAG, "Demo mode ${if (enabled) "enabled" else "disabled"}")
+                AppLog.i(TAG, "Demo mode ${if (enabled) "enabled" else "disabled"}")
                 
             } catch (e: Exception) {
                 AppLog.e(TAG, "Error updating demo mode", e)
@@ -231,7 +231,7 @@ class SystemFragment : Fragment() {
                     .apply()
                 
                 binding.systemStatusText.text = "Debug mode ${if (enabled) "enabled" else "disabled"}"
-                AdminDebugConfig.logAdminInfo(requireContext(), TAG, "Debug mode ${if (enabled) "enabled" else "disabled"}")
+                AppLog.i(TAG, "Debug mode ${if (enabled) "enabled" else "disabled"}")
                 
             } catch (e: Exception) {
                 AppLog.e(TAG, "Error updating debug mode", e)
@@ -248,7 +248,6 @@ class SystemFragment : Fragment() {
                     val remainingMs = com.waterfountainmachine.app.utils.AdminDebugConfig.getRemainingLoggingTime(requireContext())
                     val remainingMin = remainingMs / 60000
                     binding.systemStatusText.text = "Admin logging enabled (auto-disables in ${remainingMin}min)"
-                    // Note: Using regular AppLog here since this is about enabling/disabling admin logging itself
                     AppLog.i(TAG, "✅ Admin logging enabled for temporary debugging")
                 } else {
                     com.waterfountainmachine.app.utils.AdminDebugConfig.disableAdminLogging(requireContext())
@@ -273,7 +272,7 @@ class SystemFragment : Fragment() {
                 
                 val modeName = if (enabled) "Real Hardware" else "Mock Hardware"
                 binding.systemStatusText.text = "Serial Communicator: $modeName"
-                AdminDebugConfig.logAdminInfo(requireContext(), TAG, "Serial communicator mode changed to: $modeName")
+                AppLog.i(TAG, "Serial communicator mode changed to: $modeName")
                 
             } catch (e: Exception) {
                 AppLog.e(TAG, "Error updating hardware mode", e)
@@ -292,7 +291,7 @@ class SystemFragment : Fragment() {
                     .apply()
                 
                 binding.systemStatusText.text = "Maintenance mode ${if (enabled) "enabled" else "disabled"}"
-                AdminDebugConfig.logAdminWarning(requireContext(), TAG, "Maintenance mode ${if (enabled) "enabled" else "disabled"}")
+                AppLog.w(TAG, "Maintenance mode ${if (enabled) "enabled" else "disabled"}")
                 
             } catch (e: Exception) {
                 AppLog.e(TAG, "Error updating maintenance mode", e)
@@ -314,7 +313,7 @@ class SystemFragment : Fragment() {
     
     private fun executeRestart() {
         binding.systemStatusText.text = "Restarting application..."
-        AdminDebugConfig.logAdminWarning(requireContext(), TAG, "System restart initiated - killing process for clean restart")
+        AppLog.w(TAG, "System restart initiated - killing process for clean restart")
         
         lifecycleScope.launch {
             try {
@@ -325,12 +324,12 @@ class SystemFragment : Fragment() {
                 if (intent != null) {
                     intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
                     
-                    AdminDebugConfig.logAdminInfo(requireContext(), TAG, "Starting new app instance...")
+                    AppLog.i(TAG, "Starting new app instance...")
                     startActivity(intent)
                     
                     // IMPORTANT: Kill the entire process to force Hilt to recreate all Singletons
                     // This ensures the new repository is injected based on the updated preference
-                    AdminDebugConfig.logAdminInfo(requireContext(), TAG, "Killing process to complete restart")
+                    AppLog.i(TAG, "Killing process to complete restart")
                     android.os.Process.killProcess(android.os.Process.myPid())
                     System.exit(0)
                 } else {
@@ -346,12 +345,12 @@ class SystemFragment : Fragment() {
     }
     
     private fun exitAdminPanel() {
-        AdminDebugConfig.logAdminInfo(requireContext(), TAG, "Admin panel exit requested")
+        AppLog.i(TAG, "Admin panel exit requested")
         requireActivity().finish()
     }
     
     private fun returnToMainScreen() {
-        AdminDebugConfig.logAdminInfo(requireContext(), TAG, "Returning to main screen from admin panel")
+        AppLog.i(TAG, "Returning to main screen from admin panel")
         val intent = Intent(requireContext(), MainActivity::class.java)
         intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP
         startActivity(intent)
@@ -397,7 +396,7 @@ class SystemFragment : Fragment() {
             
             binding.systemStatusText.text = "Storage: ${storageUsedGB}GB / ${storageTotalGB}GB | Android ${Build.VERSION.RELEASE} | ${Build.MODEL}"
             
-            AdminDebugConfig.logAdmin(requireContext(), TAG, "System info updated: Memory=$memoryPercent%, Storage=${storageUsedGB}GB/${storageTotalGB}GB")
+            AppLog.d(TAG, "System info updated: Memory=$memoryPercent%, Storage=${storageUsedGB}GB/${storageTotalGB}GB")
             
         } catch (e: Exception) {
             AppLog.e(TAG, "Error updating system info", e)
@@ -410,14 +409,13 @@ class SystemFragment : Fragment() {
      * This intentionally throws an exception to test crash reporting
      */
     private fun simulateCrashForTesting() {
-        AdminDebugConfig.logAdminWarning(requireContext(), TAG, "Simulating crash for Crashlytics testing...")
+        AppLog.w(TAG, "Simulating crash for Crashlytics testing...")
         
         // Show confirmation dialog first
         androidx.appcompat.app.AlertDialog.Builder(requireContext())
             .setTitle("Test Crash")
             .setMessage("This will intentionally crash the app to test Firebase Crashlytics.\n\nThe crash will be logged and sent to Firebase Console.\n\nContinue?")
             .setPositiveButton("Crash Now") { _, _ ->
-                // Keep error log for crash testing - always log
                 AppLog.e(TAG, "INTENTIONAL CRASH FOR TESTING - Throwing RuntimeException")
                 
                 // Log custom key-value pairs before crash
@@ -495,7 +493,7 @@ class SystemFragment : Fragment() {
             val newPin = newPinInput.text?.toString()?.trim() ?: ""
             val confirmPin = confirmPinInput.text?.toString()?.trim() ?: ""
             
-            AdminDebugConfig.logAdmin(requireContext(), TAG, "PIN change attempt - Current PIN length: ${currentPin.length}, New PIN length: ${newPin.length}")
+            AppLog.d(TAG, "PIN change attempt - Current PIN length: ${currentPin.length}, New PIN length: ${newPin.length}")
             
             // Validate current PIN length
             if (currentPin.isEmpty()) {
@@ -516,7 +514,6 @@ class SystemFragment : Fragment() {
             // Verify current PIN
             if (!com.waterfountainmachine.app.admin.AdminPinManager.verifyPin(requireContext(), currentPin)) {
                 currentPinLayout.error = "Incorrect current PIN"
-                // Keep security log - always log failed attempts
                 AppLog.w(TAG, "Failed PIN change attempt - incorrect current PIN")
                 return@setOnClickListener
             }
@@ -556,7 +553,6 @@ class SystemFragment : Fragment() {
             
             // Change the PIN
             if (com.waterfountainmachine.app.admin.AdminPinManager.changePin(requireContext(), currentPin, newPin)) {
-                // Keep security log - always log PIN changes
                 AppLog.i(TAG, "✅ Admin PIN changed successfully")
                 
                 // Show success message

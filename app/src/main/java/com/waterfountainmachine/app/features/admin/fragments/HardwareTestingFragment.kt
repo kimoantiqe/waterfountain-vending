@@ -15,6 +15,7 @@ import com.waterfountainmachine.app.WaterFountainApplication
 import com.waterfountainmachine.app.databinding.FragmentHardwareTestingBinding
 import com.waterfountainmachine.app.hardware.sdk.SlotValidator
 import com.waterfountainmachine.app.utils.AppLog
+import com.waterfountainmachine.app.utils.AdminDebugConfig
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -186,7 +187,7 @@ class HardwareTestingFragment : Fragment() {
         lifecycleScope.launch {
             try {
                 binding.testResultText.text = "Getting device status..."
-                AppLog.i(TAG, "Running device diagnostics...")
+                AdminDebugConfig.logAdminInfo(requireContext(), TAG, "Running device diagnostics...")
                 
                 val startTime = System.currentTimeMillis()
                 
@@ -204,7 +205,7 @@ class HardwareTestingFragment : Fragment() {
                 }
                 
                 binding.testResultText.text = statusText
-                AppLog.i(TAG, "Device diagnostics completed (${elapsed}ms)")
+                AdminDebugConfig.logAdminInfo(requireContext(), TAG, "Device diagnostics completed (${elapsed}ms)")
                 
             } catch (e: Exception) {
                 binding.testResultText.text = "❌ Error: ${e.message}"
@@ -218,7 +219,7 @@ class HardwareTestingFragment : Fragment() {
             try {
                 val position = SlotValidator.getSlotPosition(slot) ?: "Unknown"
                 binding.testResultText.text = "Testing slot $slot ($position)..."
-                AppLog.i(TAG, "Testing slot $slot...")
+                AdminDebugConfig.logAdminInfo(requireContext(), TAG, "Testing slot $slot...")
                 
                 // Disable all slot buttons during test
                 setSlotButtonsEnabled(false)
@@ -234,7 +235,7 @@ class HardwareTestingFragment : Fragment() {
                 
                 if (success) {
                     binding.testResultText.text = "✅ Slot $slot: Test Passed\n$position\nDispensing time: ${elapsed}ms"
-                    AppLog.i(TAG, "Slot $slot test passed (${elapsed}ms)")
+                    AdminDebugConfig.logAdminInfo(requireContext(), TAG, "Slot $slot test passed (${elapsed}ms)")
                     
                     // Highlight successful slot button
                     highlightSlotButton(slot, true)
@@ -261,7 +262,7 @@ class HardwareTestingFragment : Fragment() {
         lifecycleScope.launch {
             try {
                 binding.testResultText.text = "Testing all 48 slots..."
-                AppLog.i(TAG, "Testing all slots...")
+                AdminDebugConfig.logAdminInfo(requireContext(), TAG, "Testing all slots...")
                 
                 setSlotButtonsEnabled(false)
                 binding.testAllSlotsButton.isEnabled = false
@@ -292,7 +293,7 @@ class HardwareTestingFragment : Fragment() {
                 
                 val summary = "All Slots Test Complete\n✅ $successCount/48 passed\n\n${results.take(10).joinToString("\n")}\n... (${results.size - 10} more)"
                 binding.testResultText.text = summary
-                AppLog.i(TAG, "All slots test complete: $successCount/48 passed")
+                AdminDebugConfig.logAdminInfo(requireContext(), TAG, "All slots test complete: $successCount/48 passed")
                 
                 setSlotButtonsEnabled(true)
                 binding.testAllSlotsButton.isEnabled = true

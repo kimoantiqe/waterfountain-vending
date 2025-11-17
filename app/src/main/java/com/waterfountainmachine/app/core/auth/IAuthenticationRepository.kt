@@ -43,7 +43,8 @@ data class OtpRequestResponse(
  */
 data class OtpVerifyResponse(
     val success: Boolean,
-    val message: String? = null
+    val message: String? = null,
+    val sessionToken: String? = null // Optional session token from backend
 )
 
 /**
