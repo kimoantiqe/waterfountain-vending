@@ -26,12 +26,14 @@ import com.waterfountainmachine.app.utils.FullScreenUtils
 import com.waterfountainmachine.app.utils.AnimationUtils
 import com.waterfountainmachine.app.utils.HardwareKeyHandler
 import com.waterfountainmachine.app.utils.SoundManager
+import com.waterfountainmachine.app.analytics.AnalyticsManager
 
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private var canBobbingAnimator: AnimatorSet? = null
     private lateinit var adminGestureDetector: AdminGestureDetector
     private lateinit var soundManager: SoundManager
+    private lateinit var analyticsManager: AnalyticsManager
     
     // Prevent multiple launches - FLAG_ACTIVITY_SINGLE_TOP provides primary protection
     // This flag provides additional UI feedback during navigation
@@ -60,6 +62,7 @@ class MainActivity : AppCompatActivity() {
         setupKioskMode()
         setupFullScreen()
         setupSoundManager()
+        setupAnalytics()  // Must be called before any analytics tracking
         setupBackButtonHandler()
         setupClickListener()
         setupPressAnimation()
@@ -67,6 +70,16 @@ class MainActivity : AppCompatActivity() {
         
         // Initialize hardware on app launch
         initializeHardware()
+        
+        // Track app opened (after analytics is initialized)
+        analyticsManager.logAppOpened()
+    }
+    
+    private fun setupAnalytics() {
+        analyticsManager = AnalyticsManager.getInstance(this)
+        analyticsManager.setUserProperties() // Set user properties for segmentation
+        analyticsManager.logScreenView("MainActivity", "MainActivity")
+        AppLog.i(TAG, "AnalyticsManager initialized with user properties")
     }
     
     private fun setupSoundManager() {
@@ -131,6 +144,9 @@ class MainActivity : AppCompatActivity() {
             // Only navigate if not already navigating
             if (!isNavigating) {
                 AppLog.d(TAG, "Screen tapped, launching SMSActivity")
+                
+                // Track tap to start
+                analyticsManager.logTapToStart()
                 
                 // Play start sound
                 soundManager.playSound(R.raw.start, volume = 1.0f)

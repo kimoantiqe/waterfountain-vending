@@ -20,6 +20,7 @@ import com.waterfountainmachine.app.utils.UserErrorMessages
 import com.waterfountainmachine.app.config.WaterFountainConfig
 import com.waterfountainmachine.app.viewmodels.SMSViewModel
 import com.waterfountainmachine.app.viewmodels.SMSUiState
+import com.waterfountainmachine.app.analytics.AnalyticsManager
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import androidx.activity.viewModels
@@ -35,6 +36,10 @@ class SMSActivity : AppCompatActivity() {
     private lateinit var inactivityTimer: InactivityTimer
     private var questionMarkAnimator: AnimatorSet? = null
     private lateinit var soundManager: SoundManager
+    private lateinit var analyticsManager: AnalyticsManager
+    
+    // Track time for analytics
+    private var phoneNumberStartTime: Long = 0
     
     // QR code cache (simple in-memory cache)
     private var cachedQRCode: android.graphics.Bitmap? = null
@@ -59,6 +64,13 @@ class SMSActivity : AppCompatActivity() {
 
         FullScreenUtils.setupFullScreen(window, binding.root)
         
+        // Initialize analytics
+        analyticsManager = AnalyticsManager.getInstance(this)
+        analyticsManager.logScreenView("SMSActivity", "SMSActivity")
+        
+        // Start tracking phone number entry time
+        phoneNumberStartTime = System.currentTimeMillis()
+        
         // Initialize sound manager
         soundManager = SoundManager(this)
         soundManager.loadSound(R.raw.click)
@@ -66,7 +78,10 @@ class SMSActivity : AppCompatActivity() {
         soundManager.loadSound(R.raw.questionmark)
         
         // Initialize inactivity timer FIRST (needed by observers)
-        inactivityTimer = InactivityTimer(WaterFountainConfig.INACTIVITY_TIMEOUT_MS) { returnToMainScreen() }
+        inactivityTimer = InactivityTimer(WaterFountainConfig.INACTIVITY_TIMEOUT_MS) { 
+            analyticsManager.logTimeoutOccurred("SMSActivity")
+            returnToMainScreen()
+        }
         inactivityTimer.start()
         
         // Setup UI
@@ -137,21 +152,25 @@ class SMSActivity : AppCompatActivity() {
             is SMSUiState.RequestingOtp -> {
                 // Show loading state
                 showLoading()
+                analyticsManager.logSmsSendRequested(viewModel.phoneNumber.value)
             }
             is SMSUiState.OtpRequestSuccess -> {
                 // Navigate to verification screen
                 hideLoading()
                 soundManager.playSound(R.raw.correct, 0.7f)
+                analyticsManager.logSmsSentSuccess()
                 navigateToVerification(state.phoneNumber, state.isPhoneVisible)
             }
             is SMSUiState.DailyLimitReached -> {
                 // Navigate to error screen with daily limit message
                 hideLoading()
+                analyticsManager.logSmsSentFailure("Daily limit reached", "DAILY_LIMIT")
                 navigateToError(UserErrorMessages.DAILY_LIMIT_REACHED)
             }
             is SMSUiState.Error -> {
                 // Show error screen
                 hideLoading()
+                analyticsManager.logSmsSentFailure(state.message, "ERROR")
                 showError(state.message)
             }
         }
@@ -170,6 +189,7 @@ class SMSActivity : AppCompatActivity() {
     }
 
     private fun returnToMainScreen() {
+        analyticsManager.logReturnToMain("SMSActivity")
         val intent = Intent(this, MainActivity::class.java)
         // Use SINGLE_TOP to reuse existing MainActivity instance for smooth transition
         intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
@@ -270,11 +290,13 @@ class SMSActivity : AppCompatActivity() {
     }
 
     private fun showModal() {
+        analyticsManager.logFaqOpened("SMSActivity")
         binding.modalOverlay.visibility = View.VISIBLE
         AnimationUtils.showModalAnimation(binding.modalContent)
     }
 
     private fun hideModal() {
+        analyticsManager.logFaqClosed("SMSActivity")
         AnimationUtils.hideModalAnimation(binding.modalContent) {
             binding.modalOverlay.visibility = View.GONE
         }
@@ -363,6 +385,9 @@ class SMSActivity : AppCompatActivity() {
      * Show beautiful custom consent dialog before sending verification code
      */
     private fun showConsentDialogAndSendCode() {
+        // Track consent viewed
+        analyticsManager.logConsentViewed()
+        
         // Inflate custom layout
         val dialogView = layoutInflater.inflate(R.layout.dialog_consent, null)
         
@@ -386,6 +411,9 @@ class SMSActivity : AppCompatActivity() {
         }
         
         btnAgree.setOnClickListener {
+            // Track consent accepted
+            analyticsManager.logConsentAccepted()
+            
             dialog.dismiss()
             performButtonAnimation(binding.verifyButton) {
                 sendCodeAndNavigate()
@@ -526,10 +554,23 @@ class SMSActivity : AppCompatActivity() {
     private fun addDigit(digit: String) {
         viewModel.addDigit(digit)
         updatePhoneDisplayWithAnimation()
+        
+        // Track digit entry
+        val currentLength = viewModel.phoneNumber.value.length
+        analyticsManager.logPhoneDigitEntered(digit, currentLength)
+        
+        // Track when phone number is completed
+        if (currentLength == WaterFountainConfig.MAX_PHONE_LENGTH) {
+            val timeToComplete = System.currentTimeMillis() - phoneNumberStartTime
+            analyticsManager.logPhoneNumberCompleted(viewModel.phoneNumber.value, timeToComplete)
+        }
     }
 
     private fun removeLastDigit() {
         if (viewModel.phoneNumber.value.isNotEmpty()) {
+            // Track backspace
+            analyticsManager.logBackspacePressed(viewModel.phoneNumber.value.length)
+            
             // Animate disappear
             binding.phoneDisplay.startAnimation(
                 android.view.animation.AnimationUtils.loadAnimation(this, R.anim.number_disappear)
@@ -539,6 +580,9 @@ class SMSActivity : AppCompatActivity() {
     }
 
     private fun clearInput() {
+        if (viewModel.phoneNumber.value.isNotEmpty()) {
+            analyticsManager.logPhoneNumberCleared()
+        }
         viewModel.clearPhoneNumber()
     }
     

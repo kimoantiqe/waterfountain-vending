@@ -25,6 +25,7 @@ import com.waterfountainmachine.app.utils.SoundManager
 import com.waterfountainmachine.app.config.WaterFountainConfig
 import com.waterfountainmachine.app.viewmodels.VendingViewModel
 import com.waterfountainmachine.app.viewmodels.VendingUiState
+import com.waterfountainmachine.app.analytics.AnalyticsManager
 import dagger.hilt.android.AndroidEntryPoint
 import nl.dionsegijn.konfetti.core.Party
 import nl.dionsegijn.konfetti.core.Position
@@ -45,10 +46,12 @@ class VendingAnimationActivity : AppCompatActivity() {
     
     // Sound manager
     private lateinit var soundManager: SoundManager
+    private lateinit var analyticsManager: AnalyticsManager
 
     private var phoneNumber: String? = null
     private var dispensingTime: Long = 0
     private var slot: Int = 1
+    private var vendingStartTime: Long = 0
     
     // Runnable references for cleanup
     private val logoDelayedRunnable = Runnable {
@@ -84,6 +87,14 @@ class VendingAnimationActivity : AppCompatActivity() {
         phoneNumber = intent.getStringExtra("phoneNumber")
         dispensingTime = intent.getLongExtra("dispensingTime", 8000)
         slot = intent.getIntExtra("slot", 1)
+        
+        // Initialize analytics
+        analyticsManager = AnalyticsManager.getInstance(this)
+        analyticsManager.logScreenView("VendingAnimationActivity", "VendingAnimationActivity")
+        
+        // Track vending started
+        vendingStartTime = System.currentTimeMillis()
+        analyticsManager.logVendingStarted(slot)
         
         // Initialize sound manager
         soundManager = SoundManager(this)
@@ -434,6 +445,10 @@ class VendingAnimationActivity : AppCompatActivity() {
     }
 
     private fun returnToMainScreen() {
+        // Track vending completed
+        val vendingDuration = System.currentTimeMillis() - vendingStartTime
+        analyticsManager.logVendingCompleted(slot, vendingDuration)
+        
         // Notify ViewModel that animation is complete
         viewModel.onAnimationComplete()
         

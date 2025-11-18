@@ -103,6 +103,7 @@ class SystemFragment : Fragment() {
         binding.demoModeToggle.isChecked = prefs.getBoolean("demo_mode", false)
         binding.debugModeToggle.isChecked = prefs.getBoolean("debug_mode", false)
         binding.adminLoggingToggle.isChecked = com.waterfountainmachine.app.utils.AdminDebugConfig.isAdminLoggingEnabled(requireContext())
+        binding.analyticsDebugToggle.isChecked = prefs.getBoolean("analytics_debug_mode", false)
         binding.maintenanceModeToggle.isChecked = prefs.getBoolean("maintenance_mode", false)
         binding.hardwareModeToggle.isChecked = prefs.getBoolean("use_real_serial", false)
         
@@ -138,6 +139,11 @@ class SystemFragment : Fragment() {
         // Admin logging toggle
         binding.adminLoggingToggle.setOnCheckedChangeListener { _, isChecked ->
             updateAdminLogging(isChecked)
+        }
+        
+        // Analytics debug mode toggle
+        binding.analyticsDebugToggle.setOnCheckedChangeListener { _, isChecked ->
+            updateAnalyticsDebugMode(isChecked)
         }
     }
     
@@ -270,6 +276,72 @@ class SystemFragment : Fragment() {
                 binding.systemStatusText.text = "Error updating admin logging: ${e.message}"
             }
         }
+    }
+    
+    private fun updateAnalyticsDebugMode(enabled: Boolean) {
+        lifecycleScope.launch {
+            try {
+                requireContext().getSharedPreferences("system_settings", 0)
+                    .edit()
+                    .putBoolean("analytics_debug_mode", enabled)
+                    .apply()
+                
+                // Initialize AnalyticsManager and set debug mode
+                val analyticsManager = com.waterfountainmachine.app.analytics.AnalyticsManager.getInstance(requireContext())
+                analyticsManager.setDebugMode(enabled)
+                
+                val statusMessage = if (enabled) {
+                    "Analytics Debug Mode enabled.\n\nTo see events in real-time:\n1. Run: adb shell setprop debug.firebase.analytics.app com.waterfountainmachine.app\n2. Open Firebase Console → DebugView"
+                } else {
+                    "Analytics Debug Mode disabled.\n\nTo disable ADB debug:\nadb shell setprop debug.firebase.analytics.app .none."
+                }
+                
+                binding.systemStatusText.text = statusMessage
+                AdminDebugConfig.logAdminInfo(requireContext(), TAG, "Analytics debug mode ${if (enabled) "enabled" else "disabled"}")
+                
+                // Show informational dialog
+                showAnalyticsDebugDialog(enabled)
+                
+            } catch (e: Exception) {
+                AppLog.e(TAG, "Error updating analytics debug mode", e)
+                binding.systemStatusText.text = "Error updating analytics debug mode: ${e.message}"
+            }
+        }
+    }
+    
+    private fun showAnalyticsDebugDialog(enabled: Boolean) {
+        val message = if (enabled) {
+            """
+            Analytics Debug Mode is now ENABLED.
+            
+            📊 To see events in real-time:
+            
+            1. Connect device via USB
+            2. Run this ADB command:
+               adb shell setprop debug.firebase.analytics.app com.waterfountainmachine.app
+            
+            3. Open Firebase Console → Analytics → DebugView
+            
+            Events will now appear immediately (instead of 24hr delay).
+            
+            ⚠️ Remember to disable when done debugging to avoid polluting analytics data.
+            """.trimIndent()
+        } else {
+            """
+            Analytics Debug Mode is now DISABLED.
+            
+            To disable ADB debug mode, run:
+            adb shell setprop debug.firebase.analytics.app .none.
+            
+            Events will now be batched and appear in Firebase Console after ~24 hours.
+            """.trimIndent()
+        }
+        
+        androidx.appcompat.app.AlertDialog.Builder(requireContext())
+            .setTitle(if (enabled) "Debug Mode Enabled" else "Debug Mode Disabled")
+            .setMessage(message)
+            .setPositiveButton("OK", null)
+            .show()
     }
     
     private fun updateHardwareMode(enabled: Boolean) {
