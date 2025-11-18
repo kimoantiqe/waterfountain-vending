@@ -14,6 +14,7 @@ class SoundManager(private val context: Context) {
     private var soundPool: SoundPool? = null
     private val soundMap = mutableMapOf<Int, Int>() // Resource ID to Sound ID mapping
     private val lastPlayTime = mutableMapOf<Int, Long>() // Track last play time for each sound
+    private val loadedSounds = mutableSetOf<Int>() // Track which sounds are fully loaded
     private var mediaPlayer: MediaPlayer? = null
     
     companion object {
@@ -36,6 +37,19 @@ class SoundManager(private val context: Context) {
             .setMaxStreams(MAX_STREAMS)
             .setAudioAttributes(audioAttributes)
             .build()
+        
+        // Set up load complete listener to track when sounds are ready
+        soundPool?.setOnLoadCompleteListener { _, sampleId, status ->
+            if (status == 0) {
+                // Find resource ID from sound ID
+                soundMap.entries.find { it.value == sampleId }?.key?.let { resourceId ->
+                    loadedSounds.add(resourceId)
+                    AppLog.d(TAG, "Sound load complete: resourceId=$resourceId, soundId=$sampleId")
+                }
+            } else {
+                AppLog.e(TAG, "Sound load failed: soundId=$sampleId, status=$status")
+            }
+        }
         
         AppLog.i(TAG, "SoundPool initialized with max streams: $MAX_STREAMS")
     }
@@ -70,6 +84,12 @@ class SoundManager(private val context: Context) {
      * @param enableThrottle Enable anti-spam protection (default: true)
      */
     fun playSound(@RawRes resourceId: Int, volume: Float = 1.0f, enableThrottle: Boolean = true) {
+        // Check if sound is loaded
+        if (!loadedSounds.contains(resourceId)) {
+            AppLog.w(TAG, "Sound not yet loaded, attempting to play anyway: resourceId=$resourceId")
+            // Don't return - SoundPool will queue it if not ready
+        }
+        
         // Check if we should throttle this sound
         if (enableThrottle) {
             val now = System.currentTimeMillis()
@@ -86,7 +106,7 @@ class SoundManager(private val context: Context) {
         val soundId = soundMap[resourceId]
         if (soundId != null) {
             soundPool?.play(soundId, volume, volume, 1, 0, 1.0f)
-            AppLog.d(TAG, "Playing sound: resourceId=$resourceId, soundId=$soundId, volume=$volume")
+            AppLog.d(TAG, "Playing sound: resourceId=$resourceId, soundId=$soundId, volume=$volume, loaded=${loadedSounds.contains(resourceId)}")
         } else {
             AppLog.w(TAG, "Sound not loaded: resourceId=$resourceId")
         }
@@ -220,6 +240,7 @@ class SoundManager(private val context: Context) {
         soundPool?.release()
         soundPool = null
         soundMap.clear()
+        loadedSounds.clear()
         lastPlayTime.clear()
         AppLog.i(TAG, "SoundPool released")
     }

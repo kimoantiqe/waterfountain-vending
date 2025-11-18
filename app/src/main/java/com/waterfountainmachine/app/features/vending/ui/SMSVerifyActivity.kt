@@ -47,6 +47,9 @@ class SMSVerifyActivity : AppCompatActivity() {
     // Debounce flag for question mark button
     private var isQuestionMarkClickable = true
     
+    // Flag to prevent box updates during error animation
+    private var isShowingError = false
+    
     companion object {
         private const val TAG = "SMSVerifyActivity"
         private const val MAX_OTP_LENGTH = 6
@@ -80,6 +83,7 @@ class SMSVerifyActivity : AppCompatActivity() {
         soundManager.loadSound(R.raw.click)
         soundManager.loadSound(R.raw.correct)
         soundManager.loadSound(R.raw.questionmark)
+        soundManager.loadSound(R.raw.error)
         
         initializeViews()
         setupKeypadListeners()
@@ -565,6 +569,10 @@ class SMSVerifyActivity : AppCompatActivity() {
      * Update OTP display based on ViewModel state
      */
     private fun updateOtpDisplay(code: String) {
+        // Don't update boxes if we're showing an error animation
+        if (isShowingError) {
+            return
+        }
         updateOtpBoxesWithAnimation()
         val isComplete = code.length == MAX_OTP_LENGTH
         updateButtonDisabledState(binding.verifyOtpButton, isComplete)
@@ -706,10 +714,16 @@ class SMSVerifyActivity : AppCompatActivity() {
     private fun showIncorrectCodeHint(attemptsRemaining: Int) {
         AppLog.d(TAG, "Showing incorrect code hint. Attempts remaining: $attemptsRemaining")
         
-        // First clear the OTP code
+        // Set error flag to prevent box updates
+        isShowingError = true
+        
+        // Play error sound
+        soundManager.playSound(R.raw.error, 0.7f)
+        
+        // Clear the OTP code in ViewModel (but don't update display yet)
         viewModel.clearOtp()
         
-        // Now set all EMPTY boxes to error state (shake and turn red)
+        // Now set all boxes to error state (shake and turn red)
         val boxes = getOtpBoxes()
         
         for (box in boxes) {
@@ -727,6 +741,7 @@ class SMSVerifyActivity : AppCompatActivity() {
         
         // Auto-restore to normal state after 1.5 seconds
         binding.otpBox1.postDelayed({
+            isShowingError = false
             updateOtpBoxes()
             updateButtonDisabledState(binding.verifyOtpButton, false)
         }, 1500)

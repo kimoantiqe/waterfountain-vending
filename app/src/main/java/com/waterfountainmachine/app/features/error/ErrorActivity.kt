@@ -8,9 +8,11 @@ import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityOptionsCompat
 import androidx.lifecycle.lifecycleScope
+import com.waterfountainmachine.app.R
 import com.waterfountainmachine.app.databinding.ActivityErrorBinding
 import com.waterfountainmachine.app.utils.AppLog
 import com.waterfountainmachine.app.utils.FullScreenUtils
+import com.waterfountainmachine.app.utils.SoundManager
 import com.waterfountainmachine.app.utils.UserErrorMessages
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -45,6 +47,7 @@ import kotlinx.coroutines.launch
 class ErrorActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityErrorBinding
+    private lateinit var soundManager: SoundManager
     
     companion object {
         private const val TAG = "ErrorActivity"
@@ -73,6 +76,27 @@ class ErrorActivity : AppCompatActivity() {
         setContentView(binding.root)
         
         FullScreenUtils.setupFullScreen(window, binding.root)
+        
+        // Initialize sound manager and play error page sound
+        soundManager = SoundManager(this)
+        
+        // Load and play sound with proper timing
+        lifecycleScope.launch {
+            try {
+                // Load the sound
+                soundManager.loadSound(R.raw.error_page)
+                AppLog.d(TAG, "Error page sound loaded")
+                
+                // Wait longer to ensure sound is fully loaded (500ms should be sufficient)
+                delay(500)
+                
+                // Play the sound
+                soundManager.playSound(R.raw.error_page, 1.0f)
+                AppLog.i(TAG, "Playing error page sound at full volume")
+            } catch (e: Exception) {
+                AppLog.e(TAG, "Failed to play error page sound", e)
+            }
+        }
         
         // Disable back button using modern API
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
@@ -113,5 +137,13 @@ class ErrorActivity : AppCompatActivity() {
         
         startActivity(intent, options.toBundle())
         finish()
+    }
+    
+    override fun onDestroy() {
+        super.onDestroy()
+        // Clean up sound resources
+        if (::soundManager.isInitialized) {
+            soundManager.release()
+        }
     }
 }

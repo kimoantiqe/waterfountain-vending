@@ -192,18 +192,21 @@ class VendingAnimationActivity : AppCompatActivity() {
             delay(WaterFountainConfig.ANIMATION_FADE_IN_DELAY_MS)
             fadeInElements()
 
-            // Phase 2: Start ring progress AND start loading sound (1s)
+            // Phase 2: Start ring progress (1s)
             delay(WaterFountainConfig.ANIMATION_PROGRESS_START_DELAY_MS - WaterFountainConfig.ANIMATION_FADE_IN_DELAY_MS)
-            
-            // Start the loading sound (NOT looping - you'll provide perfectly looped 15s file)
-            soundManager.playLongSound(R.raw.loading, volume = 0.6f, looping = false)
             
             // Start ring animation - 15 seconds total
             val ringDuration = 15000L
             binding.progressRing.animateProgress(ringDuration)
+            
+            // Wait 500ms before starting loading sound (gives ring time to start visually)
+            delay(500L)
+            
+            // Start the loading sound (NOT looping - you'll provide perfectly looped 15s file)
+            soundManager.playLongSound(R.raw.loading, volume = 0.6f, looping = false)
 
-            // Phase 3: Ring completion at 15s mark
-            delay(ringDuration)
+            // Phase 3: Ring completion at 15s mark (adjusted for 500ms sound delay)
+            delay(ringDuration - 500L)  // Subtract the 500ms we added before sound started
             
             // Stop loading sound (should be finished by now anyway)
             soundManager.stopLongSound()
