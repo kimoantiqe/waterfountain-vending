@@ -177,7 +177,7 @@ class WaterFountainManager private constructor(
         }
         
         try {
-            // HARDCODED TO SLOT 1 FOR TESTING
+            // HARDCODED TO SLOT 15 FOR TESTING
             val slot = 15
             AppLog.i(TAG, "Attempting to dispense water from slot $slot (HARDCODED)...")
             
