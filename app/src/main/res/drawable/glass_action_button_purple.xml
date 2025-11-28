@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    
+    <!-- Disabled state - lighter/desaturated purple with white text -->
+    <item android:state_enabled="false">
+        <layer-list>
+            <!-- Disabled purple base (50% opacity) -->
+            <item>
+                <shape android:shape="rectangle">
+                    <corners android:radius="20dp"/>
+                    <solid android:color="#808B7BA8"/> <!-- 50% opacity purple -->
+                    <stroke android:width="2dp" android:color="#609B8BB8"/> <!-- 38% opacity lighter purple border -->
+                </shape>
+            </item>
+            <!-- Top glass shine (reduced) -->
+            <item android:top="1dp" android:bottom="999dp">
+                <shape android:shape="rectangle">
+                    <corners android:topLeftRadius="20dp" android:topRightRadius="20dp"/>
+                    <solid android:color="#20FFFFFF"/> <!-- Subtle shine -->
+                </shape>
+            </item>
+        </layer-list>
+    </item>
+
+    <!-- Pressed state - darker purple with glow -->
+    <item android:state_pressed="true">
+        <layer-list>
+            <!-- Outer glow -->
+            <item android:left="-4dp" android:top="-4dp" android:right="-4dp" android:bottom="-4dp">
+                <shape android:shape="rectangle">
+                    <corners android:radius="24dp"/>
+                    <solid android:color="#40735E8C"/>
+                </shape>
+            </item>
+            <item android:left="-2dp" android:top="-2dp" android:right="-2dp" android:bottom="-2dp">
+                <shape android:shape="rectangle">
+                    <corners android:radius="22dp"/>
+                    <solid android:color="#60735E8C"/>
+                </shape>
+            </item>
+            <!-- Darker purple pressed -->
+            <item>
+                <shape android:shape="rectangle">
+                    <corners android:radius="20dp"/>
+                    <solid android:color="#735E8C"/> <!-- Darker purple -->
+                    <stroke android:width="2dp" android:color="#9B8BB8"/>
+                </shape>
+            </item>
+            <!-- Top highlight -->
+            <item android:top="1dp" android:bottom="999dp">
+                <shape android:shape="rectangle">
+                    <corners android:topLeftRadius="20dp" android:topRightRadius="20dp"/>
+                    <solid android:color="#30FFFFFF"/>
+                </shape>
+            </item>
+        </layer-list>
+    </item>
+
+    <!-- Enabled state - purple with glass effect -->
+    <item android:state_enabled="true">
+        <layer-list>
+            <!-- Shadow layer -->
+            <item android:left="0dp" android:top="3dp" android:right="3dp" android:bottom="0dp">
+                <shape android:shape="rectangle">
+                    <corners android:radius="20dp"/>
+                    <solid android:color="#40000000"/>
+                </shape>
+            </item>
+            <!-- Purple base -->
+            <item android:left="0dp" android:top="0dp" android:right="3dp" android:bottom="3dp">
+                <shape android:shape="rectangle">
+                    <corners android:radius="20dp"/>
+                    <solid android:color="#8B7BA8"/> <!-- Your purple accent -->
+                    <stroke android:width="2dp" android:color="#A395BD"/>
+                </shape>
+            </item>
+            <!-- Top glass shine -->
+            <item android:left="0dp" android:top="1dp" android:right="3dp" android:bottom="999dp">
+                <shape android:shape="rectangle">
+                    <corners android:topLeftRadius="20dp" android:topRightRadius="20dp"/>
+                    <solid android:color="#40FFFFFF"/>
+                </shape>
+            </item>
+        </layer-list>
+    </item>
+
+</selector>

@@ -50,6 +50,9 @@ class SMSVerifyActivity : AppCompatActivity() {
     // Flag to prevent box updates during error animation
     private var isShowingError = false
     
+    // Runnable references for error restore callbacks
+    private var errorRestoreRunnable: Runnable? = null
+    
     companion object {
         private const val TAG = "SMSVerifyActivity"
         private const val MAX_OTP_LENGTH = 6
@@ -177,7 +180,10 @@ class SMSVerifyActivity : AppCompatActivity() {
                 showResendError(state.message)
             }
             is SMSVerifyUiState.OtpExpired -> {
-                showOtpExpiredMessage()
+                // Don't show error - just let the timer display handle it
+                // The updateTimerDisplay() function will show the resend button
+                // when timeRemaining reaches 0
+                setLoadingState(false)
             }
         }
     }
@@ -676,14 +682,31 @@ class SMSVerifyActivity : AppCompatActivity() {
      * Show hint when user clicks verify with incomplete OTP
      */
     private fun showIncompleteOtpHint() {
+        // Cancel any pending error restore callbacks
+        errorRestoreRunnable?.let { binding.otpBox1.removeCallbacks(it) }
+        
+        // Set error flag to prevent box updates during animation
+        isShowingError = true
+        
         // Turn empty boxes red and pulse the next one
         if (otpCode.length < MAX_OTP_LENGTH) {
             val boxes = getOtpBoxes()
             
-            // Set all empty boxes to error state (red border)
+            // First, cancel any existing animations and reset properties to ensure animation works
             for (i in otpCode.length until boxes.size) {
-                boxes[i].setBackgroundResource(R.drawable.otp_box_error)
+                boxes[i].animate().cancel()
+                boxes[i].translationX = 0f
+                boxes[i].scaleX = 1f
+                boxes[i].scaleY = 1f
+                boxes[i].setBackgroundResource(R.drawable.otp_box_background)
             }
+            
+            // Then set all empty boxes to error state (red border) after a tiny delay
+            boxes[otpCode.length].postDelayed({
+                for (i in otpCode.length until boxes.size) {
+                    boxes[i].setBackgroundResource(R.drawable.otp_box_error)
+                }
+            }, 50)
             
             // Pulse the next empty box
             val emptyBox = boxes[otpCode.length]
@@ -702,9 +725,11 @@ class SMSVerifyActivity : AppCompatActivity() {
         }
         
         // Auto-restore box backgrounds after 2.5s
-        binding.otpBox1.postDelayed({
+        errorRestoreRunnable = Runnable {
+            isShowingError = false
             updateOtpBoxes()
-        }, 2500)
+        }
+        binding.otpBox1.postDelayed(errorRestoreRunnable!!, 2500)
     }
     
     /**
@@ -713,6 +738,9 @@ class SMSVerifyActivity : AppCompatActivity() {
      */
     private fun showIncorrectCodeHint(attemptsRemaining: Int) {
         AppLog.d(TAG, "Showing incorrect code hint. Attempts remaining: $attemptsRemaining")
+        
+        // Cancel any pending error restore callbacks
+        errorRestoreRunnable?.let { binding.otpBox1.removeCallbacks(it) }
         
         // Set error flag to prevent box updates
         isShowingError = true
@@ -727,6 +755,10 @@ class SMSVerifyActivity : AppCompatActivity() {
         val boxes = getOtpBoxes()
         
         for (box in boxes) {
+            // Cancel any existing animations and reset position
+            box.animate().cancel()
+            box.translationX = 0f
+            
             // Clear the text
             box.text = ""
             // Set red background
@@ -740,11 +772,12 @@ class SMSVerifyActivity : AppCompatActivity() {
         }
         
         // Auto-restore to normal state after 1.5 seconds
-        binding.otpBox1.postDelayed({
+        errorRestoreRunnable = Runnable {
             isShowingError = false
             updateOtpBoxes()
             updateButtonDisabledState(binding.verifyOtpButton, false)
-        }, 1500)
+        }
+        binding.otpBox1.postDelayed(errorRestoreRunnable!!, 1500)
     }
     
     /**
@@ -759,29 +792,22 @@ class SMSVerifyActivity : AppCompatActivity() {
     
     /**
      * Update button appearance to make disabled state very obvious with smooth fade
+     * Button is always enabled for click feedback, but changes appearance based on state
      */
     private fun updateButtonDisabledState(button: androidx.appcompat.widget.AppCompatButton, isEnabled: Boolean) {
-        // Smooth alpha transition
-        button.animate()
-            .alpha(if (isEnabled) 1.0f else 0.4f)
-            .setDuration(200)
-            .start()
+        // Keep button always enabled so we can show feedback when user clicks incomplete OTP
+        button.isEnabled = true
         
-        // Smooth color transition
-        val startColor = button.currentTextColor
-        val endColor = if (isEnabled) {
-            0xFF888888.toInt()  // Lighter gray when enabled (more visible on glass background)
+        // Swap background drawable between enabled and disabled purple
+        val backgroundRes = if (isEnabled) {
+            R.drawable.glass_action_button_purple
         } else {
-            0xFF333333.toInt()  // Very dark gray when disabled (less prominent)
+            R.drawable.glass_action_button_purple_disabled
         }
+        button.setBackgroundResource(backgroundRes)
         
-        // Animate color change
-        val colorAnimator = android.animation.ValueAnimator.ofArgb(startColor, endColor)
-        colorAnimator.duration = 200
-        colorAnimator.addUpdateListener { animator ->
-            button.setTextColor(animator.animatedValue as Int)
-        }
-        colorAnimator.start()
+        // Keep text white always - no color animation needed
+        button.setTextColor(0xFFFFFFFF.toInt())
     }
 
     private fun setupKeypadListeners() {

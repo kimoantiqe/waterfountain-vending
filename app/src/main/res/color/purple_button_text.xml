@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- White text color for purple button in all states -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Disabled state - white text (slightly dimmed) -->
+    <item android:state_enabled="false" android:color="#CCFFFFFF"/>
+    
+    <!-- Pressed state - white text -->
+    <item android:state_pressed="true" android:color="#FFFFFF"/>
+    
+    <!-- Default enabled state - white text -->
+    <item android:color="#FFFFFF"/>
+</selector>

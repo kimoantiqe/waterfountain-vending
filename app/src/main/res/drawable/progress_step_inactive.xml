@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Inactive step indicator - outline circle with number -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    
+    <!-- Subtle shadow -->
+    <item android:left="0dp" android:top="2dp" android:right="2dp" android:bottom="0dp">
+        <shape android:shape="oval">
+            <solid android:color="#18000000"/>
+            <size android:width="56dp" android:height="56dp"/>
+        </shape>
+    </item>
+    
+    <!-- Outline circle with glass effect -->
+    <item android:left="0dp" android:top="0dp" android:right="2dp" android:bottom="2dp">
+        <shape android:shape="oval">
+            <solid android:color="#26FFFFFF"/> <!-- Light glass fill -->
+            <stroke android:width="3dp" android:color="#668B7BA8"/> <!-- Purple outline at 40% opacity -->
+            <size android:width="56dp" android:height="56dp"/>
+        </shape>
+    </item>
+    
+</layer-list>

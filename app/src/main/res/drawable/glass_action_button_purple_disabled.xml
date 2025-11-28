@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Disabled state purple button with lighter/grayed out purple -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    
+    <!-- Disabled purple background with reduced opacity -->
+    <solid android:color="#608B7BA8"/>  <!-- 38% opacity purple -->
+    
+    <!-- Rounded corners matching enabled state -->
+    <corners android:radius="16dp"/>
+    
+    <!-- Subtle border -->
+    <stroke
+        android:width="2dp"
+        android:color="#408B7BA8"/>  <!-- 25% opacity purple border -->
+    
+</shape>

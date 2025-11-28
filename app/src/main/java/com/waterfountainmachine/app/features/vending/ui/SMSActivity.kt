@@ -366,11 +366,6 @@ class SMSActivity : AppCompatActivity() {
         updateButtonDisabledState(binding.verifyButton, false)
         binding.verifyButton.alpha = 1f
 
-        // Hide OTP-related UI
-        binding.otpButtonsLayout.visibility = View.GONE
-        binding.timerLayout.visibility = View.GONE
-        binding.resendCodeButton.visibility = View.GONE
-
         updatePhoneDisplay()
         
         // Setup toggle phone visibility button
@@ -587,30 +582,29 @@ class SMSActivity : AppCompatActivity() {
     }
     
     /**
-     * Update button appearance to make disabled state very obvious with smooth fade
+     * Update button appearance to make disabled state very obvious
+     * NOTE: Button stays enabled (clickable) so we can show "incomplete number" hint
+     * We manually swap the background drawable to show disabled/enabled state
      */
-    private fun updateButtonDisabledState(button: androidx.appcompat.widget.AppCompatButton, isEnabled: Boolean) {
-        // Smooth alpha transition - more dramatic difference
-        button.animate()
-            .alpha(if (isEnabled) 1.0f else 0.4f)  // Changed from 0.6f to 0.4f for darker appearance
-            .setDuration(200)
-            .start()
+    private fun updateButtonDisabledState(button: androidx.appcompat.widget.AppCompatButton, isComplete: Boolean) {
+        // Keep button always enabled so it's always clickable
+        button.isEnabled = true
         
-        // Smooth color transition
-        val startColor = button.currentTextColor
-        val endColor = if (isEnabled) {
-            0xFF888888.toInt()  // Lighter gray when enabled (more visible on glass background)
+        if (isComplete) {
+            // Complete: Full opacity, show enabled purple background
+            button.animate()
+                .alpha(1.0f)
+                .setDuration(200)
+                .start()
+            button.setBackgroundResource(R.drawable.glass_action_button_purple)
         } else {
-            0xFF333333.toInt()  // Much darker gray when disabled (changed from 0xFF555555)
+            // Incomplete: Slightly reduced opacity, show disabled purple background
+            button.animate()
+                .alpha(0.7f)  // Slightly dimmed to indicate "not quite ready"
+                .setDuration(200)
+                .start()
+            button.setBackgroundResource(R.drawable.glass_action_button_purple_disabled)
         }
-        
-        // Animate color change
-        val colorAnimator = android.animation.ValueAnimator.ofArgb(startColor, endColor)
-        colorAnimator.duration = 200
-        colorAnimator.addUpdateListener { animator ->
-            button.setTextColor(animator.animatedValue as Int)
-        }
-        colorAnimator.start()
     }
 
     private fun updatePhoneDisplay() {

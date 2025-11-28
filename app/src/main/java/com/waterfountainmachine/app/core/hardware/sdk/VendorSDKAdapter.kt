@@ -110,7 +110,7 @@ class VendorSDKAdapter : IVendingMachineAdapter {
      * SINGLE DISPENSE OPERATION:
      * - Send dispense command (0x41) once
      * - VMC handles product dispense AND door unlock automatically
-     * - Optical sensor error (0x03) is treated as success (product dispensed, sensor failed)
+     * - Any errors are propagated to the caller
      * 
      * Per-operation connection lifecycle:
      * 1. Validates slot number (must be in 48-slot layout)
@@ -162,102 +162,36 @@ class VendorSDKAdapter : IVendingMachineAdapter {
         
         val startTime = System.currentTimeMillis()
         
-        // PHASE 1: Dispense product into internal chamber
-        AppLog.i(tag, "----------------------------------------")
-        AppLog.i(tag, "PHASE 1: DISPENSING PRODUCT (0x41 command)")
-        AppLog.i(tag, "----------------------------------------")
+        // Single dispense operation
+        AppLog.i(tag, "Sending dispense command (0x41)")
         AppLog.i(tag, "Opening serial port /dev/ttyS0 (9600 baud)")
         
-        val phase1Result = dispenseWaterInternal(slot)
-        
-        // Check if Phase 1 failed
-        if (phase1Result.isFailure || !phase1Result.getOrNull()!!.success) {
-            val errorMsg = phase1Result.getOrNull()?.errorMessage ?: "Unknown error"
-            val errorCode = phase1Result.getOrNull()?.errorCode ?: 0x00
-            
-            AppLog.w(tag, "⚠️ Phase 1 reported failure: $errorMsg (code: 0x${errorCode.toString(16)})")
-            
-            // Check if it's an optical sensor error (0x03)
-            // Convert to Int for comparison
-            if (errorCode.toInt() == 0x03) {
-                AppLog.w(tag, "⚠️ OPTICAL SENSOR ERROR DETECTED (0x03)")
-                AppLog.w(tag, "⚠️ Product may have dispensed despite sensor failure")
-                AppLog.w(tag, "⚠️ Proceeding to Phase 2 (door unlock) anyway...")
-                // Continue to Phase 2 - don't return failure
-            } else {
-                // Other errors (motor failure, etc.) - abort
-                AppLog.e(tag, "❌ Phase 1 failed with non-sensor error (code: 0x${errorCode.toString(16)})")
-                AppLog.i(tag, "========================================")
-                AppLog.i(tag, "❌ DISPENSE OPERATION FAILED")
-                AppLog.i(tag, "========================================")
-                return phase1Result
-            }
-        } else {
-            AppLog.i(tag, "✅ Phase 1 complete: Product dispensed into internal chamber")
-        }
-        
-        // Short delay between phases
-        kotlinx.coroutines.delay(500)
-        
-        // PHASE 2: Send dispense command AGAIN to trigger door unlock
-        // The VMC recognizes product already dispensed, so it unlocks the door instead
-        AppLog.i(tag, "----------------------------------------")
-        AppLog.i(tag, "PHASE 2: DOOR UNLOCK (Second 0x41 command)")
-        AppLog.i(tag, "----------------------------------------")
-        AppLog.i(tag, "Sending second dispense command (triggers door unlock on VMC)")
-        
-        val doorResult = dispenseWaterInternal(slot)
-        
+        val result = dispenseWaterInternal(slot)
         val totalTime = System.currentTimeMillis() - startTime
         
-        // Check Phase 2 result - it might return success even if door didn't open (optical sensor error)
-        if (doorResult.isFailure || !doorResult.getOrNull()!!.success) {
-            val errorCode = doorResult.getOrNull()?.errorCode ?: 0x00
-            
-            // If optical sensor error (0x03), treat as success (door may have opened anyway)
-            if (errorCode.toInt() == 0x03) {
-                AppLog.w(tag, "⚠️ Phase 2: Optical sensor error, but door likely opened")
-                AppLog.i(tag, "✅ Phase 2 complete: Access door should be unlocked")
-                AppLog.i(tag, "========================================")
-                AppLog.i(tag, "✅ TWO-PHASE DISPENSE OPERATION SUCCESS (with sensor warning)")
-                AppLog.i(tag, "========================================")
-                AppLog.i(tag, "Total time: ${totalTime}ms")
-                AppLog.i(tag, "Product ready for customer retrieval")
-                
-                return Result.success(
-                    WaterDispenseResult(
-                        success = true,
-                        slot = slot,
-                        errorCode = 0x00,
-                        errorMessage = "",
-                        dispensingTimeMs = totalTime
-                    )
-                )
-            }
-            
-            AppLog.w(tag, "Phase 2 failed: Door unlock command did not succeed")
-            AppLog.w(tag, "⚠️ Product was dispensed but door unlock failed")
-            AppLog.w(tag, "Customer may not be able to retrieve product!")
+        // Propagate any errors directly
+        if (result.isFailure) {
+            AppLog.e(tag, "❌ DISPENSE OPERATION FAILED")
             AppLog.i(tag, "========================================")
-            AppLog.i(tag, "⚠️ DISPENSE PARTIALLY COMPLETE")
-            AppLog.i(tag, "========================================")
-            return Result.success(
-                WaterDispenseResult(
-                    success = false,
-                    slot = slot,
-                    errorCode = 0x10,
-                    errorMessage = "Product dispensed but door unlock failed",
-                    dispensingTimeMs = totalTime
-                )
-            )
+            return result
         }
         
-        AppLog.i(tag, "✅ Phase 2 complete: Access door unlocked")
+        val dispenseResult = result.getOrNull()!!
+        
+        if (!dispenseResult.success) {
+            val errorMsg = dispenseResult.errorMessage
+            val errorCode = dispenseResult.errorCode
+            val errorCodeHex = errorCode?.toString(16) ?: "00"
+            AppLog.e(tag, "❌ Dispense failed: $errorMsg (code: 0x$errorCodeHex)")
+            AppLog.i(tag, "========================================")
+            return result
+        }
+        
+        AppLog.i(tag, "✅ Dispense complete")
         AppLog.i(tag, "========================================")
-        AppLog.i(tag, "✅ TWO-PHASE DISPENSE OPERATION SUCCESS")
+        AppLog.i(tag, "✅ DISPENSE OPERATION SUCCESS")
         AppLog.i(tag, "========================================")
         AppLog.i(tag, "Total time: ${totalTime}ms")
-        AppLog.i(tag, "Product ready for customer retrieval")
         
         return Result.success(
             WaterDispenseResult(
