@@ -70,6 +70,25 @@ class VendingAnimationActivity : AppCompatActivity() {
         launchConfetti()
     }
     
+    private val pickupReminderRunnable = Runnable {
+        showPickupReminder()
+    }
+    
+    // Chevron animation runnables
+    private val chevronPulseRunnable = object : Runnable {
+        override fun run() {
+            animateChevronPulse()
+            binding.pickupReminderPanel.postDelayed(this, 1500) // Repeat every 1.5 seconds
+        }
+    }
+    
+    private val shimmerRunnable = object : Runnable {
+        override fun run() {
+            animateShimmer()
+            binding.pickupReminderPanel.postDelayed(this, 3000) // Repeat every 3 seconds
+        }
+    }
+    
     companion object {
         private const val TAG = "VendingAnimationActivity"
         // All constants moved to WaterFountainConfig for centralization
@@ -227,8 +246,14 @@ class VendingAnimationActivity : AppCompatActivity() {
             delay(2000L) // 2 more seconds (4s into fireworks)
             showCompletion()
 
-            // Phase 6: Wait for fireworks to finish, then return to main (21s+ total)
-            delay(5000L) // Wait 5 more seconds after confetti (gives 9s total for fireworks)
+            // Phase 6: Show pickup reminder after 2 seconds (21s total)
+            delay(2000L)
+            showPickupReminder()
+
+            // Phase 7: Wait 10 seconds for pickup reminder, then return to main (31s total)
+            delay(20000L)
+            hidePickupReminder()
+            delay(500L) // Small delay for fade out
             returnToMainScreen()
         }
     }
@@ -447,6 +472,111 @@ class VendingAnimationActivity : AppCompatActivity() {
         binding.konfettiView.start(parties)
     }
 
+    /**
+     * Show pickup reminder panel with elegant animations
+     */
+    private fun showPickupReminder() {
+        binding.pickupReminderPanel.visibility = android.view.View.VISIBLE
+        
+        // Fade in and slide up animation
+        binding.pickupReminderPanel.alpha = 0f
+        binding.pickupReminderPanel.translationY = 50f
+        binding.pickupReminderPanel.animate()
+            .alpha(1f)
+            .translationY(0f)
+            .setDuration(800)
+            .setInterpolator(DecelerateInterpolator(2.5f))
+            .withStartAction {
+                // Start chevron pulse animation
+                binding.pickupReminderPanel.postDelayed(chevronPulseRunnable, 500)
+                // Start shimmer animation
+                binding.pickupReminderPanel.postDelayed(shimmerRunnable, 800)
+            }
+            .start()
+    }
+
+    /**
+     * Hide pickup reminder panel with fade out
+     */
+    private fun hidePickupReminder() {
+        // Stop animations
+        binding.pickupReminderPanel.removeCallbacks(chevronPulseRunnable)
+        binding.pickupReminderPanel.removeCallbacks(shimmerRunnable)
+        
+        // Fade out and slide down
+        binding.pickupReminderPanel.animate()
+            .alpha(0f)
+            .translationY(30f)
+            .setDuration(600)
+            .setInterpolator(DecelerateInterpolator(2f))
+            .withEndAction {
+                binding.pickupReminderPanel.visibility = android.view.View.GONE
+            }
+            .start()
+    }
+
+    /**
+     * Animate chevrons with staggered downward pulse effect
+     */
+    private fun animateChevronPulse() {
+        val chevrons = listOf(
+            binding.chevron1,
+            binding.chevron2,
+            binding.chevron3
+        )
+        
+        chevrons.forEachIndexed { index, chevron ->
+            chevron.animate()
+                .translationY(12f)
+                .alpha(0.4f)
+                .setStartDelay((index * 150).toLong())
+                .setDuration(600)
+                .setInterpolator(DecelerateInterpolator(2f))
+                .withEndAction {
+                    chevron.animate()
+                        .translationY(0f)
+                        .alpha(1f)
+                        .setDuration(600)
+                        .setInterpolator(DecelerateInterpolator(2f))
+                        .start()
+                }
+                .start()
+        }
+        
+        // Add purple tint pulse
+        chevrons.forEachIndexed { index, chevron ->
+            chevron.postDelayed({
+                // Temporarily tint purple during pulse
+                chevron.setColorFilter(0xFF8B7BA8.toInt())
+                chevron.postDelayed({
+                    // Fade back to gray
+                    chevron.setColorFilter(0xFF555555.toInt())
+                }, 600)
+            }, (index * 150).toLong())
+        }
+    }
+
+    /**
+     * Animate purple shimmer overlay across chevrons
+     */
+    private fun animateShimmer() {
+        binding.shimmerOverlay.translationX = -200f
+        binding.shimmerOverlay.alpha = 0f
+        
+        binding.shimmerOverlay.animate()
+            .translationX(200f)
+            .alpha(0.6f)
+            .setDuration(1500)
+            .setInterpolator(DecelerateInterpolator(1.5f))
+            .withEndAction {
+                binding.shimmerOverlay.animate()
+                    .alpha(0f)
+                    .setDuration(300)
+                    .start()
+            }
+            .start()
+    }
+
     private fun returnToMainScreen() {
         // Track vending completed
         val vendingDuration = System.currentTimeMillis() - vendingStartTime
@@ -476,6 +606,9 @@ class VendingAnimationActivity : AppCompatActivity() {
         // Clean up callbacks when activity is paused to prevent memory leaks
         binding.logoImage.removeCallbacks(logoDelayedRunnable)
         binding.root.removeCallbacks(confettiDelayedRunnable)
+        binding.pickupReminderPanel.removeCallbacks(pickupReminderRunnable)
+        binding.pickupReminderPanel.removeCallbacks(chevronPulseRunnable)
+        binding.pickupReminderPanel.removeCallbacks(shimmerRunnable)
         
         // Stop loading sound if playing
         soundManager.stopLongSound()
@@ -485,6 +618,9 @@ class VendingAnimationActivity : AppCompatActivity() {
         // Additional cleanup in onDestroy as safety net
         binding.logoImage.removeCallbacks(logoDelayedRunnable)
         binding.root.removeCallbacks(confettiDelayedRunnable)
+        binding.pickupReminderPanel.removeCallbacks(pickupReminderRunnable)
+        binding.pickupReminderPanel.removeCallbacks(chevronPulseRunnable)
+        binding.pickupReminderPanel.removeCallbacks(shimmerRunnable)
         
         // Clean up sound manager (this will also stop any playing sounds)
         soundManager.release()

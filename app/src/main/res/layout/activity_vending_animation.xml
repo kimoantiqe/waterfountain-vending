@@ -19,7 +19,9 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"
-        android:padding="80dp"
+        android:paddingHorizontal="40dp"
+        android:paddingTop="20dp"
+        android:paddingBottom="40dp"
         android:gravity="center"
         android:clipChildren="false"
         android:clipToPadding="false">
@@ -29,6 +31,8 @@
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:gravity="center"
+            android:layout_gravity="center"
+            android:layout_marginTop="-100dp"
             android:clipChildren="false"
             android:clipToPadding="false">
 
@@ -43,7 +47,7 @@
                 android:fontFamily="sans-serif-light"
                 android:gravity="center"
                 android:alpha="0"
-                android:layout_marginBottom="120dp"/>
+                android:layout_marginBottom="80dp"/>
 
             <!-- Progress Ring and HUGE Logo Container -->
             <FrameLayout
@@ -83,7 +87,7 @@
                 android:fontFamily="sans-serif-medium"
                 android:gravity="center"
                 android:alpha="0"
-                android:layout_marginTop="120dp"
+                android:layout_marginTop="80dp"
                 android:letterSpacing="0.02"/>
 
         </LinearLayout>
@@ -95,5 +99,93 @@
         android:id="@+id/konfettiView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"/>
+
+    <!-- Pickup Reminder Panel (initially hidden) -->
+    <LinearLayout
+        android:id="@+id/pickupReminderPanel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|center_horizontal"
+        android:layout_marginBottom="80dp"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:alpha="0"
+        android:translationY="50dp"
+        android:visibility="gone">
+
+        <!-- Animated Chevrons Container -->
+        <LinearLayout
+            android:id="@+id/chevronsContainer"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:layout_marginBottom="16dp">
+
+            <ImageView
+                android:id="@+id/chevron1"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:src="@drawable/ic_chevron_down"
+                android:contentDescription="Pickup indicator"
+                android:layout_marginEnd="8dp"
+                app:tint="#555555"/>
+
+            <ImageView
+                android:id="@+id/chevron2"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:src="@drawable/ic_chevron_down"
+                android:contentDescription="Pickup indicator"
+                android:layout_marginEnd="8dp"
+                app:tint="#555555"/>
+
+            <ImageView
+                android:id="@+id/chevron3"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:src="@drawable/ic_chevron_down"
+                android:contentDescription="Pickup indicator"
+                app:tint="#555555"/>
+
+        </LinearLayout>
+
+        <!-- Shimmer overlay for purple accent effect -->
+        <View
+            android:id="@+id/shimmerOverlay"
+            android:layout_width="160dp"
+            android:layout_height="48dp"
+            android:layout_marginTop="-64dp"
+            android:layout_marginBottom="16dp"
+            android:background="@drawable/shimmer_gradient"
+            android:alpha="0"/>
+
+        <!-- Primary Text -->
+        <TextView
+            android:id="@+id/pickupPrimaryText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Your water is ready!"
+            android:textSize="44sp"
+            android:textColor="#555555"
+            android:fontFamily="sans-serif-medium"
+            android:textStyle="bold"
+            android:gravity="center"
+            android:layout_marginBottom="12dp"/>
+
+        <!-- Secondary Text -->
+        <TextView
+            android:id="@+id/pickupSecondaryText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Check the pickup door below"
+            android:textSize="32sp"
+            android:textColor="#555555"
+            android:alpha="0.7"
+            android:fontFamily="sans-serif-light"
+            android:gravity="center"
+            android:lineHeight="40sp"/>
+
+    </LinearLayout>
 
 </FrameLayout>
