@@ -78,14 +78,14 @@ class VendingAnimationActivity : AppCompatActivity() {
     private val chevronPulseRunnable = object : Runnable {
         override fun run() {
             animateChevronPulse()
-            binding.pickupReminderPanel.postDelayed(this, 1500) // Repeat every 1.5 seconds
+            binding.pickupReminderPanel.postDelayed(this, WaterFountainConfig.CHEVRON_PULSE_REPEAT_INTERVAL_MS)
         }
     }
     
     private val shimmerRunnable = object : Runnable {
         override fun run() {
             animateShimmer()
-            binding.pickupReminderPanel.postDelayed(this, 3000) // Repeat every 3 seconds
+            binding.pickupReminderPanel.postDelayed(this, WaterFountainConfig.SHIMMER_REPEAT_INTERVAL_MS)
         }
     }
     
@@ -251,9 +251,9 @@ class VendingAnimationActivity : AppCompatActivity() {
             showPickupReminder()
 
             // Phase 7: Wait 10 seconds for pickup reminder, then return to main (31s total)
-            delay(20000L)
+            delay(WaterFountainConfig.PICKUP_REMINDER_DISPLAY_DURATION_MS)
             hidePickupReminder()
-            delay(500L) // Small delay for fade out
+            delay(WaterFountainConfig.PICKUP_REMINDER_FADE_OUT_DURATION_MS)
             returnToMainScreen()
         }
     }
@@ -547,10 +547,10 @@ class VendingAnimationActivity : AppCompatActivity() {
         chevrons.forEachIndexed { index, chevron ->
             chevron.postDelayed({
                 // Temporarily tint purple during pulse
-                chevron.setColorFilter(0xFF8B7BA8.toInt())
+                chevron.setColorFilter(WaterFountainConfig.COLOR_PURPLE_ACCENT)
                 chevron.postDelayed({
                     // Fade back to gray
-                    chevron.setColorFilter(0xFF555555.toInt())
+                    chevron.setColorFilter(WaterFountainConfig.COLOR_DARK_GRAY)
                 }, 600)
             }, (index * 150).toLong())
         }

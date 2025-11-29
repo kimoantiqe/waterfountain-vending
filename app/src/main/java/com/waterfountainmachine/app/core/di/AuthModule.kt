@@ -105,32 +105,4 @@ object AuthModule {
             )
         }
     }
-    
-    /**
-     * Legacy method for non-Hilt activities (SMSVerifyActivity, etc.)
-     * TODO: Remove this once all activities are migrated to Hilt
-     * 
-     * @param context Application context
-     * @return IAuthenticationRepository instance
-     */
-    @Deprecated("Use Hilt dependency injection instead", ReplaceWith("Inject via constructor or viewModels()"))
-    fun getRepository(context: Context): IAuthenticationRepository {
-        val useMockMode = loadApiModePreference(context)
-        
-        return if (useMockMode) {
-            AppLog.i(TAG, "getRepository() returning MockAuthenticationRepository")
-            MockAuthenticationRepository()
-        } else {
-            AppLog.i(TAG, "getRepository() returning RealAuthenticationRepository")
-            val certificateManager = CertificateManager.getInstance(context)
-            val requestSigner = RequestSigner()
-            val nonceGenerator = NonceGenerator()
-            
-            RealAuthenticationRepository(
-                certificateManager = certificateManager,
-                requestSigner = requestSigner,
-                nonceGenerator = nonceGenerator
-            )
-        }
-    }
 }

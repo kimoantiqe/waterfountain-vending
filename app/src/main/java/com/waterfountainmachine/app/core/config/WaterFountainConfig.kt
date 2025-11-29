@@ -104,6 +104,16 @@ class WaterFountainConfig private constructor(context: Context) {
         const val RADIUS_SCALE_FACTOR = 0.42f
         const val GLOW_RADIUS_OFFSET = 150f
         
+        // Pickup Reminder Animation (VendingAnimationActivity)
+        const val PICKUP_REMINDER_DISPLAY_DURATION_MS = 10_000L  // 10 seconds
+        const val PICKUP_REMINDER_FADE_OUT_DURATION_MS = 500L
+        const val CHEVRON_PULSE_REPEAT_INTERVAL_MS = 1500L
+        const val SHIMMER_REPEAT_INTERVAL_MS = 3000L
+        
+        // Animation Colors (as Int for setColorFilter)
+        const val COLOR_PURPLE_ACCENT = 0xFF8B7BA8.toInt()
+        const val COLOR_DARK_GRAY = 0xFF555555.toInt()
+        
         @Volatile
         private var INSTANCE: WaterFountainConfig? = null
         
