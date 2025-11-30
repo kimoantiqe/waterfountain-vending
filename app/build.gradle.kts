@@ -1,3 +1,6 @@
+import java.util.Properties
+import java.io.FileInputStream
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -16,12 +19,64 @@ android {
         minSdk = 26
         targetSdk = 34
         versionCode = 1
-        versionName = "1.0"
+        versionName = "1.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    // SIGNING CONFIGURATION
+    // Store sensitive signing info in local.properties (not committed to git)
+    signingConfigs {
+        create("release") {
+            // Read from keystore.properties file
+            val keystorePropertiesFile = rootProject.file("keystore.properties")
+            if (keystorePropertiesFile.exists()) {
+                val keystoreProperties = Properties()
+                keystoreProperties.load(FileInputStream(keystorePropertiesFile))
+                
+                storeFile = file(keystoreProperties["storeFile"] as String)
+                storePassword = keystoreProperties["storePassword"] as String
+                keyAlias = keystoreProperties["keyAlias"] as String
+                keyPassword = keystoreProperties["keyPassword"] as String
+            } else {
+                // Fallback: Use debug keystore for local development
+                // This allows builds to work even without keystore.properties
+                println("⚠️  keystore.properties not found. Using debug keystore for release builds.")
+                println("   Create keystore.properties for proper release signing.")
+            }
+        }
+    }
+
+    // PRODUCT FLAVORS - Dev and Prod environments
+    flavorDimensions += "environment"
+    
+    productFlavors {
+        create("dev") {
+            dimension = "environment"
+            // No applicationIdSuffix - use same package name as Firebase config
+            versionNameSuffix = "-dev"
+            
+            // BuildConfig fields for runtime environment detection
+            buildConfigField("String", "ENVIRONMENT", "\"development\"")
+            buildConfigField("boolean", "IS_PRODUCTION", "false")
+        }
+        
+        create("prod") {
+            dimension = "environment"
+            // No applicationIdSuffix - use base package name
+            
+            // BuildConfig fields
+            buildConfigField("String", "ENVIRONMENT", "\"production\"")
+            buildConfigField("boolean", "IS_PRODUCTION", "true")
+        }
+    }
+
     buildTypes {
+        debug {
+            // Don't add suffix when using flavors - Firebase config won't match
+            versionNameSuffix = "-DEBUG"
+        }
+        
         release {
             isMinifyEnabled = true
             isShrinkResources = true
@@ -29,6 +84,12 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            
+            // Apply signing config if keystore.properties exists
+            val keystorePropertiesFile = rootProject.file("keystore.properties")
+            if (keystorePropertiesFile.exists()) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
     }
 
@@ -88,10 +149,13 @@ dependencies {
     implementation(platform("com.google.firebase:firebase-bom:32.7.0")) // Keeping stable version for compatibility
     implementation("com.google.firebase:firebase-functions-ktx")
     implementation("com.google.firebase:firebase-auth-ktx")
-    implementation("com.google.firebase:firebase-appcheck-debug:17.1.1")
-    implementation("com.google.firebase:firebase-appcheck-ktx")
     implementation("com.google.firebase:firebase-crashlytics-ktx")
     implementation("com.google.firebase:firebase-analytics-ktx")
+    
+    // Firebase App Check - Include both providers (conditional use at runtime)
+    implementation("com.google.firebase:firebase-appcheck-ktx")
+    implementation("com.google.firebase:firebase-appcheck-debug:17.1.1")
+    implementation("com.google.firebase:firebase-appcheck-playintegrity:17.1.1")
     
     // Kotlin Coroutines for Firebase async operations
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")

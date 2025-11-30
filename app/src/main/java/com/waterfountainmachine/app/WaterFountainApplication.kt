@@ -4,6 +4,7 @@ import android.app.Application
 import com.google.firebase.Firebase
 import com.google.firebase.appcheck.appCheck
 import com.google.firebase.appcheck.debug.DebugAppCheckProviderFactory
+import com.google.firebase.appcheck.playintegrity.PlayIntegrityAppCheckProviderFactory
 import com.google.firebase.initialize
 import com.google.firebase.crashlytics.FirebaseCrashlytics
 import com.google.firebase.analytics.FirebaseAnalytics
@@ -58,6 +59,9 @@ class WaterFountainApplication : Application() {
         super.onCreate()
         AppLog.i(TAG, "═══════════════════════════════════════════════")
         AppLog.i(TAG, "Water Fountain Vending Machine Application Starting")
+        AppLog.i(TAG, "Environment: ${BuildConfig.ENVIRONMENT}")
+        AppLog.i(TAG, "Version: ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})")
+        AppLog.i(TAG, "Build Type: ${if (BuildConfig.DEBUG) "DEBUG" else "RELEASE"}")
         AppLog.i(TAG, "═══════════════════════════════════════════════")
         
         // Migrate SharedPreferences to encrypted storage (one-time migration)
@@ -69,13 +73,25 @@ class WaterFountainApplication : Application() {
         // Initialize Firebase
         Firebase.initialize(context = this)
         
-        // Initialize Firebase App Check with debug provider for development
-        // In production, replace with DeviceCheckProviderFactory or SafetyNetAppCheckProviderFactory
-        Firebase.appCheck.installAppCheckProviderFactory(
+        // Initialize Firebase App Check with conditional provider
+        val appCheckProviderFactory = if (BuildConfig.DEBUG) {
+            // DEBUG BUILDS: Use Debug Provider (requires manual token registration)
+            AppLog.i(TAG, "🔓 Firebase App Check: DEBUG Provider")
+            AppLog.i(TAG, "⚠️  Check logcat for debug token and register in Firebase Console")
             DebugAppCheckProviderFactory.getInstance()
-        )
-        AppLog.i(TAG, "Firebase App Check initialized with Debug Provider")
-        AppLog.i(TAG, "⚠️ Check logcat for App Check debug token - register it in Firebase Console")
+        } else {
+            // RELEASE BUILDS: Use Play Integrity API (automatic validation)
+            AppLog.i(TAG, "🔒 Firebase App Check: PLAY INTEGRITY Provider")
+            PlayIntegrityAppCheckProviderFactory.getInstance()
+        }
+        
+        Firebase.appCheck.installAppCheckProviderFactory(appCheckProviderFactory)
+        
+        if (BuildConfig.IS_PRODUCTION) {
+            AppLog.i(TAG, "🏭 Running in PRODUCTION environment")
+        } else {
+            AppLog.i(TAG, "🧪 Running in DEVELOPMENT environment")
+        }
         
         // Initialize security module FIRST (needed by Crashlytics)
         initializeSecurityModule()
