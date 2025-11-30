@@ -463,15 +463,4 @@ class MainActivity : AppCompatActivity() {
         
         AppLog.d(TAG, "MainActivity destroyed")
     }
-
-    override fun dispatchTouchEvent(ev: MotionEvent?): Boolean {
-        // Let admin gesture detector handle corner touches first
-        ev?.let { 
-            if (adminGestureDetector.onTouchEvent(it)) {
-                // Admin gesture handled the event, don't pass it to other views
-                return true
-            }
-        }
-        return super.dispatchTouchEvent(ev)
-    }
 }
