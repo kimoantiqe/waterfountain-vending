@@ -33,10 +33,6 @@ class HardwareTestingFragment : Fragment() {
     private lateinit var app: WaterFountainApplication
     private val slotButtons = mutableMapOf<Int, Button>()
     
-    private val hardwareStateObserver: (WaterFountainApplication.HardwareState) -> Unit = { state ->
-        updateStatus()
-    }
-    
     companion object {
         private const val TAG = "HardwareTestingFrag"
     }
@@ -55,8 +51,12 @@ class HardwareTestingFragment : Fragment() {
         
         app = requireActivity().application as WaterFountainApplication
         
-        // Observe hardware state changes
-        app.observeHardwareState(hardwareStateObserver)
+        // Observe hardware state changes using StateFlow (lifecycle-safe)
+        viewLifecycleOwner.lifecycleScope.launch {
+            app.hardwareStateFlow.collect { state ->
+                updateStatus()
+            }
+        }
         
         createSlotButtons()
         setupUI()
@@ -331,8 +331,7 @@ class HardwareTestingFragment : Fragment() {
     
     override fun onDestroyView() {
         super.onDestroyView()
-        // Remove observer
-        app.removeHardwareStateObserver(hardwareStateObserver)
+        // StateFlow collection is automatically cancelled when viewLifecycleOwner is destroyed
         _binding = null
     }
 }

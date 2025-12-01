@@ -151,6 +151,7 @@ dependencies {
     implementation("com.google.firebase:firebase-auth-ktx")
     implementation("com.google.firebase:firebase-crashlytics-ktx")
     implementation("com.google.firebase:firebase-analytics-ktx")
+    implementation("com.google.firebase:firebase-firestore-ktx")
     
     // Firebase App Check - Include both providers (conditional use at runtime)
     implementation("com.google.firebase:firebase-appcheck-ktx")

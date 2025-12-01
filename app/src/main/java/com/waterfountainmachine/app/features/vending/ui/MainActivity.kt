@@ -17,6 +17,8 @@ import android.view.animation.DecelerateInterpolator
 import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityOptionsCompat
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
 import com.waterfountainmachine.app.R
 import com.waterfountainmachine.app.WaterFountainApplication
 import com.waterfountainmachine.app.admin.AdminGestureDetector
@@ -37,9 +39,13 @@ class MainActivity : AppCompatActivity() {
     
     private var isNavigating = false
     private val navigationResetRunnable = Runnable { isNavigating = false }
+    
+    // Screen duration tracking
+    private var screenEnterTime: Long = 0
 
     companion object {
         private const val TAG = "MainActivity"
+        private const val SCREEN_NAME = "main_screen"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -65,6 +71,10 @@ class MainActivity : AppCompatActivity() {
         
         initializeHardware()
         analyticsManager.logAppOpened()
+        
+        // Start screen duration tracking
+        screenEnterTime = System.currentTimeMillis()
+        analyticsManager.logScreenEntered(SCREEN_NAME)
     }
     
     private fun setupAnalytics() {
@@ -126,6 +136,9 @@ class MainActivity : AppCompatActivity() {
         binding.root.setOnClickListener {
             if (!isNavigating) {
                 AppLog.d(TAG, "Screen tapped, launching SMSActivity")
+                
+                // Start journey tracking
+                WaterFountainApplication.startJourney()
                 
                 analyticsManager.logTapToStart()
                 soundManager.playSound(R.raw.start, volume = 1.0f)
@@ -334,9 +347,9 @@ class MainActivity : AppCompatActivity() {
         
         AppLog.i(TAG, "Triggering hardware initialization from MainActivity")
         
-        // Observe hardware state changes
-        app.observeHardwareState { state ->
-            runOnUiThread {
+        // Observe hardware state changes using StateFlow (lifecycle-safe, no memory leak)
+        lifecycleScope.launch {
+            app.hardwareStateFlow.collect { state ->
                 updateHardwareStatusIndicator(state)
             }
         }
@@ -391,6 +404,10 @@ class MainActivity : AppCompatActivity() {
     override fun onStop() {
         super.onStop()
         
+        // Track screen duration when leaving
+        val screenDurationMs = System.currentTimeMillis() - screenEnterTime
+        analyticsManager.logScreenExited(SCREEN_NAME, screenDurationMs)
+        
         // Pause animations to save resources while in background
         canBobbingAnimator?.pause()
         
@@ -399,6 +416,10 @@ class MainActivity : AppCompatActivity() {
     
     override fun onStart() {
         super.onStart()
+        
+        // Reset screen enter time when returning
+        screenEnterTime = System.currentTimeMillis()
+        analyticsManager.logScreenEntered(SCREEN_NAME)
         
         // Resume animations when returning to foreground
         canBobbingAnimator?.resume()

@@ -26,6 +26,7 @@ import com.waterfountainmachine.app.config.WaterFountainConfig
 import com.waterfountainmachine.app.viewmodels.VendingViewModel
 import com.waterfountainmachine.app.viewmodels.VendingUiState
 import com.waterfountainmachine.app.analytics.AnalyticsManager
+import com.waterfountainmachine.app.WaterFountainApplication
 import dagger.hilt.android.AndroidEntryPoint
 import nl.dionsegijn.konfetti.core.Party
 import nl.dionsegijn.konfetti.core.Position
@@ -52,6 +53,7 @@ class VendingAnimationActivity : AppCompatActivity() {
     private var dispensingTime: Long = 0
     private var slot: Int = 1
     private var vendingStartTime: Long = 0
+    private var dispenseStartTime: Long = 0
     
     // Runnable references for cleanup
     private val logoDelayedRunnable = Runnable {
@@ -114,6 +116,15 @@ class VendingAnimationActivity : AppCompatActivity() {
         // Track vending started
         vendingStartTime = System.currentTimeMillis()
         analyticsManager.logVendingStarted(slot)
+        
+        // Track dispensing started (water pickup = goal)
+        val journeyStartTime = WaterFountainApplication.journeyStartTime
+        dispenseStartTime = System.currentTimeMillis()
+        analyticsManager.logDispensingStarted(slot, journeyStartTime)
+        
+        // Record dispense attempt in health monitor
+        val app = application as WaterFountainApplication
+        val healthMonitor = app.getHealthMonitor()
         
         // Initialize sound manager
         soundManager = SoundManager(this)
@@ -581,6 +592,17 @@ class VendingAnimationActivity : AppCompatActivity() {
         // Track vending completed
         val vendingDuration = System.currentTimeMillis() - vendingStartTime
         analyticsManager.logVendingCompleted(slot, vendingDuration)
+        
+        // Track journey completed
+        val journeyStartTime = WaterFountainApplication.journeyStartTime
+        val totalJourneyDurationMs = WaterFountainApplication.getJourneyDuration()
+        val dispenseDurationMs = System.currentTimeMillis() - dispenseStartTime
+        analyticsManager.logJourneyCompleted(totalJourneyDurationMs, dispenseDurationMs, journeyStartTime)
+        
+        // Record dispense success in health monitor
+        val app = application as WaterFountainApplication
+        val healthMonitor = app.getHealthMonitor()
+        healthMonitor.recordDispenseAttempt(success = true)
         
         // Notify ViewModel that animation is complete
         viewModel.onAnimationComplete()

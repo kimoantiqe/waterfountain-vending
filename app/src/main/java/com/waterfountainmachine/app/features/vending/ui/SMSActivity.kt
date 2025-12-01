@@ -41,6 +41,10 @@ class SMSActivity : AppCompatActivity() {
     // Track time for analytics
     private var phoneNumberStartTime: Long = 0
     
+    // Screen duration tracking
+    private var screenEnterTime: Long = 0
+    private var faqOpenTime: Long = 0
+    
     // QR code cache (simple in-memory cache)
     private var cachedQRCode: android.graphics.Bitmap? = null
     private var cachedQRCodeText: String? = null
@@ -50,6 +54,7 @@ class SMSActivity : AppCompatActivity() {
     
     companion object {
         private const val TAG = "SMSActivity"
+        private const val SCREEN_NAME = "phone_entry_screen"
         private const val QUESTION_MARK_DEBOUNCE_MS = 400L
     }
 
@@ -68,6 +73,10 @@ class SMSActivity : AppCompatActivity() {
         analyticsManager = AnalyticsManager.getInstance(this)
         analyticsManager.logScreenView("SMSActivity", "SMSActivity")
         
+        // Start screen duration tracking
+        screenEnterTime = System.currentTimeMillis()
+        analyticsManager.logScreenEntered(SCREEN_NAME)
+        
         // Start tracking phone number entry time
         phoneNumberStartTime = System.currentTimeMillis()
         
@@ -79,7 +88,8 @@ class SMSActivity : AppCompatActivity() {
         
         // Initialize inactivity timer FIRST (needed by observers)
         inactivityTimer = InactivityTimer(WaterFountainConfig.INACTIVITY_TIMEOUT_MS) { 
-            analyticsManager.logTimeoutOccurred("SMSActivity")
+            val screenDurationMs = System.currentTimeMillis() - screenEnterTime
+            analyticsManager.logTimeoutOccurred(SCREEN_NAME, screenDurationMs)
             returnToMainScreen()
         }
         inactivityTimer.start()
@@ -189,7 +199,9 @@ class SMSActivity : AppCompatActivity() {
     }
 
     private fun returnToMainScreen() {
-        analyticsManager.logReturnToMain("SMSActivity")
+        val screenDurationMs = System.currentTimeMillis() - screenEnterTime
+        analyticsManager.logReturnToMain(SCREEN_NAME, screenDurationMs)
+        analyticsManager.logScreenExited(SCREEN_NAME, screenDurationMs)
         val intent = Intent(this, MainActivity::class.java)
         // Use SINGLE_TOP to reuse existing MainActivity instance for smooth transition
         intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
@@ -290,13 +302,15 @@ class SMSActivity : AppCompatActivity() {
     }
 
     private fun showModal() {
-        analyticsManager.logFaqOpened("SMSActivity")
+        faqOpenTime = System.currentTimeMillis()
+        analyticsManager.logFaqOpened(SCREEN_NAME)
         binding.modalOverlay.visibility = View.VISIBLE
         AnimationUtils.showModalAnimation(binding.modalContent)
     }
 
     private fun hideModal() {
-        analyticsManager.logFaqClosed("SMSActivity")
+        val faqDurationMs = System.currentTimeMillis() - faqOpenTime
+        analyticsManager.logFaqClosed(SCREEN_NAME, faqDurationMs)
         AnimationUtils.hideModalAnimation(binding.modalContent) {
             binding.modalOverlay.visibility = View.GONE
         }

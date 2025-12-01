@@ -18,6 +18,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
 /**
  * Application class - manages hardware state and Firebase initialization
@@ -27,6 +30,20 @@ class WaterFountainApplication : Application() {
     
     companion object {
         private const val TAG = "WaterFountainApp"
+        
+        // Journey tracking
+        var journeyStartTime: Long = 0
+            private set
+        
+        fun startJourney() {
+            journeyStartTime = System.currentTimeMillis()
+        }
+        
+        fun getJourneyDuration(): Long {
+            return if (journeyStartTime > 0) {
+                System.currentTimeMillis() - journeyStartTime
+            } else 0
+        }
     }
     
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
@@ -34,10 +51,19 @@ class WaterFountainApplication : Application() {
     lateinit var hardwareManager: WaterFountainManager
         private set
     
-    var hardwareState: HardwareState = HardwareState.UNINITIALIZED
-        private set
+    private lateinit var healthMonitor: com.waterfountainmachine.app.analytics.MachineHealthMonitor
     
-    private val stateObservers = mutableListOf<(HardwareState) -> Unit>()
+    // Use StateFlow instead of observer list (fixes memory leak)
+    private val _hardwareStateFlow = MutableStateFlow(HardwareState.UNINITIALIZED)
+    val hardwareStateFlow: StateFlow<HardwareState> = _hardwareStateFlow.asStateFlow()
+    
+    // Keep for backward compatibility (deprecated)
+    @Deprecated("Use hardwareStateFlow instead", ReplaceWith("hardwareStateFlow.value"))
+    var hardwareState: HardwareState
+        get() = _hardwareStateFlow.value
+        private set(value) {
+            _hardwareStateFlow.value = value
+        }
     
     enum class HardwareState {
         UNINITIALIZED,
@@ -83,6 +109,18 @@ class WaterFountainApplication : Application() {
         initializeAuthModule()
         
         hardwareManager = WaterFountainManager.getInstance(this)
+        healthMonitor = com.waterfountainmachine.app.analytics.MachineHealthMonitor.getInstance(this)
+        
+        // Start health monitor once machine is enrolled
+        if (com.waterfountainmachine.app.security.SecurityModule.isEnrolled()) {
+            val machineId = com.waterfountainmachine.app.security.SecurityModule.getMachineId()
+            if (machineId != null) {
+                healthMonitor.start(machineId)
+                AppLog.i(TAG, "Health monitor started for machine: ****${machineId.takeLast(4)}")
+            }
+        } else {
+            AppLog.i(TAG, "Health monitor not started - machine not enrolled")
+        }
         
         AppLog.i(TAG, "Hardware manager created")
         AppLog.i(TAG, "Initial state: ${hardwareState.name}")
@@ -232,6 +270,13 @@ class WaterFountainApplication : Application() {
     }
     
     /**
+     * Get the health monitor instance
+     */
+    fun getHealthMonitor(): com.waterfountainmachine.app.analytics.MachineHealthMonitor {
+        return healthMonitor
+    }
+    
+    /**
      * Shutdown hardware
      */
     fun shutdownHardware() {
@@ -267,31 +312,26 @@ class WaterFountainApplication : Application() {
     }
     
     /**
-     * Register observer for hardware state changes
+     * @deprecated Use hardwareStateFlow.collect() in a lifecycle-aware scope instead
+     * This method is kept for backward compatibility but will cause memory leaks if not properly unregistered
      */
+    @Deprecated(
+        message = "Use hardwareStateFlow.collect() instead to avoid memory leaks",
+        replaceWith = ReplaceWith("lifecycleScope.launch { hardwareStateFlow.collect { state -> /* handle state */ } }")
+    )
     fun observeHardwareState(observer: (HardwareState) -> Unit) {
-        stateObservers.add(observer)
+        AppLog.w(TAG, "observeHardwareState() is deprecated and may cause memory leaks. Use hardwareStateFlow instead.")
         // Immediately notify of current state
         observer(hardwareState)
     }
     
     /**
-     * Unregister observer
-     */
-    fun removeHardwareStateObserver(observer: (HardwareState) -> Unit) {
-        stateObservers.remove(observer)
-    }
-    
-    /**
-     * Update hardware state and notify observers
+     * Update hardware state (now updates StateFlow)
      */
     private fun updateState(newState: HardwareState) {
         val oldState = hardwareState
-        hardwareState = newState
+        hardwareState = newState  // Uses the setter which updates _hardwareStateFlow
         AppLog.i(TAG, "Hardware state changed: $oldState → $newState")
-        
-        // Notify all observers
-        stateObservers.forEach { it(newState) }
     }
     
     /**

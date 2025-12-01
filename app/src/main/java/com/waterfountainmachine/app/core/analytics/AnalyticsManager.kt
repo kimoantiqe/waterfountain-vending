@@ -62,6 +62,10 @@ class AnalyticsManager private constructor(context: Context) {
         private const val EVENT_OTP_RESEND_CLICKED = "otp_resend_clicked"
         private const val EVENT_FAQ_OPENED = "faq_opened"
         private const val EVENT_FAQ_CLOSED = "faq_closed"
+        private const val EVENT_SCREEN_ENTERED = "screen_entered"
+        private const val EVENT_SCREEN_EXITED = "screen_exited"
+        private const val EVENT_JOURNEY_COMPLETED = "journey_completed"
+        private const val EVENT_DISPENSING_STARTED = "dispensing_started"
         private const val EVENT_VENDING_STARTED = "vending_started"
         private const val EVENT_VENDING_COMPLETED = "vending_completed"
         private const val EVENT_VENDING_FAILED = "vending_failed"
@@ -83,6 +87,10 @@ class AnalyticsManager private constructor(context: Context) {
         private const val PARAM_DURATION = "duration_ms"
         private const val PARAM_OTP_LENGTH = "otp_length"
         private const val PARAM_REASON = "reason"
+        private const val PARAM_SCREEN_DURATION_MS = "screen_duration_ms"
+        private const val PARAM_TOTAL_JOURNEY_DURATION_MS = "total_journey_duration_ms"
+        private const val PARAM_DISPENSE_DURATION_MS = "dispense_duration_ms"
+        private const val PARAM_JOURNEY_START_TIME = "journey_start_time"
     }
     
     init {
@@ -353,11 +361,66 @@ class AnalyticsManager private constructor(context: Context) {
     /**
      * Track FAQ modal closed
      */
-    fun logFaqClosed(screenName: String) {
+    fun logFaqClosed(screenName: String, durationMs: Long) {
         firebaseAnalytics.logEvent(EVENT_FAQ_CLOSED) {
             param(PARAM_SCREEN_NAME, screenName)
+            param(PARAM_DURATION, durationMs)
         }
-        AppLog.d(TAG, "Event: faq_closed (screen=$screenName)")
+        AppLog.d(TAG, "Event: faq_closed (screen=$screenName, duration=${durationMs}ms)")
+    }
+    
+    // ==================== SCREEN DURATION TRACKING ====================
+    
+    /**
+     * Track screen entered
+     */
+    fun logScreenEntered(screenName: String) {
+        firebaseAnalytics.logEvent(EVENT_SCREEN_ENTERED) {
+            param(PARAM_SCREEN_NAME, screenName)
+        }
+        AppLog.d(TAG, "Event: screen_entered (screen=$screenName)")
+    }
+    
+    /**
+     * Track screen exited with duration
+     */
+    fun logScreenExited(screenName: String, durationMs: Long) {
+        firebaseAnalytics.logEvent(EVENT_SCREEN_EXITED) {
+            param(PARAM_SCREEN_NAME, screenName)
+            param(PARAM_SCREEN_DURATION_MS, durationMs)
+        }
+        AppLog.d(TAG, "Event: screen_exited (screen=$screenName, duration=${durationMs}ms)")
+    }
+    
+    // ==================== JOURNEY COMPLETION TRACKING ====================
+    
+    /**
+     * Track complete user journey with timing metrics
+     */
+    fun logJourneyCompleted(
+        totalJourneyDurationMs: Long,
+        dispenseDurationMs: Long,
+        journeyStartTime: Long
+    ) {
+        firebaseAnalytics.logEvent(EVENT_JOURNEY_COMPLETED) {
+            param(PARAM_TOTAL_JOURNEY_DURATION_MS, totalJourneyDurationMs)
+            param(PARAM_DISPENSE_DURATION_MS, dispenseDurationMs)
+            param(PARAM_JOURNEY_START_TIME, journeyStartTime)
+        }
+        AppLog.d(TAG, "Event: journey_completed (total=${totalJourneyDurationMs}ms, dispense=${dispenseDurationMs}ms)")
+    }
+    
+    /**
+     * Track dispensing started (water pickup)
+     */
+    fun logDispensingStarted(slotNumber: Int, journeyStartTime: Long) {
+        val journeyDurationMs = System.currentTimeMillis() - journeyStartTime
+        firebaseAnalytics.logEvent(EVENT_DISPENSING_STARTED) {
+            param(PARAM_SLOT_NUMBER, slotNumber.toLong())
+            param(PARAM_JOURNEY_START_TIME, journeyStartTime)
+            param(PARAM_TOTAL_JOURNEY_DURATION_MS, journeyDurationMs)
+        }
+        AppLog.d(TAG, "Event: dispensing_started (slot=$slotNumber, journey=${journeyDurationMs}ms)")
     }
     
     // ==================== VENDING ====================
@@ -399,34 +462,37 @@ class AnalyticsManager private constructor(context: Context) {
     // ==================== USER FLOW & ABANDONMENT ====================
     
     /**
-     * Track user abandoned the flow
+     * Track user abandoned the flow with screen duration
      */
-    fun logUserAbandoned(screenName: String, reason: String = "unknown") {
+    fun logUserAbandoned(screenName: String, screenDurationMs: Long, reason: String = "unknown") {
         firebaseAnalytics.logEvent(EVENT_USER_ABANDONED) {
             param(PARAM_SCREEN_NAME, screenName)
+            param(PARAM_SCREEN_DURATION_MS, screenDurationMs)
             param(PARAM_REASON, reason)
         }
-        AppLog.d(TAG, "Event: user_abandoned (screen=$screenName, reason=$reason)")
+        AppLog.d(TAG, "Event: user_abandoned (screen=$screenName, duration=${screenDurationMs}ms, reason=$reason)")
     }
     
     /**
-     * Track timeout occurred
+     * Track timeout occurred with screen duration
      */
-    fun logTimeoutOccurred(screenName: String) {
+    fun logTimeoutOccurred(screenName: String, screenDurationMs: Long) {
         firebaseAnalytics.logEvent(EVENT_TIMEOUT_OCCURRED) {
             param(PARAM_SCREEN_NAME, screenName)
+            param(PARAM_SCREEN_DURATION_MS, screenDurationMs)
         }
-        AppLog.d(TAG, "Event: timeout_occurred (screen=$screenName)")
+        AppLog.d(TAG, "Event: timeout_occurred (screen=$screenName, duration=${screenDurationMs}ms)")
     }
     
     /**
-     * Track return to main screen
+     * Track return to main screen with screen duration
      */
-    fun logReturnToMain(fromScreen: String) {
+    fun logReturnToMain(fromScreen: String, screenDurationMs: Long) {
         firebaseAnalytics.logEvent(EVENT_RETURN_TO_MAIN) {
             param(PARAM_SCREEN_NAME, fromScreen)
+            param(PARAM_SCREEN_DURATION_MS, screenDurationMs)
         }
-        AppLog.d(TAG, "Event: return_to_main (from=$fromScreen)")
+        AppLog.d(TAG, "Event: return_to_main (from=$fromScreen, duration=${screenDurationMs}ms)")
     }
     
     // ==================== HARDWARE & ERRORS ====================
