@@ -70,10 +70,10 @@ class VendingViewModel @Inject constructor(
                 val isConnected = waterFountainManager.isConnected()
                 
                 if (isConnected) {
-                    AppLog.i(TAG, "✅ Hardware connected and ready")
+                    AppLog.i(TAG, "Hardware connected and ready")
                     _uiState.value = VendingUiState.Ready
                 } else {
-                    AppLog.w(TAG, "⚠️ Hardware not connected")
+                    AppLog.w(TAG, "Hardware not connected")
                     _uiState.value = VendingUiState.HardwareError(UserErrorMessages.HARDWARE_NOT_READY)
                 }
             } catch (e: Exception) {

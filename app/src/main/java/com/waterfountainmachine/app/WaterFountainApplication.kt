@@ -20,10 +20,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 
 /**
- * Application class for Water Fountain Vending Machine
- * Manages global hardware state and initialization
- * 
- * @HiltAndroidApp - Triggers Hilt code generation and enables DI
+ * Application class - manages hardware state and Firebase initialization
  */
 @HiltAndroidApp
 class WaterFountainApplication : Application() {
@@ -32,18 +29,14 @@ class WaterFountainApplication : Application() {
         private const val TAG = "WaterFountainApp"
     }
     
-    // Application-wide coroutine scope
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     
-    // Hardware manager instance (initialized once)
     lateinit var hardwareManager: WaterFountainManager
         private set
     
-    // Hardware state
     var hardwareState: HardwareState = HardwareState.UNINITIALIZED
         private set
     
-    // State observers
     private val stateObservers = mutableListOf<(HardwareState) -> Unit>()
     
     enum class HardwareState {
@@ -57,55 +50,38 @@ class WaterFountainApplication : Application() {
     
     override fun onCreate() {
         super.onCreate()
-        AppLog.i(TAG, "═══════════════════════════════════════════════")
         AppLog.i(TAG, "Water Fountain Vending Machine Application Starting")
         AppLog.i(TAG, "Environment: ${BuildConfig.ENVIRONMENT}")
         AppLog.i(TAG, "Version: ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})")
         AppLog.i(TAG, "Build Type: ${if (BuildConfig.DEBUG) "DEBUG" else "RELEASE"}")
-        AppLog.i(TAG, "═══════════════════════════════════════════════")
         
-        // Migrate SharedPreferences to encrypted storage (one-time migration)
         com.waterfountainmachine.app.utils.SecurePreferences.migrateSystemSettings(this)
-        
-        // Initialize admin PIN system
         com.waterfountainmachine.app.admin.AdminPinManager.initialize(this)
         
-        // Initialize Firebase
         Firebase.initialize(context = this)
         
-        // Initialize Firebase App Check with conditional provider
         val appCheckProviderFactory = if (BuildConfig.DEBUG) {
-            // DEBUG BUILDS: Use Debug Provider (requires manual token registration)
-            AppLog.i(TAG, "🔓 Firebase App Check: DEBUG Provider")
-            AppLog.i(TAG, "⚠️  Check logcat for debug token and register in Firebase Console")
+            AppLog.i(TAG, "Firebase App Check: DEBUG Provider")
+            AppLog.i(TAG, "Check logcat for debug token and register in Firebase Console")
             DebugAppCheckProviderFactory.getInstance()
         } else {
-            // RELEASE BUILDS: Use Play Integrity API (automatic validation)
-            AppLog.i(TAG, "🔒 Firebase App Check: PLAY INTEGRITY Provider")
+            AppLog.i(TAG, "Firebase App Check: PLAY INTEGRITY Provider")
             PlayIntegrityAppCheckProviderFactory.getInstance()
         }
         
         Firebase.appCheck.installAppCheckProviderFactory(appCheckProviderFactory)
         
         if (BuildConfig.IS_PRODUCTION) {
-            AppLog.i(TAG, "🏭 Running in PRODUCTION environment")
+            AppLog.i(TAG, "Running in PRODUCTION environment")
         } else {
-            AppLog.i(TAG, "🧪 Running in DEVELOPMENT environment")
+            AppLog.i(TAG, "Running in DEVELOPMENT environment")
         }
         
-        // Initialize security module FIRST (needed by Crashlytics)
         initializeSecurityModule()
-        
-        // Initialize Firebase Crashlytics (depends on SecurityModule)
         initializeCrashlytics()
-        
-        // Initialize Firebase Analytics
         initializeAnalytics()
-        
-        // Initialize authentication module
         initializeAuthModule()
         
-        // Initialize hardware manager (but don't connect yet)
         hardwareManager = WaterFountainManager.getInstance(this)
         
         AppLog.i(TAG, "Hardware manager created")
@@ -113,7 +89,7 @@ class WaterFountainApplication : Application() {
     }
     
     /**
-     * Initialize Firebase Crashlytics for crash reporting with PII redaction
+     * Initialize Crashlytics with PII redaction
      */
     private fun initializeCrashlytics() {
         try {
@@ -146,10 +122,10 @@ class WaterFountainApplication : Application() {
                 AppLog.d(TAG, "SecurityModule not yet initialized, skipping enrollment keys")
             }
             
-            AppLog.i(TAG, "✅ Firebase Crashlytics initialized with PII redaction")
-            AppLog.i(TAG, "📊 Crash reporting: ENABLED (for testing)")
-            AppLog.i(TAG, "🔒 PII Protection: Phone numbers and full machine IDs masked")
-            AppLog.i(TAG, "💡 Crashes will be sent on next app launch after crash")
+            AppLog.i(TAG, "Firebase Crashlytics initialized with PII redaction")
+            AppLog.i(TAG, "Crash reporting: ENABLED (for testing)")
+            AppLog.i(TAG, "PII Protection: Phone numbers and full machine IDs masked")
+            AppLog.i(TAG, "Crashes will be sent on next app launch after crash")
         } catch (e: Exception) {
             AppLog.e(TAG, "Error initializing Crashlytics", e)
         }
@@ -203,22 +179,19 @@ class WaterFountainApplication : Application() {
      */
     private fun initializeAuthModule() {
         try {
-            AppLog.i(TAG, "═══════════════════════════════════════════════")
+            AppLog.i(TAG, "================================================")
             AppLog.i(TAG, "Initializing AuthModule...")
             
-            // Load saved API mode preference (default to mock mode for development)
             val useMockMode = AuthModule.loadApiModePreference(this)
             AppLog.i(TAG, "Loaded API mode preference: useMockMode=$useMockMode")
             
-            // Initialize AuthModule
             AuthModule.initialize(this, useMockMode)
             
             val mode = if (useMockMode) "MOCK" else "REAL API"
-            AppLog.i(TAG, "✅ AuthModule initialized in $mode mode")
-            AppLog.i(TAG, "═══════════════════════════════════════════════")
+            AppLog.i(TAG, "AuthModule initialized in $mode mode")
+            AppLog.i(TAG, "================================================")
         } catch (e: Exception) {
-            // Fallback to mock mode if initialization fails
-            AppLog.e(TAG, "❌ Error initializing AuthModule, falling back to mock mode", e)
+            AppLog.e(TAG, "Error initializing AuthModule, falling back to mock mode", e)
             AuthModule.initialize(this, useMockMode = true)
         }
     }
@@ -243,16 +216,16 @@ class WaterFountainApplication : Application() {
                 
                 if (success) {
                     updateState(HardwareState.READY)
-                    AppLog.i(TAG, "✅ Hardware initialization SUCCESS")
+                    AppLog.i(TAG, "Hardware initialization SUCCESS")
                     onComplete(true)
                 } else {
                     updateState(HardwareState.ERROR)
-                    AppLog.e(TAG, "❌ Hardware initialization FAILED")
+                    AppLog.e(TAG, "Hardware initialization FAILED")
                     onComplete(false)
                 }
             } catch (e: Exception) {
                 updateState(HardwareState.ERROR)
-                AppLog.e(TAG, "❌ Hardware initialization EXCEPTION", e)
+                AppLog.e(TAG, "Hardware initialization EXCEPTION", e)
                 onComplete(false)
             }
         }

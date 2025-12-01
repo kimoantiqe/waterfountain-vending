@@ -35,11 +35,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var soundManager: SoundManager
     private lateinit var analyticsManager: AnalyticsManager
     
-    // Prevent multiple launches - FLAG_ACTIVITY_SINGLE_TOP provides primary protection
-    // This flag provides additional UI feedback during navigation
     private var isNavigating = false
-    
-    // Runnable references for proper cleanup
     private val navigationResetRunnable = Runnable { isNavigating = false }
 
     companion object {
@@ -49,7 +45,6 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
-        // Set window background to black to prevent white flash during transitions
         window.setBackgroundDrawableResource(android.R.color.black)
         
         AppLog.i(TAG, "Water Fountain Vending Machine starting...")
@@ -68,50 +63,41 @@ class MainActivity : AppCompatActivity() {
         setupPressAnimation()
         setupAdminGesture()
         
-        // Initialize hardware on app launch
         initializeHardware()
-        
-        // Track app opened (after analytics is initialized)
         analyticsManager.logAppOpened()
     }
     
     private fun setupAnalytics() {
         analyticsManager = AnalyticsManager.getInstance(this)
-        analyticsManager.setUserProperties() // Set user properties for segmentation
+        analyticsManager.setUserProperties()
         analyticsManager.logScreenView("MainActivity", "MainActivity")
         AppLog.i(TAG, "AnalyticsManager initialized with user properties")
     }
     
     private fun setupSoundManager() {
         soundManager = SoundManager(this)
-        // Pre-load sounds for instant playback
         soundManager.loadSound(R.raw.click)
         soundManager.loadSound(R.raw.start)
         AppLog.i(TAG, "SoundManager initialized and sounds loaded")
     }
     
     private fun setupBackButtonHandler() {
-        // Disable back button in kiosk mode using modern API
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
-                // Do nothing - disable back button for kiosk mode
                 AppLog.d(TAG, "Back button disabled in kiosk mode")
             }
         })
     }
     
     private fun setupKioskMode() {
-        // Check if kiosk mode is enabled in settings (using encrypted preferences)
         val prefs = com.waterfountainmachine.app.utils.SecurePreferences.getSystemSettings(this)
-        val kioskModeEnabled = prefs.getBoolean("kiosk_mode", true) // Default to enabled
+        val kioskModeEnabled = prefs.getBoolean("kiosk_mode", true)
         
         AppLog.i(TAG, "Kiosk mode setting: ${if (kioskModeEnabled) "ENABLED" else "DISABLED"}")
         
         if (kioskModeEnabled) {
-            // Keep screen on
             window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
-            // Use modern APIs for showing activity when locked
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O_MR1) {
                 setShowWhenLocked(true)
                 setTurnScreenOn(true)
@@ -124,7 +110,6 @@ class MainActivity : AppCompatActivity() {
                 )
             }
 
-            // Make this a launcher activity and clear task
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
             
             AppLog.i(TAG, "Kiosk mode features applied")
@@ -139,22 +124,16 @@ class MainActivity : AppCompatActivity() {
 
     private fun setupClickListener() {
         binding.root.setOnClickListener {
-            // Check if we're in the admin corner area
-            // This will be handled by dispatchTouchEvent and AdminGestureDetector
-            // Only navigate if not already navigating
             if (!isNavigating) {
                 AppLog.d(TAG, "Screen tapped, launching SMSActivity")
                 
-                // Track tap to start
                 analyticsManager.logTapToStart()
-                
-                // Play start sound
                 soundManager.playSound(R.raw.start, volume = 1.0f)
                 
                 isNavigating = true
                 performPressAnimation {
                     val intent = Intent(this, SMSActivity::class.java)
-                    intent.flags = Intent.FLAG_ACTIVITY_SINGLE_TOP // Prevent multiple instances
+                    intent.flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
                     
                     val options = ActivityOptionsCompat.makeCustomAnimation(
                         this,
@@ -163,8 +142,6 @@ class MainActivity : AppCompatActivity() {
                     )
                     
                     startActivity(intent, options.toBundle())
-                    
-                    // Reset flag after delay
                     binding.root.postDelayed(navigationResetRunnable, 1000)
                 }
             }
@@ -172,16 +149,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupPressAnimation() {
-        // Add breathing animation to instruction text
         setupBreathingAnimation()
 
-        // Add touch feedback to the entire screen
         binding.root.setOnTouchListener { _, event ->
             when (event.action) {
                 android.view.MotionEvent.ACTION_DOWN -> {
-                    // Create haptic-like ripple effect
                     createRippleEffect(event.x, event.y)
-                    // Animate ONLY the can, not the entire content
                     binding.canImage.animate()
                         .scaleX(0.95f)
                         .scaleY(0.95f)
@@ -190,7 +163,6 @@ class MainActivity : AppCompatActivity() {
                         .start()
                 }
                 android.view.MotionEvent.ACTION_UP, android.view.MotionEvent.ACTION_CANCEL -> {
-                    // Scale back to normal
                     binding.canImage.animate()
                         .scaleX(1f)
                         .scaleY(1f)
@@ -199,46 +171,38 @@ class MainActivity : AppCompatActivity() {
                         .start()
                 }
             }
-            false // Let the click listener handle the actual click
+            false
         }
     }
 
     private fun setupBreathingAnimation() {
-        // Smooth glow pulse animation - continuous glow that never disappears
-        // Text color pulses from gray to slightly lighter gray-purple (very subtle)
-        val textColorFrom = Color.parseColor("#555555") // Medium Gray (matches other text)
-        val textColorTo = Color.parseColor("#6B657A")   // Slightly lighter gray with subtle hint of purple
+        val textColorFrom = Color.parseColor("#555555")
+        val textColorTo = Color.parseColor("#6B657A")
         
         val textColorAnimator = ValueAnimator.ofObject(
             ArgbEvaluator(),
             textColorFrom,
             textColorTo
         ).apply {
-            duration = 2000L // 2 second smooth pulse
+            duration = 2000L
             interpolator = AccelerateDecelerateInterpolator()
             repeatCount = ValueAnimator.INFINITE
-            repeatMode = ValueAnimator.REVERSE // Smooth back and forth
+            repeatMode = ValueAnimator.REVERSE
             
             addUpdateListener { animator ->
                 binding.instructionText.setTextColor(animator.animatedValue as Int)
             }
         }
         
-        // Use alpha animation instead of scale for smoother, less jarring effect
-        // More dramatic fade for visibility
         val alphaAnimator = ObjectAnimator.ofFloat(binding.instructionText, "alpha", 0.5f, 1f).apply {
-            duration = 2500L // Slightly slower for smoother animation
+            duration = 2500L
             interpolator = AccelerateDecelerateInterpolator()
             repeatCount = ValueAnimator.INFINITE
             repeatMode = ValueAnimator.REVERSE
         }
         
-        // Combine animations (only text, no can animations, no scale)
         canBobbingAnimator = AnimatorSet().apply {
-            playTogether(
-                textColorAnimator,
-                alphaAnimator
-            )
+            playTogether(textColorAnimator, alphaAnimator)
             start()
         }
     }
@@ -379,9 +343,9 @@ class MainActivity : AppCompatActivity() {
         
         app.initializeHardware { success ->
             if (success) {
-                AppLog.i(TAG, "✅ Hardware ready for use")
+                AppLog.i(TAG, "Hardware ready for use")
             } else {
-                AppLog.e(TAG, "❌ Hardware initialization failed - operations may not work")
+                AppLog.e(TAG, "Hardware initialization failed - operations may not work")
             }
         }
     }
@@ -400,28 +364,25 @@ class MainActivity : AppCompatActivity() {
                 }
                 WaterFountainApplication.HardwareState.ERROR,
                 WaterFountainApplication.HardwareState.DISCONNECTED -> {
-                    // Red circle - hardware error
                     indicator.visibility = View.VISIBLE
                     indicator.background = resources.getDrawable(R.drawable.circle_indicator, null)
-                    AppLog.w(TAG, "⚠️ Hardware status indicator: RED (error/disconnected)")
+                    AppLog.w(TAG, "Hardware status indicator: RED (error/disconnected)")
                 }
                 WaterFountainApplication.HardwareState.INITIALIZING -> {
-                    // Orange circle - initializing
                     indicator.visibility = View.VISIBLE
                     val drawable = indicator.background.mutate()
                     if (drawable is android.graphics.drawable.GradientDrawable) {
-                        drawable.setColor(0xFFFFA500.toInt()) // Orange
+                        drawable.setColor(0xFFFFA500.toInt())
                     }
-                    AppLog.d(TAG, "⚠️ Hardware status indicator: ORANGE (initializing)")
+                    AppLog.d(TAG, "Hardware status indicator: ORANGE (initializing)")
                 }
                 else -> {
-                    // Gray circle - other states (uninitialized, maintenance)
                     indicator.visibility = View.VISIBLE
                     val drawable = indicator.background.mutate()
                     if (drawable is android.graphics.drawable.GradientDrawable) {
-                        drawable.setColor(0xFF808080.toInt()) // Gray
+                        drawable.setColor(0xFF808080.toInt())
                     }
-                    AppLog.d(TAG, "⚠️ Hardware status indicator: GRAY (${state.name})")
+                    AppLog.d(TAG, "Hardware status indicator: GRAY (${state.name})")
                 }
             }
         }
