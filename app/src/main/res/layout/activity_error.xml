@@ -70,7 +70,7 @@
                 android:text="We are very sorry,\nPlease come visit tomorrow."
                 android:textSize="42sp"
                 android:textColor="#555555"
-                android:fontFamily="@font/inter"
+                android:fontFamily="@font/gilroy"
                 android:gravity="center"
                 android:maxLines="2"
                 android:lineSpacingExtra="8dp"/>

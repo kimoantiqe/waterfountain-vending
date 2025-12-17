@@ -237,12 +237,6 @@ class SMSActivity : AppCompatActivity() {
                 isQuestionMarkClickable = true
             }, QUESTION_MARK_DEBOUNCE_MS)
             
-            // Check if QR modal is open - if so, close it instead of toggling info modal
-            if (binding.qrModalOverlay.visibility == View.VISIBLE) {
-                hideQrCodeModal()
-                return@setOnClickListener
-            }
-            
             // Toggle info modal: close if open, open if closed
             if (binding.modalOverlay.visibility == View.VISIBLE) {
                 hideModal()
@@ -268,7 +262,7 @@ class SMSActivity : AppCompatActivity() {
         binding.modalContent.setOnClickListener {
             // Do nothing - prevent click from bubbling up
         }
-
+        
         // Show QR Code button click - transition from info modal to QR modal
         binding.showQrCodeButton.setOnClickListener {
             soundManager.playSound(R.raw.click, 0.6f)
@@ -298,6 +292,77 @@ class SMSActivity : AppCompatActivity() {
         // Prevent QR modal content clicks from closing modal
         binding.qrModalContent.setOnClickListener {
             // Do nothing - prevent click from bubbling up
+        }
+        
+        // Setup FAQ accordion
+        setupFaqAccordion()
+    }
+    
+    private fun setupFaqAccordion() {
+        // FAQ Item 1
+        binding.faq1Header.setOnClickListener {
+            soundManager.playSound(R.raw.click, 0.6f)
+            inactivityTimer.reset()
+            toggleFaqItem(binding.faq1Answer, binding.faq1Chevron)
+        }
+        
+        // FAQ Item 2
+        binding.faq2Header.setOnClickListener {
+            soundManager.playSound(R.raw.click, 0.6f)
+            inactivityTimer.reset()
+            toggleFaqItem(binding.faq2Answer, binding.faq2Chevron)
+        }
+        
+        // FAQ Item 3
+        binding.faq3Header.setOnClickListener {
+            soundManager.playSound(R.raw.click, 0.6f)
+            inactivityTimer.reset()
+            toggleFaqItem(binding.faq3Answer, binding.faq3Chevron)
+        }
+        
+        // FAQ Item 4
+        binding.faq4Header.setOnClickListener {
+            soundManager.playSound(R.raw.click, 0.6f)
+            inactivityTimer.reset()
+            toggleFaqItem(binding.faq4Answer, binding.faq4Chevron)
+        }
+        
+        // FAQ Item 5
+        binding.faq5Header.setOnClickListener {
+            soundManager.playSound(R.raw.click, 0.6f)
+            inactivityTimer.reset()
+            toggleFaqItem(binding.faq5Answer, binding.faq5Chevron)
+        }
+    }
+    
+    private fun toggleFaqItem(answerView: android.widget.TextView, chevronView: android.widget.ImageView) {
+        if (answerView.visibility == View.GONE) {
+            // Expand
+            answerView.visibility = View.VISIBLE
+            answerView.alpha = 0f
+            answerView.animate()
+                .alpha(1f)
+                .setDuration(200)
+                .start()
+            
+            chevronView.animate()
+                .rotation(180f)
+                .setDuration(200)
+                .start()
+        } else {
+            // Collapse
+            answerView.animate()
+                .alpha(0f)
+                .setDuration(200)
+                .withEndAction {
+                    answerView.visibility = View.GONE
+                }
+                .start()
+            
+            chevronView.animate()
+                .rotation(0f)
+                .setDuration(200)
+                .start()
         }
     }
 
