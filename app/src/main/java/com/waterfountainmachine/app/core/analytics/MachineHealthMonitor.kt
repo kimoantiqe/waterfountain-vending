@@ -9,6 +9,7 @@ import com.google.firebase.ktx.Firebase
 import com.waterfountainmachine.app.BuildConfig
 import com.waterfountainmachine.app.security.SecurityModule
 import com.waterfountainmachine.app.utils.AppLog
+import com.waterfountainmachine.app.core.slot.SlotInventoryManager
 import org.json.JSONObject
 
 /**
@@ -128,6 +129,10 @@ class MachineHealthMonitor private constructor(private val context: Context) {
         val uptimeSeconds = (System.currentTimeMillis() - sessionStartTime) / 1000
         
         try {
+            // Get inventory summary from slot manager
+            val slotInventoryManager = SlotInventoryManager.getInstance(context)
+            val inventorySummary = slotInventoryManager.getInventorySummary()
+            
             // Create base payload
             val payload = JSONObject().apply {
                 put("machineId", currentMachineId)
@@ -139,6 +144,13 @@ class MachineHealthMonitor private constructor(private val context: Context) {
                 put("lastErrorCode", lastErrorCode ?: "none")
                 put("appVersion", BuildConfig.VERSION_NAME)
                 put("sdkVersion", android.os.Build.VERSION.SDK_INT)
+                
+                // Add inventory summary
+                put("inventorySummary", JSONObject().apply {
+                    inventorySummary.forEach { (key, value) ->
+                        put(key, value)
+                    }
+                })
             }
             
             // Add certificate authentication fields

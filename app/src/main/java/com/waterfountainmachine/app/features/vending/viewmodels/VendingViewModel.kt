@@ -116,19 +116,31 @@ class VendingViewModel @Inject constructor(
                 if (result.success) {
                     AppLog.i(TAG, "✅ Water dispensing completed successfully from slot ${result.slot}")
                     _progress.value = 100
-                    _uiState.value = VendingUiState.DispensingComplete
+                    _uiState.value = VendingUiState.DispensingComplete(
+                        slot = result.slot,
+                        dispensingTimeMs = result.dispensingTimeMs
+                    )
                 } else {
                     // Log technical error details for admin review
                     AppLog.e(TAG, "❌ Water dispensing failed: ${result.errorMessage} (slot: ${result.slot})")
                     // Show user-friendly error
-                    _uiState.value = VendingUiState.DispensingError(UserErrorMessages.DISPENSING_FAILED)
+                    val errorCode = result.errorCode?.toString(16)
+                    _uiState.value = VendingUiState.DispensingError(
+                        message = UserErrorMessages.DISPENSING_FAILED,
+                        slot = result.slot,
+                        errorCode = errorCode
+                    )
                 }
 
             } catch (e: Exception) {
                 // Log technical error details for admin review
                 AppLog.e(TAG, "Exception during water dispensing: ${e.javaClass.simpleName} - ${e.message}", e)
                 // Show user-friendly error
-                _uiState.value = VendingUiState.DispensingError(UserErrorMessages.DISPENSING_FAILED)
+                _uiState.value = VendingUiState.DispensingError(
+                    message = UserErrorMessages.DISPENSING_FAILED,
+                    slot = 1, // Default slot on exception
+                    errorCode = null
+                )
             } finally {
                 // Exit critical state
                 _isInCriticalState.value = false
@@ -161,7 +173,10 @@ class VendingViewModel @Inject constructor(
      */
     fun forceContinue() {
         AppLog.w(TAG, "Forcing continue despite hardware error")
-        _uiState.value = VendingUiState.DispensingComplete
+        _uiState.value = VendingUiState.DispensingComplete(
+            slot = 1, // Default slot when forcing continue
+            dispensingTimeMs = 0L
+        )
     }
 }
 
@@ -172,8 +187,8 @@ sealed class VendingUiState {
     object Initializing : VendingUiState()
     object Ready : VendingUiState()
     object Dispensing : VendingUiState()
-    object DispensingComplete : VendingUiState()
+    data class DispensingComplete(val slot: Int, val dispensingTimeMs: Long) : VendingUiState()
     object Complete : VendingUiState()
     data class HardwareError(val message: String) : VendingUiState()
-    data class DispensingError(val message: String) : VendingUiState()
+    data class DispensingError(val message: String, val slot: Int, val errorCode: String?) : VendingUiState()
 }

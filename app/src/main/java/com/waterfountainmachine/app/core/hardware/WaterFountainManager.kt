@@ -163,8 +163,8 @@ class WaterFountainManager private constructor(
     
     /**
      * Dispense water using smart lane management
-     * This is the main function for water dispensing with automatic fallback
-     * HARDCODED TO SLOT 1 FOR TESTING
+     * Selects the best lane based on inventory, failure counts, and load balancing
+     * No fallback - single attempt only, customer can retry if it fails
      */
     suspend fun dispenseWater(): WaterDispenseResult {
         if (!isReady()) {
@@ -177,65 +177,21 @@ class WaterFountainManager private constructor(
         }
         
         try {
-            // HARDCODED TO SLOT 15 FOR TESTING
-            val slot = 15
-            AppLog.i(TAG, "Attempting to dispense water from slot $slot (HARDCODED)...")
+            // Get the best lane for dispensing using smart lane manager
+            val lane = laneManager.getNextLane()
+            AppLog.i(TAG, "Attempting to dispense water from lane $lane...")
             
-            val result = attemptDispenseFromLane(slot)
+            val result = attemptDispenseFromLane(lane)
             
             if (result.success) {
-                AppLog.i(TAG, "Water dispensed successfully from slot $slot")
-                laneManager.recordSuccess(slot, result.dispensingTimeMs)
+                AppLog.i(TAG, "Water dispensed successfully from lane $lane")
+                laneManager.recordSuccess(lane, result.dispensingTimeMs)
             } else {
-                AppLog.w(TAG, "Water dispensing failed from slot $slot: ${result.errorMessage}")
-                laneManager.recordFailure(slot, result.errorCode, result.errorMessage)
+                AppLog.w(TAG, "Water dispensing failed from lane $lane: ${result.errorMessage}")
+                laneManager.recordFailure(lane, result.errorCode, result.errorMessage)
             }
             
             return result
-            
-            /* ORIGINAL IMPLEMENTATION WITH LANE MANAGEMENT - COMMENTED OUT FOR TESTING
-            // Get the best lane for dispensing
-            val primaryLane = laneManager.getNextLane()
-            AppLog.i(TAG, "Attempting to dispense water from lane $primaryLane...")
-            
-            // Try primary lane first
-            var result = attemptDispenseFromLane(primaryLane)
-            
-            if (result.success) {
-                laneManager.recordSuccess(primaryLane, result.dispensingTimeMs)
-                return result
-            }
-            
-            // Primary lane failed, try fallback lanes
-            AppLog.w(TAG, "Primary lane $primaryLane failed: ${result.errorMessage}")
-            laneManager.recordFailure(primaryLane, result.errorCode, result.errorMessage)
-            
-            val fallbackLanes = laneManager.getFallbackLanes(primaryLane)
-            AppLog.i(TAG, "Trying fallback lanes: $fallbackLanes")
-            
-            for (fallbackLane in fallbackLanes) {
-                AppLog.i(TAG, "Attempting fallback dispensing from lane $fallbackLane...")
-                result = attemptDispenseFromLane(fallbackLane)
-                
-                if (result.success) {
-                    AppLog.i(TAG, "Fallback successful from lane $fallbackLane")
-                    laneManager.recordSuccess(fallbackLane, result.dispensingTimeMs)
-                    return result
-                } else {
-                    AppLog.w(TAG, "Fallback lane $fallbackLane failed: ${result.errorMessage}")
-                    laneManager.recordFailure(fallbackLane, result.errorCode, result.errorMessage)
-                }
-            }
-            
-            // All lanes failed
-            AppLog.e(TAG, "All lanes failed to dispense water")
-            return WaterDispenseResult(
-                success = false,
-                slot = primaryLane,
-                errorMessage = "All water lanes are currently unavailable. Please contact support.",
-                dispensingTimeMs = result.dispensingTimeMs
-            )
-            */
             
         } catch (e: Exception) {
             AppLog.e(TAG, "Exception during water dispensing", e)

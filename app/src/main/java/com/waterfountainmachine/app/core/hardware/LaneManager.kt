@@ -4,7 +4,11 @@ import android.content.Context
 import android.content.SharedPreferences
 import com.waterfountainmachine.app.hardware.sdk.SlotValidator
 import com.waterfountainmachine.app.hardware.sdk.WaterDispenseResult
+import com.waterfountainmachine.app.core.slot.SlotInventoryManager
 import com.waterfountainmachine.app.utils.AppLog
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 /**
  * Smart Lane Management System for Water Fountain Vending Machine
@@ -51,6 +55,9 @@ class LaneManager private constructor(private val context: Context) {
     }
     
     private val prefs: SharedPreferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    private val slotInventoryManager: SlotInventoryManager by lazy {
+        SlotInventoryManager.getInstance(context)
+    }
     
     // Configuration - All 48 valid slots enabled by default
     private val enabledLanes = SlotValidator.VALID_SLOTS
@@ -61,8 +68,17 @@ class LaneManager private constructor(private val context: Context) {
      * - Current lane status
      * - Failure rates
      * - Load balancing
+     * - Inventory availability
      */
     fun getNextLane(): Int {
+        return getNextLaneWithInventoryCheck()
+    }
+    
+    /**
+     * Get the next best lane with inventory availability check
+     * Private implementation that considers both hardware status and inventory
+     */
+    private fun getNextLaneWithInventoryCheck(): Int {
         val currentLane = getCurrentLane()
         
         // Check if current lane is still good
@@ -91,10 +107,13 @@ class LaneManager private constructor(private val context: Context) {
     
     /**
      * Get list of fallback lanes in priority order
+     * Filters by inventory availability and hardware status
      */
     fun getFallbackLanes(excludeLane: Int): List<Int> {
         return enabledLanes
             .filter { it != excludeLane }
+            .filter { slotInventoryManager.isSlotAvailable(it) } // Check inventory
+            .filter { isLaneUsableHardwareOnly(it) } // Check hardware status
             .sortedBy { getLaneFailureCount(it) } // Prefer lanes with fewer failures
             .take(3) // Limit to 3 fallback attempts
     }
@@ -128,11 +147,13 @@ class LaneManager private constructor(private val context: Context) {
     
     /**
      * Record failure for a lane
+     * After 3 failures, updates backend to disable the slot
      */
     fun recordFailure(lane: Int, errorCode: Byte?, errorMessage: String?) {
         AppLog.w(TAG, "Recording failure for lane $lane: $errorMessage (code: $errorCode)")
         
         val currentFailures = getLaneFailureCount(lane) + 1
+        var shouldUpdateBackend = false
         
         prefs.edit().apply {
             putInt(getLaneFailuresKey(lane), currentFailures)
@@ -147,37 +168,90 @@ class LaneManager private constructor(private val context: Context) {
                     if (currentFailures >= MAX_CONSECUTIVE_FAILURES) {
                         AppLog.w(TAG, "Lane $lane disabled due to unknown repeated failures")
                         putInt(getLaneStatusKey(lane), LANE_STATUS_FAILED)
+                        shouldUpdateBackend = true
                     }
                 }
                 0x02.toByte() -> { // MOTOR_FAILURE
                     if (currentFailures >= MAX_CONSECUTIVE_FAILURES) {
                         AppLog.w(TAG, "Lane $lane disabled due to motor failures")
                         putInt(getLaneStatusKey(lane), LANE_STATUS_FAILED)
+                        shouldUpdateBackend = true
                     }
                 }
                 0x03.toByte() -> { // OPTICAL_EYE_FAILURE
                     AppLog.w(TAG, "Lane $lane marked as empty due to optical sensor")
                     putInt(getLaneStatusKey(lane), LANE_STATUS_EMPTY)
+                    shouldUpdateBackend = true // Mark as empty in backend too
                 }
                 else -> {
                     if (currentFailures >= MAX_CONSECUTIVE_FAILURES) {
                         AppLog.w(TAG, "Lane $lane disabled due to repeated failures (code: $errorCode)")
                         putInt(getLaneStatusKey(lane), LANE_STATUS_FAILED)
+                        shouldUpdateBackend = true
                     }
                 }
             }
             
             apply()
         }
+        
+        // Update backend slot status if slot was disabled
+        if (shouldUpdateBackend) {
+            updateBackendSlotStatus(lane, errorCode)
+        }
+    }
+    
+    /**
+     * Update backend slot status after failures
+     */
+    private fun updateBackendSlotStatus(lane: Int, errorCode: Byte?) {
+        val backendSlotService = com.waterfountainmachine.app.di.BackendModule.getBackendSlotService(context)
+        val machineId = context.getSharedPreferences("machine_config", Context.MODE_PRIVATE)
+            .getString("machine_id", null)
+        
+        if (machineId == null) {
+            AppLog.w(TAG, "Cannot update backend - machine ID not found")
+            return
+        }
+        
+        // Determine status based on error code
+        val status = if (errorCode == 0x03.toByte()) "empty" else "disabled"
+        
+        // Use coroutine to update backend asynchronously
+        CoroutineScope(Dispatchers.IO).launch {
+            backendSlotService.updateSlotStatus(machineId, lane, status).fold(
+                onSuccess = {
+                    AppLog.i(TAG, "Backend slot $lane status updated to $status")
+                },
+                onFailure = { error ->
+                    AppLog.e(TAG, "Failed to update backend slot status", error)
+                }
+            )
+        }
     }
     
     /**
      * Check if a lane is usable for dispensing
+     * Now includes inventory availability check
      */
     private fun isLaneUsable(lane: Int): Boolean {
         val status = getLaneStatus(lane)
         val failureCount = getLaneFailureCount(lane)
+        val hardwareUsable = status == LANE_STATUS_ACTIVE && failureCount < MAX_CONSECUTIVE_FAILURES
         
+        // Also check inventory availability
+        val inventoryAvailable = slotInventoryManager.isSlotAvailable(lane)
+        
+        return hardwareUsable && inventoryAvailable
+    }
+    
+    /**
+     * Check if a lane is usable (hardware only, without inventory check)
+     * Used for fallback scenarios
+     */
+    private fun isLaneUsableHardwareOnly(lane: Int): Boolean {
+        val status = getLaneStatus(lane)
+        val failureCount = getLaneFailureCount(lane)
         return status == LANE_STATUS_ACTIVE && failureCount < MAX_CONSECUTIVE_FAILURES
     }
     

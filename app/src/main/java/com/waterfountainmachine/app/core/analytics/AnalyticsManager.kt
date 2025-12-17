@@ -459,6 +459,40 @@ class AnalyticsManager private constructor(context: Context) {
         AppLog.d(TAG, "Event: vending_failed (slot=$slotNumber, error=$errorMessage)")
     }
     
+    /**
+     * Track slot empty event (inventory reached 0)
+     */
+    fun logSlotEmpty(slotNumber: Int) {
+        firebaseAnalytics.logEvent("slot_empty") {
+            param(PARAM_SLOT_NUMBER, slotNumber.toLong())
+        }
+        AppLog.d(TAG, "Event: slot_empty (slot=$slotNumber)")
+    }
+    
+    /**
+     * Track slot low inventory event
+     */
+    fun logSlotInventoryLow(slotNumber: Int, remainingBottles: Int) {
+        firebaseAnalytics.logEvent("slot_inventory_low") {
+            param(PARAM_SLOT_NUMBER, slotNumber.toLong())
+            param("remaining_bottles", remainingBottles.toLong())
+        }
+        AppLog.d(TAG, "Event: slot_inventory_low (slot=$slotNumber, bottles=$remainingBottles)")
+    }
+    
+    /**
+     * Track campaign-attributed vend for ROI tracking
+     */
+    fun logCampaignVend(campaignId: String, canDesignId: String?) {
+        firebaseAnalytics.logEvent("campaign_vend") {
+            param("campaign_id", campaignId)
+            if (canDesignId != null) {
+                param("can_design_id", canDesignId)
+            }
+        }
+        AppLog.d(TAG, "Event: campaign_vend (campaign=$campaignId, design=$canDesignId)")
+    }
+    
     // ==================== USER FLOW & ABANDONMENT ====================
     
     /**

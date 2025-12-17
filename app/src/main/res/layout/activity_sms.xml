@@ -63,19 +63,6 @@
 
         </LinearLayout>
 
-        <!-- Step Indicator - Clean text below wordmark -->
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center_horizontal"
-            android:text="Step 1 of 2"
-            android:textSize="28sp"
-            android:textColor="#666666"
-            android:fontFamily="sans-serif-medium"
-            android:gravity="center"
-            android:layout_marginBottom="24dp"
-            android:letterSpacing="0.02"/>
-
         <!-- Main Content Area - SMS specific content goes here -->
         <ScrollView
             android:layout_width="match_parent"
@@ -87,89 +74,107 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:gravity="top|center_horizontal"
-                android:clipChildren="false"
-                android:clipToPadding="false">
+                android:gravity="center_horizontal">
 
-                <!-- Phone Logo Icon - 320x320 -->
-                <ImageView
-                    android:layout_width="320dp"
-                    android:layout_height="320dp"
-                    android:src="@drawable/phone_logo"
-                    android:layout_marginBottom="24dp"/>
+                <!-- Top Spacer - smaller weight to push group up from center -->
+                <View
+                    android:layout_width="0dp"
+                    android:layout_height="0dp"
+                    android:layout_weight="1.5"/>
 
-            <!-- Title -->
-            <TextView
-                android:id="@+id/titleText"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Enter Phone Number"
-                android:textSize="@dimen/text_size_title"
-                android:textColor="#555555"
-                android:fontFamily="sans-serif-medium"
-                android:textStyle="bold"
-                android:gravity="center"
-                android:layout_marginBottom="16dp"/>
-
-            <!-- Phone Display in a Glass Box - Bigger size with show/hide toggle -->
-            <FrameLayout
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="20dp">
-
+                <!-- Grouped Form Container -->
                 <LinearLayout
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:minWidth="540dp"
-                    android:background="@drawable/glass_phone_display_background"
+                    android:orientation="vertical"
                     android:gravity="center"
-                    android:paddingHorizontal="48dp"
-                    android:paddingVertical="28dp"
-                    android:elevation="8dp">
+                    android:clipChildren="false"
+                    android:clipToPadding="false">
 
+                    <!-- Step Indicator (moved inside group) -->
                     <TextView
-                        android:id="@+id/phoneDisplay"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text=""
-                        android:textSize="@dimen/phone_display_text_size"
+                        android:text="Step 1 of 2"
+                        android:textSize="34sp"
+                        android:textColor="#666666"
+                        android:fontFamily="sans-serif-medium"
+                        android:gravity="center"
+                        android:layout_marginBottom="28dp"
+                        android:letterSpacing="0.02"/>
+
+                    <!-- Title -->
+                    <TextView
+                        android:id="@+id/titleText"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Enter Phone Number"
+                        android:textSize="54sp"
                         android:textColor="#555555"
+                        android:fontFamily="sans-serif-medium"
+                        android:textStyle="bold"
+                        android:gravity="center"
+                        android:layout_marginBottom="20dp"/>
+
+                    <!-- Phone Display in a Glass Box - Bigger size with show/hide toggle -->
+                    <FrameLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="24dp">
+
+                        <LinearLayout
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:minWidth="600dp"
+                            android:background="@drawable/glass_phone_display_background"
+                            android:gravity="center"
+                            android:paddingHorizontal="52dp"
+                            android:paddingVertical="32dp"
+                            android:elevation="8dp">
+
+                            <TextView
+                                android:id="@+id/phoneDisplay"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text=""
+                                android:textSize="48sp"
+                                android:textColor="#555555"
+                                android:fontFamily="sans-serif-light"
+                                android:gravity="center"
+                                android:letterSpacing="0.08"
+                                android:minWidth="480dp"/>
+
+                        </LinearLayout>
+
+                        <!-- Show/Hide Toggle Button -->
+                        <ImageButton
+                            android:id="@+id/togglePhoneVisibility"
+                            android:layout_width="52dp"
+                            android:layout_height="52dp"
+                            android:layout_gravity="end|center_vertical"
+                            android:layout_marginEnd="14dp"
+                            android:background="?android:attr/selectableItemBackgroundBorderless"
+                            android:src="@drawable/ic_eye_off"
+                            android:contentDescription="Hide phone number"
+                            android:alpha="1.0"
+                            android:padding="10dp"
+                            android:scaleType="fitCenter"
+                            app:tint="#555555"/>
+
+                    </FrameLayout>
+
+                    <!-- Subtitle -->
+                    <TextView
+                        android:id="@+id/subtitleText"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="We'll send you a verification code"
+                        android:textSize="40sp"
+                        android:textColor="#555555"
+                        android:alpha="0.7"
                         android:fontFamily="sans-serif-light"
                         android:gravity="center"
-                        android:letterSpacing="0.08"
-                        android:minWidth="420dp"/>
-
-                </LinearLayout>
-
-                <!-- Show/Hide Toggle Button -->
-                <ImageButton
-                    android:id="@+id/togglePhoneVisibility"
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
-                    android:layout_gravity="end|center_vertical"
-                    android:layout_marginEnd="12dp"
-                    android:background="?android:attr/selectableItemBackgroundBorderless"
-                    android:src="@drawable/ic_eye_off"
-                    android:contentDescription="Hide phone number"
-                    android:alpha="1.0"
-                    android:padding="8dp"
-                    android:scaleType="fitCenter"
-                    app:tint="#555555"/>
-
-            </FrameLayout>
-
-            <!-- Subtitle -->
-            <TextView
-                android:id="@+id/subtitleText"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="We'll send you a verification code"
-                android:textSize="@dimen/text_size_subtitle"
-                android:textColor="#555555"
-                android:alpha="0.7"
-                android:fontFamily="sans-serif-light"
-                android:gravity="center"
-                android:layout_marginBottom="24dp"/>
+                        android:layout_marginBottom="40dp"/>
 
             <!-- Bigger On-Screen Keypad with Glass Effect -->
             <LinearLayout
@@ -298,40 +303,48 @@
 
             </LinearLayout>
 
-            <!-- Main Action Buttons -->
-            <!-- Send Code Button (Step 1) with Loading -->
-            <FrameLayout
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp">
-                
-                <androidx.appcompat.widget.AppCompatButton
-                    android:id="@+id/verifyButton"
-                    android:layout_width="@dimen/action_button_width"
-                    android:layout_height="@dimen/action_button_height"
-                    android:background="@drawable/glass_action_button_purple"
-                    android:text="Send Code"
-                    android:textSize="@dimen/action_button_text_size"
-                    android:textColor="#FFFFFF"
-                    android:fontFamily="sans-serif-medium"
-                    android:textStyle="bold"
-                    android:textAllCaps="false"
-                    android:enabled="false"
-                    android:elevation="8dp"/>
-                
-                <!-- Loading Spinner (shows during API call) - overlaid on button -->
-                <ProgressBar
-                    android:id="@+id/loadingSpinner"
-                    android:layout_width="56dp"
-                    android:layout_height="56dp"
-                    android:layout_gravity="center"
-                    android:indeterminateTint="#8B7BA8"
-                    android:elevation="2dp"
-                    android:visibility="gone"/>
-                
-            </FrameLayout>
+                    <!-- Main Action Buttons -->
+                    <!-- Send Code Button (Step 1) with Loading -->
+                    <FrameLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="24dp">
+                        
+                        <androidx.appcompat.widget.AppCompatButton
+                            android:id="@+id/verifyButton"
+                            android:layout_width="@dimen/action_button_width"
+                            android:layout_height="@dimen/action_button_height"
+                            android:background="@drawable/glass_action_button_purple"
+                            android:text="Send Code"
+                            android:textSize="@dimen/action_button_text_size"
+                            android:textColor="#FFFFFF"
+                            android:fontFamily="sans-serif-medium"
+                            android:textStyle="bold"
+                            android:textAllCaps="false"
+                            android:enabled="false"
+                            android:elevation="8dp"/>
+                        
+                        <!-- Loading Spinner (shows during API call) - overlaid on button -->
+                        <ProgressBar
+                            android:id="@+id/loadingSpinner"
+                            android:layout_width="56dp"
+                            android:layout_height="56dp"
+                            android:layout_gravity="center"
+                            android:indeterminateTint="#8B7BA8"
+                            android:elevation="2dp"
+                            android:visibility="gone"/>
+                        
+                    </FrameLayout>
 
-        </LinearLayout>
+                </LinearLayout>
+
+                <!-- Bottom Spacer - larger weight to push group up -->
+                <View
+                    android:layout_width="0dp"
+                    android:layout_height="0dp"
+                    android:layout_weight="2.5"/>
+
+            </LinearLayout>
 
         </ScrollView>
 

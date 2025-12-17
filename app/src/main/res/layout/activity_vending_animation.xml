@@ -36,12 +36,12 @@
             android:clipChildren="false"
             android:clipToPadding="false">
 
-            <!-- Magic Text - positioned ABOVE with lots of space -->
+            <!-- Status Text - positioned ABOVE with lots of space -->
             <TextView
                 android:id="@+id/statusText"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Magic is happening..."
+                android:text="Your water is on the way!"
                 android:textSize="72sp"
                 android:textColor="#555555"
                 android:fontFamily="sans-serif-light"
@@ -84,7 +84,7 @@
                 android:text="Your water is ready!"
                 android:textSize="68sp"
                 android:textColor="#555555"
-                android:fontFamily="sans-serif-medium"
+                android:fontFamily="sans-serif-light"
                 android:gravity="center"
                 android:alpha="0"
                 android:layout_marginTop="80dp"

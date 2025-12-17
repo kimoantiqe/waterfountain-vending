@@ -63,19 +63,6 @@
 
         </LinearLayout>
 
-        <!-- Step Indicator - Clean text below wordmark -->
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center_horizontal"
-            android:text="Step 2 of 2"
-            android:textSize="28sp"
-            android:textColor="#666666"
-            android:fontFamily="sans-serif-medium"
-            android:gravity="center"
-            android:layout_marginBottom="24dp"
-            android:letterSpacing="0.02"/>
-
         <!-- Main Content Area - OTP Verification -->
         <ScrollView
             android:layout_width="match_parent"
@@ -87,168 +74,199 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:gravity="top|center_horizontal"
-                android:clipChildren="false"
-                android:clipToPadding="false">
+                android:gravity="center_horizontal">
 
-                <!-- Verify OTP Icon - Reduced by 20% (320x320) -->
-            <ImageView
-                android:layout_width="320dp"
-                android:layout_height="320dp"
-                android:src="@drawable/verifyotp"
-                android:layout_marginBottom="12dp"/>
+                <!-- Top Spacer - smaller weight to push group up from center -->
+                <View
+                    android:layout_width="0dp"
+                    android:layout_height="0dp"
+                    android:layout_weight="1.5"/>
 
-            <!-- Title -->
-            <TextView
-                android:id="@+id/titleText"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Enter verification code"
-                android:textSize="@dimen/text_size_title"
-                android:textColor="#555555"
-                android:fontFamily="sans-serif-medium"
-                android:textStyle="bold"
-                android:gravity="center"
-                android:layout_marginBottom="16dp"/>
-
-            <!-- OTP Display with 6 Boxes - Larger to match SMS box proportions -->
-            <LinearLayout
-                android:id="@+id/otpBoxesContainer"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center"
-                android:layout_marginBottom="20dp">
-
-                <TextView
-                    android:id="@+id/otpBox1"
-                    android:layout_width="80dp"
-                    android:layout_height="96dp"
-                    android:background="@drawable/otp_box_background"
-                    android:gravity="center"
-                    android:textSize="56sp"
-                    android:textColor="#555555"
-                    android:fontFamily="sans-serif-medium"
-                    android:elevation="8dp"
-                    android:layout_marginEnd="12dp"/>
-
-                <TextView
-                    android:id="@+id/otpBox2"
-                    android:layout_width="80dp"
-                    android:layout_height="96dp"
-                    android:background="@drawable/otp_box_background"
-                    android:gravity="center"
-                    android:textSize="56sp"
-                    android:textColor="#555555"
-                    android:fontFamily="sans-serif-medium"
-                    android:elevation="8dp"
-                    android:layout_marginEnd="12dp"/>
-
-                <TextView
-                    android:id="@+id/otpBox3"
-                    android:layout_width="80dp"
-                    android:layout_height="96dp"
-                    android:background="@drawable/otp_box_background"
-                    android:gravity="center"
-                    android:textSize="56sp"
-                    android:textColor="#555555"
-                    android:fontFamily="sans-serif-medium"
-                    android:elevation="8dp"
-                    android:layout_marginEnd="12dp"/>
-
-                <TextView
-                    android:id="@+id/otpBox4"
-                    android:layout_width="80dp"
-                    android:layout_height="96dp"
-                    android:background="@drawable/otp_box_background"
-                    android:gravity="center"
-                    android:textSize="56sp"
-                    android:textColor="#555555"
-                    android:fontFamily="sans-serif-medium"
-                    android:elevation="8dp"
-                    android:layout_marginEnd="12dp"/>
-
-                <TextView
-                    android:id="@+id/otpBox5"
-                    android:layout_width="80dp"
-                    android:layout_height="96dp"
-                    android:background="@drawable/otp_box_background"
-                    android:gravity="center"
-                    android:textSize="56sp"
-                    android:textColor="#555555"
-                    android:fontFamily="sans-serif-medium"
-                    android:elevation="8dp"
-                    android:layout_marginEnd="12dp"/>
-
-                <TextView
-                    android:id="@+id/otpBox6"
-                    android:layout_width="80dp"
-                    android:layout_height="96dp"
-                    android:background="@drawable/otp_box_background"
-                    android:gravity="center"
-                    android:textSize="56sp"
-                    android:textColor="#555555"
-                    android:fontFamily="sans-serif-medium"
-                    android:elevation="8dp"/>
-
-            </LinearLayout>
-
-            <!-- Timer Display (initially visible) -->
-            <LinearLayout
-                android:id="@+id/timerLayout"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:background="@drawable/glass_phone_display_background"
-                android:gravity="center"
-                android:paddingHorizontal="40dp"
-                android:paddingVertical="20dp"
-                android:layout_marginBottom="24dp"
-                android:elevation="8dp"
-                android:visibility="visible"
-                android:orientation="horizontal">
-
-                <ImageView
-                    android:layout_width="40dp"
-                    android:layout_height="40dp"
-                    android:src="@drawable/ic_clock"
-                    app:tint="#555555"
-                    android:alpha="0.9"
-                    android:layout_marginEnd="16dp"/>
-
-                <TextView
-                    android:id="@+id/timerText"
+                <!-- Grouped Form Container -->
+                <LinearLayout
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="2:00"
-                    android:textSize="48sp"
-                    android:textColor="#555555"
-                    android:fontFamily="sans-serif-medium"
-                    android:letterSpacing="0.1"/>
+                    android:orientation="vertical"
+                    android:gravity="center"
+                    android:clipChildren="false"
+                    android:clipToPadding="false">
 
-            </LinearLayout>
+                    <!-- Step Indicator (moved inside group) -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Step 2 of 2"
+                        android:textSize="34sp"
+                        android:textColor="#666666"
+                        android:fontFamily="sans-serif-medium"
+                        android:gravity="center"
+                        android:layout_marginBottom="28dp"
+                        android:letterSpacing="0.02"/>
 
-            <!-- Resend Button in Timer Position (initially hidden, replaces timer) -->
-            <androidx.appcompat.widget.AppCompatButton
-                android:id="@+id/resendCodeButton"
-                style="@style/GlassKeypadButtonStyle"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Resend Code"
-                android:textSize="36sp"
-                android:paddingHorizontal="40dp"
-                android:paddingVertical="20dp"
-                android:layout_marginBottom="24dp"
-                android:visibility="gone"
-                android:elevation="8dp"/>
+                    <!-- Title -->
+                    <TextView
+                        android:id="@+id/titleText"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Enter code"
+                        android:textSize="54sp"
+                        android:textColor="#555555"
+                        android:fontFamily="sans-serif-medium"
+                        android:textStyle="bold"
+                        android:gravity="center"
+                        android:layout_marginBottom="12dp"/>
 
-            <!-- Bigger On-Screen Keypad with Glass Effect -->
-            <LinearLayout
-                android:id="@+id/keypadLayout"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:gravity="center"
-                android:layout_marginBottom="20dp">
+                    <!-- Subtitle -->
+                    <TextView
+                        android:id="@+id/subtitleText"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Check your messages for an OTP code"
+                        android:textSize="40sp"
+                        android:textColor="#555555"
+                        android:alpha="0.7"
+                        android:fontFamily="sans-serif-light"
+                        android:gravity="center"
+                        android:layout_marginBottom="40dp"/>
+
+                    <!-- OTP Display with 6 Boxes - Larger to match SMS box proportions -->
+                    <LinearLayout
+                        android:id="@+id/otpBoxesContainer"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center"
+                        android:layout_marginBottom="24dp">
+
+                        <TextView
+                            android:id="@+id/otpBox1"
+                            android:layout_width="88dp"
+                            android:layout_height="106dp"
+                            android:background="@drawable/otp_box_background"
+                            android:gravity="center"
+                            android:textSize="60sp"
+                            android:textColor="#555555"
+                            android:fontFamily="sans-serif-medium"
+                            android:elevation="8dp"
+                            android:layout_marginEnd="14dp"/>
+
+                        <TextView
+                            android:id="@+id/otpBox2"
+                            android:layout_width="88dp"
+                            android:layout_height="106dp"
+                            android:background="@drawable/otp_box_background"
+                            android:gravity="center"
+                            android:textSize="60sp"
+                            android:textColor="#555555"
+                            android:fontFamily="sans-serif-medium"
+                            android:elevation="8dp"
+                            android:layout_marginEnd="14dp"/>
+
+                        <TextView
+                            android:id="@+id/otpBox3"
+                            android:layout_width="88dp"
+                            android:layout_height="106dp"
+                            android:background="@drawable/otp_box_background"
+                            android:gravity="center"
+                            android:textSize="60sp"
+                            android:textColor="#555555"
+                            android:fontFamily="sans-serif-medium"
+                            android:elevation="8dp"
+                            android:layout_marginEnd="14dp"/>
+
+                        <TextView
+                            android:id="@+id/otpBox4"
+                            android:layout_width="88dp"
+                            android:layout_height="106dp"
+                            android:background="@drawable/otp_box_background"
+                            android:gravity="center"
+                            android:textSize="60sp"
+                            android:textColor="#555555"
+                            android:fontFamily="sans-serif-medium"
+                            android:elevation="8dp"
+                            android:layout_marginEnd="14dp"/>
+
+                        <TextView
+                            android:id="@+id/otpBox5"
+                            android:layout_width="88dp"
+                            android:layout_height="106dp"
+                            android:background="@drawable/otp_box_background"
+                            android:gravity="center"
+                            android:textSize="60sp"
+                            android:textColor="#555555"
+                            android:fontFamily="sans-serif-medium"
+                            android:elevation="8dp"
+                            android:layout_marginEnd="14dp"/>
+
+                        <TextView
+                            android:id="@+id/otpBox6"
+                            android:layout_width="88dp"
+                            android:layout_height="106dp"
+                            android:background="@drawable/otp_box_background"
+                            android:gravity="center"
+                            android:textSize="60sp"
+                            android:textColor="#555555"
+                            android:fontFamily="sans-serif-medium"
+                            android:elevation="8dp"/>
+
+                    </LinearLayout>
+
+                    <!-- Timer Display (initially visible) -->
+                    <LinearLayout
+                        android:id="@+id/timerLayout"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:background="@drawable/glass_phone_display_background"
+                        android:gravity="center"
+                        android:paddingHorizontal="44dp"
+                        android:paddingVertical="24dp"
+                        android:layout_marginBottom="28dp"
+                        android:elevation="8dp"
+                        android:visibility="visible"
+                        android:orientation="horizontal">
+
+                        <ImageView
+                            android:layout_width="44dp"
+                            android:layout_height="44dp"
+                            android:src="@drawable/ic_clock"
+                            app:tint="#555555"
+                            android:alpha="0.9"
+                            android:layout_marginEnd="18dp"/>
+
+                        <TextView
+                            android:id="@+id/timerText"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="2:00"
+                            android:textSize="52sp"
+                            android:textColor="#555555"
+                            android:fontFamily="sans-serif-medium"
+                            android:letterSpacing="0.1"/>
+
+                    </LinearLayout>
+
+                    <!-- Resend Button in Timer Position (initially hidden, replaces timer) -->
+                    <androidx.appcompat.widget.AppCompatButton
+                        android:id="@+id/resendCodeButton"
+                        style="@style/GlassKeypadButtonStyle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Resend Code"
+                        android:textSize="40sp"
+                        android:paddingHorizontal="44dp"
+                        android:paddingVertical="24dp"
+                        android:layout_marginBottom="28dp"
+                        android:visibility="gone"
+                        android:elevation="8dp"/>
+
+                    <!-- Bigger On-Screen Keypad with Glass Effect -->
+                    <LinearLayout
+                        android:id="@+id/keypadLayout"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:gravity="center"
+                        android:layout_marginBottom="24dp">
 
                 <!-- Row 1: 1, 2, 3 -->
                 <LinearLayout
@@ -367,47 +385,53 @@
 
                 </LinearLayout>
 
+                    </LinearLayout>
+
+                    <!-- Verify Button with Loading Spinner -->
+                    <FrameLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="24dp">
+                        
+                        <androidx.appcompat.widget.AppCompatButton
+                            android:id="@+id/verifyOtpButton"
+                            android:layout_width="@dimen/action_button_width"
+                            android:layout_height="@dimen/action_button_height"
+                            android:background="@drawable/glass_action_button_purple"
+                            android:text="Verify"
+                            android:textSize="@dimen/action_button_text_size"
+                            android:textColor="#FFFFFF"
+                            android:fontFamily="sans-serif-medium"
+                            android:textStyle="bold"
+                            android:textAllCaps="false"
+                            android:enabled="false"
+                            android:elevation="8dp"/>
+                        
+                        <!-- Loading Spinner (shows during verification) -->
+                        <ProgressBar
+                            android:id="@+id/loadingSpinner"
+                            android:layout_width="56dp"
+                            android:layout_height="56dp"
+                            android:layout_gravity="center"
+                            android:indeterminateTint="#8B7BA8"
+                            android:elevation="2dp"
+                            android:visibility="gone"/>
+                        
+                    </FrameLayout>
+
+                </LinearLayout>
+
+                <!-- Bottom Spacer - larger weight to push group up -->
+                <View
+                    android:layout_width="0dp"
+                    android:layout_height="0dp"
+                    android:layout_weight="2.5"/>
+
             </LinearLayout>
 
-            <!-- Verify Button with Loading Spinner -->
-            <FrameLayout
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp">
-                
-                <androidx.appcompat.widget.AppCompatButton
-                    android:id="@+id/verifyOtpButton"
-                    android:layout_width="@dimen/action_button_width"
-                    android:layout_height="@dimen/action_button_height"
-                    android:background="@drawable/glass_action_button_purple"
-                    android:text="Verify"
-                    android:textSize="@dimen/action_button_text_size"
-                    android:textColor="#FFFFFF"
-                    android:fontFamily="sans-serif-medium"
-                    android:textStyle="bold"
-                    android:textAllCaps="false"
-                    android:enabled="false"
-                    android:elevation="8dp"/>
-                
-                <!-- Loading Spinner (shows during verification) -->
-                <ProgressBar
-                    android:id="@+id/loadingSpinner"
-                    android:layout_width="56dp"
-                    android:layout_height="56dp"
-                    android:layout_gravity="center"
-                    android:indeterminateTint="#8B7BA8"
-                    android:elevation="2dp"
-                    android:visibility="gone"/>
-                
-            </FrameLayout>
-
-        </LinearLayout>
-        
         </ScrollView>
 
-    </LinearLayout>
-
-    <!-- Centered Question Mark Button at Bottom with Glass Effect -->
+    </LinearLayout>    <!-- Centered Question Mark Button at Bottom with Glass Effect -->
     <FrameLayout
         android:id="@+id/questionMarkButton"
         android:layout_width="@dimen/question_button_size"

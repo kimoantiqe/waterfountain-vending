@@ -28,22 +28,12 @@
 
     </RelativeLayout>
 
-    <!-- Custom Image at top -->
-    <ImageView
-        android:id="@+id/consentIcon"
-        android:layout_width="240dp"
-        android:layout_height="240dp"
-        android:src="@drawable/consent_image"
-        android:contentDescription="Privacy Icon"
-        android:layout_marginBottom="32dp"
-        android:scaleType="fitCenter"/>
-
     <!-- Title -->
     <TextView
         android:id="@+id/consentTitle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Send Verification Code?"
+        android:text="Agree to our terms"
         android:textSize="@dimen/modal_title_size"
         android:textColor="#555555"
         android:fontFamily="@font/inter"
@@ -56,7 +46,7 @@
         android:id="@+id/consentMessage"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="By agreeing, you consent to receiving a verification code for authentication."
+        android:text="By continuing, you agree to our Terms and Privacy Policy and receive a one-time SMS code."
         android:textSize="@dimen/modal_text_size"
         android:textColor="#555555"
         android:fontFamily="@font/inter"
@@ -65,16 +55,34 @@
         android:lineSpacingMultiplier="1.15"
         android:layout_marginBottom="16dp"/>
 
-    <!-- Privacy link -->
-    <TextView
-        android:id="@+id/consentPrivacyLink"
+    <!-- Links container -->
+    <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="waterfountain.com/privacy"
-        android:textSize="@dimen/modal_text_size"
-        android:textColor="#8B7BA8"
-        android:fontFamily="@font/inter"
-        android:layout_marginBottom="40dp"/>
+        android:orientation="vertical"
+        android:gravity="center"
+        android:layout_marginBottom="40dp">
+
+        <TextView
+            android:id="@+id/consentTermsLink"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="waterfountain.com/terms"
+            android:textSize="@dimen/modal_text_size"
+            android:textColor="#8B7BA8"
+            android:fontFamily="@font/inter"
+            android:layout_marginBottom="8dp"/>
+
+        <TextView
+            android:id="@+id/consentPrivacyLink"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="waterfountain.com/privacy"
+            android:textSize="@dimen/modal_text_size"
+            android:textColor="#8B7BA8"
+            android:fontFamily="@font/inter"/>
+
+    </LinearLayout>
 
     <!-- Buttons container -->
     <LinearLayout

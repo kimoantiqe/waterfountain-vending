@@ -16,6 +16,7 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.waterfountainmachine.app.activities.MainActivity
 import com.waterfountainmachine.app.di.AuthModule
+import com.waterfountainmachine.app.di.BackendModule
 import com.waterfountainmachine.app.databinding.FragmentSystemBinding
 import com.waterfountainmachine.app.utils.AdminDebugConfig
 import com.waterfountainmachine.app.utils.AppLog
@@ -100,6 +101,10 @@ class SystemFragment : Fragment() {
         val useMockMode = AuthModule.loadApiModePreference(requireContext())
         binding.apiModeToggle.isChecked = !useMockMode // Toggle shows "Use Real API"
         
+        // Load Backend Slot Service mode (default to real backend)
+        val useMockSlotService = BackendModule.loadSlotServiceModePreference(requireContext())
+        binding.slotServiceModeToggle.isChecked = !useMockSlotService // Toggle shows "Use Real Backend"
+        
         binding.demoModeToggle.isChecked = prefs.getBoolean("demo_mode", false)
         binding.debugModeToggle.isChecked = prefs.getBoolean("debug_mode", false)
         binding.adminLoggingToggle.isChecked = com.waterfountainmachine.app.utils.AdminDebugConfig.isAdminLoggingEnabled(requireContext())
@@ -124,6 +129,11 @@ class SystemFragment : Fragment() {
         // API mode toggle (for SMS authentication)
         binding.apiModeToggle.setOnCheckedChangeListener { _, isChecked ->
             updateApiMode(isChecked)
+        }
+        
+        // Backend Slot Service mode toggle
+        binding.slotServiceModeToggle.setOnCheckedChangeListener { _, isChecked ->
+            updateSlotServiceMode(isChecked)
         }
         
         // Demo mode toggle
@@ -184,7 +194,7 @@ class SystemFragment : Fragment() {
                 AdminDebugConfig.logAdminInfo(requireContext(), TAG, "API mode preference saved: $modeName")
                 
                 // Show restart required dialog
-                showRestartRequiredDialog(useRealApi)
+                showRestartRequiredDialog(modeName, isSlotService = false)
                 
             } catch (e: Exception) {
                 AppLog.e(TAG, "Error updating API mode", e)
@@ -196,14 +206,61 @@ class SystemFragment : Fragment() {
         }
     }
     
-    private fun showRestartRequiredDialog(useRealApi: Boolean) {
-        val modeName = if (useRealApi) "Real API" else "Mock Mode"
+    private fun updateSlotServiceMode(useRealBackend: Boolean) {
+        lifecycleScope.launch {
+            try {
+                AdminDebugConfig.logAdminInfo(requireContext(), TAG, "updateSlotServiceMode() called with useRealBackend=$useRealBackend")
+                
+                // useRealBackend = true means Real Backend mode
+                // useMockMode = false means Real Backend mode
+                val useMockMode = !useRealBackend
+                
+                AdminDebugConfig.logAdminInfo(requireContext(), TAG, "Saving preference: useMockMode=$useMockMode")
+                
+                // Save preference - will take effect on next app restart
+                BackendModule.initialize(requireContext(), useMockMode)
+                
+                val modeName = if (useRealBackend) "Real Backend" else "Mock Mode"
+                binding.systemStatusText.text = "Slot Service: $modeName (restart required)"
+                AdminDebugConfig.logAdminInfo(requireContext(), TAG, "Slot service mode preference saved: $modeName")
+                
+                // Show restart required dialog
+                showRestartRequiredDialog(modeName, isSlotService = true)
+                
+            } catch (e: Exception) {
+                AppLog.e(TAG, "Error updating slot service mode", e)
+                binding.systemStatusText.text = "Error updating slot service mode: ${e.message}"
+                
+                // Revert toggle on error
+                binding.slotServiceModeToggle.isChecked = !useRealBackend
+            }
+        }
+    }
+    
+    private fun showRestartRequiredDialog(modeName: String, isSlotService: Boolean = false) {
         val message = buildString {
-            append("API mode changed to: $modeName\n\n")
-            if (useRealApi) {
-                append("⚠️ WARNING: Real API will send actual SMS messages via Twilio and incur costs.\n\n")
-                append("Make sure the machine is properly enrolled with a valid certificate.\n\n")
-                append("Mock code (123456) will no longer work.\n\n")
+            if (isSlotService) {
+                append("Slot Service mode changed to: $modeName\n\n")
+                if (modeName == "Real Backend") {
+                    append("⚠️ Real Backend Mode:\n")
+                    append("• Syncs inventory with Firebase backend\n")
+                    append("• Records vend events to database\n")
+                    append("• Updates slot status after failures\n")
+                    append("• Requires valid machine certificate\n\n")
+                } else {
+                    append("📱 Mock Mode:\n")
+                    append("• Uses local inventory only\n")
+                    append("• Vends work without backend\n")
+                    append("• No data recorded to database\n")
+                    append("• Great for testing\n\n")
+                }
+            } else {
+                append("API mode changed to: $modeName\n\n")
+                if (modeName == "Real API") {
+                    append("⚠️ WARNING: Real API will send actual SMS messages via Twilio and incur costs.\n\n")
+                    append("Make sure the machine is properly enrolled with a valid certificate.\n\n")
+                    append("Mock code (123456) will no longer work.\n\n")
+                }
             }
             append("The app must restart for this change to take effect.")
         }

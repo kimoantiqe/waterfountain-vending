@@ -27,6 +27,9 @@ import com.waterfountainmachine.app.viewmodels.VendingViewModel
 import com.waterfountainmachine.app.viewmodels.VendingUiState
 import com.waterfountainmachine.app.analytics.AnalyticsManager
 import com.waterfountainmachine.app.WaterFountainApplication
+import com.waterfountainmachine.app.core.slot.SlotInventoryManager
+import com.waterfountainmachine.app.core.backend.IBackendSlotService
+import com.waterfountainmachine.app.di.BackendModule
 import dagger.hilt.android.AndroidEntryPoint
 import nl.dionsegijn.konfetti.core.Party
 import nl.dionsegijn.konfetti.core.Position
@@ -48,6 +51,8 @@ class VendingAnimationActivity : AppCompatActivity() {
     // Sound manager
     private lateinit var soundManager: SoundManager
     private lateinit var analyticsManager: AnalyticsManager
+    private lateinit var slotInventoryManager: SlotInventoryManager
+    private lateinit var backendSlotService: IBackendSlotService
 
     private var phoneNumber: String? = null
     private var dispensingTime: Long = 0
@@ -113,6 +118,27 @@ class VendingAnimationActivity : AppCompatActivity() {
         analyticsManager = AnalyticsManager.getInstance(this)
         analyticsManager.logScreenView("VendingAnimationActivity", "VendingAnimationActivity")
         
+        // Initialize slot manager and backend service
+        slotInventoryManager = SlotInventoryManager.getInstance(this)
+        backendSlotService = BackendModule.getBackendSlotService(this)
+        
+        // Sync inventory before vend to ensure latest stock levels
+        lifecycleScope.launch(Dispatchers.IO) {
+            val machineId = getSharedPreferences("machine_config", android.content.Context.MODE_PRIVATE)
+                .getString("machine_id", null)
+            if (machineId != null) {
+                AppLog.d(TAG, "Syncing inventory before vend...")
+                backendSlotService.syncInventoryWithBackend(machineId).fold(
+                    onSuccess = { slots ->
+                        AppLog.i(TAG, "Pre-vend inventory sync complete: ${slots.size} slots")
+                    },
+                    onFailure = { error ->
+                        AppLog.w(TAG, "Pre-vend sync failed, using cached inventory: ${error.message}")
+                    }
+                )
+            }
+        }
+        
         // Track vending started
         vendingStartTime = System.currentTimeMillis()
         analyticsManager.logVendingStarted(slot)
@@ -175,6 +201,8 @@ class VendingAnimationActivity : AppCompatActivity() {
             }
             is VendingUiState.DispensingComplete -> {
                 AppLog.i(TAG, "Water dispensing completed")
+                // Record successful vend with slot tracking
+                recordSuccessfulVend(state.slot, state.dispensingTimeMs)
             }
             is VendingUiState.Complete -> {
                 AppLog.i(TAG, "All operations complete")
@@ -186,6 +214,8 @@ class VendingAnimationActivity : AppCompatActivity() {
             }
             is VendingUiState.DispensingError -> {
                 AppLog.e(TAG, "Dispensing error: ${state.message}")
+                // Record failed vend without decrementing inventory
+                recordFailedVend(state.slot, state.errorCode)
                 // Continue with animation anyway
             }
         }
@@ -203,11 +233,10 @@ class VendingAnimationActivity : AppCompatActivity() {
 
     private fun initializeViews() {
         // Load random messages from resources
-        val magicMessages = resources.getStringArray(R.array.magic_messages)
         val completionMessages = resources.getStringArray(R.array.completion_messages)
         
-        // Set random messages
-        binding.statusText.text = magicMessages.random()
+        // Set fixed status text (will show "Your water is on the way!") and random completion message
+        binding.statusText.text = "Your water is on the way!"
         binding.completionText.text = completionMessages.random()
     }
 
@@ -616,6 +645,138 @@ class VendingAnimationActivity : AppCompatActivity() {
         finish()
     }
 
+    /**
+     * Record successful vend with slot tracking and backend synchronization
+     */
+    private fun recordSuccessfulVend(slot: Int, dispensingTimeMs: Long) {
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                // Get slot inventory to retrieve campaign/design attribution
+                val slotInventory = slotInventoryManager.getSlotInventory(slot)
+                
+                // Decrement local inventory
+                slotInventoryManager.decrementInventory(slot)
+                
+                // Calculate total journey duration
+                val journeyStartTime = WaterFountainApplication.journeyStartTime
+                val totalJourneyDurationMs = if (journeyStartTime > 0) {
+                    System.currentTimeMillis() - journeyStartTime
+                } else null
+                
+                // Hash phone number for privacy
+                val phoneHash = phoneNumber?.let { phone ->
+                    try {
+                        val digest = java.security.MessageDigest.getInstance("SHA-256")
+                        digest.digest(phone.toByteArray()).joinToString("") { "%02x".format(it) }
+                    } catch (e: Exception) {
+                        AppLog.e(TAG, "Failed to hash phone number", e)
+                        null
+                    }
+                }
+                
+                // Get machine ID from preferences
+                val machineId = this@VendingAnimationActivity.getSharedPreferences("machine_config", android.content.Context.MODE_PRIVATE)
+                    .getString("machine_id", null)
+                
+                if (machineId != null) {
+                    // Record vend event to backend
+                    val result = backendSlotService.recordVendWithSlot(
+                        machineId = machineId,
+                        slot = slot,
+                        phoneHash = phoneHash,
+                        success = true,
+                        totalJourneyDurationMs = totalJourneyDurationMs,
+                        dispenseDurationMs = dispensingTimeMs
+                    )
+                    
+                    result.fold(
+                        onSuccess = { vendResult ->
+                            AppLog.i(TAG, "Vend event recorded: ${vendResult.eventId}, campaign=${vendResult.campaignId}")
+                            
+                            // Log analytics with campaign attribution
+                            analyticsManager.logVendingCompleted(slot, dispensingTimeMs)
+                            if (vendResult.campaignId != null) {
+                                // Log campaign-attributed vend for ROI tracking
+                                analyticsManager.logCampaignVend(vendResult.campaignId, vendResult.canDesignId)
+                            }
+                        },
+                        onFailure = { error ->
+                            AppLog.e(TAG, "Failed to record vend event to backend", error)
+                            // Continue anyway - local inventory already decremented
+                        }
+                    )
+                } else {
+                    AppLog.w(TAG, "Machine ID not found, cannot record vend to backend")
+                }
+                
+                // Check if slot is now low or empty
+                val updatedInventory = slotInventoryManager.getSlotInventory(slot)
+                if (updatedInventory != null) {
+                    if (updatedInventory.remainingBottles == 0) {
+                        AppLog.w(TAG, "Slot $slot is now empty")
+                        analyticsManager.logSlotEmpty(slot)
+                    } else if (updatedInventory.remainingBottles <= (updatedInventory.capacity * 0.2).toInt()) {
+                        AppLog.w(TAG, "Slot $slot is low on inventory: ${updatedInventory.remainingBottles} bottles")
+                        analyticsManager.logSlotInventoryLow(slot, updatedInventory.remainingBottles)
+                    }
+                }
+            } catch (e: Exception) {
+                AppLog.e(TAG, "Error recording successful vend", e)
+            }
+        }
+    }
+    
+    /**
+     * Record failed vend without decrementing inventory
+     */
+    private fun recordFailedVend(slot: Int, errorCode: String?) {
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                // Hash phone number for privacy
+                val phoneHash = phoneNumber?.let { phone ->
+                    try {
+                        val digest = java.security.MessageDigest.getInstance("SHA-256")
+                        digest.digest(phone.toByteArray()).joinToString("") { "%02x".format(it) }
+                    } catch (e: Exception) {
+                        AppLog.e(TAG, "Failed to hash phone number", e)
+                        null
+                    }
+                }
+                
+                // Get machine ID from preferences
+                val machineId = this@VendingAnimationActivity.getSharedPreferences("machine_config", android.content.Context.MODE_PRIVATE)
+                    .getString("machine_id", null)
+                
+                if (machineId != null) {
+                    // Record failed vend event to backend
+                    val result = backendSlotService.recordVendWithSlot(
+                        machineId = machineId,
+                        slot = slot,
+                        phoneHash = phoneHash,
+                        success = false,
+                        errorCode = errorCode
+                    )
+                    
+                    result.fold(
+                        onSuccess = { vendResult ->
+                            AppLog.i(TAG, "Failed vend event recorded: ${vendResult.eventId}")
+                        },
+                        onFailure = { error ->
+                            AppLog.e(TAG, "Failed to record failed vend event to backend", error)
+                        }
+                    )
+                } else {
+                    AppLog.w(TAG, "Machine ID not found, cannot record vend to backend")
+                }
+                
+                // Log analytics
+                analyticsManager.logVendingFailed(slot, errorCode ?: "unknown")
+            } catch (e: Exception) {
+                AppLog.e(TAG, "Error recording failed vend", e)
+            }
+        }
+    }
+    
     @Suppress("DEPRECATION")
     @SuppressLint("MissingSuperCall")
     override fun onBackPressed() {

@@ -13,6 +13,9 @@ import com.waterfountainmachine.app.security.SecurityModule
 import com.waterfountainmachine.app.hardware.WaterFountainManager
 import com.waterfountainmachine.app.admin.AdminPinManager
 import com.waterfountainmachine.app.utils.AppLog
+import com.waterfountainmachine.app.core.slot.SlotInventoryManager
+import com.waterfountainmachine.app.core.backend.IBackendSlotService
+import com.waterfountainmachine.app.di.BackendModule
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -52,6 +55,11 @@ class WaterFountainApplication : Application() {
         private set
     
     private lateinit var healthMonitor: com.waterfountainmachine.app.analytics.MachineHealthMonitor
+    
+    lateinit var slotInventoryManager: SlotInventoryManager
+        private set
+    
+    private lateinit var backendSlotService: IBackendSlotService
     
     // Use StateFlow instead of observer list (fixes memory leak)
     private val _hardwareStateFlow = MutableStateFlow(HardwareState.UNINITIALIZED)
@@ -111,12 +119,34 @@ class WaterFountainApplication : Application() {
         hardwareManager = WaterFountainManager.getInstance(this)
         healthMonitor = com.waterfountainmachine.app.analytics.MachineHealthMonitor.getInstance(this)
         
+        // Initialize slot inventory management
+        slotInventoryManager = SlotInventoryManager.getInstance(this)
+        backendSlotService = BackendModule.getBackendSlotService(this)
+        AppLog.i(TAG, "Slot inventory manager initialized")
+        
         // Start health monitor once machine is enrolled
         if (com.waterfountainmachine.app.security.SecurityModule.isEnrolled()) {
             val machineId = com.waterfountainmachine.app.security.SecurityModule.getMachineId()
             if (machineId != null) {
                 healthMonitor.start(machineId)
                 AppLog.i(TAG, "Health monitor started for machine: ****${machineId.takeLast(4)}")
+                
+                // Sync slot inventory with backend on startup
+                applicationScope.launch(Dispatchers.IO) {
+                    AppLog.d(TAG, "Syncing slot inventory with backend...")
+                    backendSlotService.syncInventoryWithBackend(machineId).fold(
+                        onSuccess = { slots: List<SlotInventoryManager.SlotInventory> ->
+                            AppLog.i(TAG, "✅ Slot inventory synced: ${slots.size} slots loaded")
+                            val totalBottles = slotInventoryManager.getTotalInventory()
+                            val fillRate = slotInventoryManager.getInventoryFillRate()
+                            AppLog.i(TAG, "Current inventory: $totalBottles bottles (${String.format("%.1f", fillRate)}% capacity)")
+                        },
+                        onFailure = { error: Throwable ->
+                            AppLog.e(TAG, "⚠️ Failed to sync slot inventory: ${error.message}")
+                            AppLog.i(TAG, "Using local cache until next sync")
+                        }
+                    )
+                }
             }
         } else {
             AppLog.i(TAG, "Health monitor not started - machine not enrolled")

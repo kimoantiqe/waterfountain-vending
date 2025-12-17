@@ -481,15 +481,23 @@ class SMSVerifyActivity : AppCompatActivity() {
     }
     
     /**
-     * Show error by navigating to error screen
-     * All errors in SMS verification flow should show the error screen
+     * Show error message in subtitle
      */
     private fun showError(message: String) {
-        navigateToErrorScreen(message)
+        AppLog.e(TAG, "Showing error in subtitle: $message")
+        // Update subtitle to show error message
+        binding.subtitleText.text = message
+        binding.subtitleText.setTextColor(resources.getColor(android.R.color.holo_red_light, null))
+        
+        // Reset subtitle after 3 seconds
+        binding.subtitleText.postDelayed({
+            binding.subtitleText.text = "Check your messages for an OTP code"
+            binding.subtitleText.setTextColor(resources.getColor(android.R.color.darker_gray, null))
+        }, 3000)
     }
     
     /**
-     * Navigate to error screen for all errors
+     * Navigate to error screen for critical errors only
      */
     private fun navigateToErrorScreen(message: String) {
         AppLog.e(TAG, "Error occurred - navigating to error screen: $message")
