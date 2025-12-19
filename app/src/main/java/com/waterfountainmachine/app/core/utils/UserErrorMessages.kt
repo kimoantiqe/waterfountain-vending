@@ -24,7 +24,7 @@ object UserErrorMessages {
      * Daily vending limit reached
      * Shown when user has exceeded their daily bottle limit
      */
-    const val DAILY_LIMIT_REACHED = "We are very sorry,\nPlease visit us tomorrow."
+    const val DAILY_LIMIT_REACHED = "You've reached your daily dispense limit\nPlease come back tomorrow!"
     
     /**
      * Invalid phone number format
@@ -60,7 +60,7 @@ object UserErrorMessages {
      * Network connection error
      * Shown when there's no internet connection
      */
-    const val NETWORK_ERROR = "We're sorry!\nPlease check your connection and try again."
+    const val NETWORK_ERROR = "We're sorry!\nPlease try again later."
     
     /**
      * Service temporarily unavailable

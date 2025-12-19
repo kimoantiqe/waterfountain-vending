@@ -600,8 +600,35 @@ class SMSActivity : AppCompatActivity() {
      * Enable or disable all keypad buttons
      */
     private fun setKeypadEnabled(enabled: Boolean) {
-        // This will be implemented when we add keypad listeners
-        // For now, just log
+        binding.btn0.isEnabled = enabled
+        binding.btn1.isEnabled = enabled
+        binding.btn2.isEnabled = enabled
+        binding.btn3.isEnabled = enabled
+        binding.btn4.isEnabled = enabled
+        binding.btn5.isEnabled = enabled
+        binding.btn6.isEnabled = enabled
+        binding.btn7.isEnabled = enabled
+        binding.btn8.isEnabled = enabled
+        binding.btn9.isEnabled = enabled
+        binding.btnBackspace.isEnabled = enabled
+        binding.btnClear.isEnabled = enabled
+        binding.verifyButton.isEnabled = enabled
+        
+        // Update visual appearance
+        val alpha = if (enabled) 1f else 0.5f
+        binding.btn0.alpha = alpha
+        binding.btn1.alpha = alpha
+        binding.btn2.alpha = alpha
+        binding.btn3.alpha = alpha
+        binding.btn4.alpha = alpha
+        binding.btn5.alpha = alpha
+        binding.btn6.alpha = alpha
+        binding.btn7.alpha = alpha
+        binding.btn8.alpha = alpha
+        binding.btn9.alpha = alpha
+        binding.btnBackspace.alpha = alpha
+        binding.btnClear.alpha = alpha
+        
         AppLog.d(TAG, "Keypad enabled: $enabled")
     }
     

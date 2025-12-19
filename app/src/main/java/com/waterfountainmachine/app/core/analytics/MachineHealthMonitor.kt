@@ -10,6 +10,7 @@ import com.waterfountainmachine.app.BuildConfig
 import com.waterfountainmachine.app.security.SecurityModule
 import com.waterfountainmachine.app.utils.AppLog
 import com.waterfountainmachine.app.core.slot.SlotInventoryManager
+import org.json.JSONArray
 import org.json.JSONObject
 
 /**
@@ -129,11 +130,7 @@ class MachineHealthMonitor private constructor(private val context: Context) {
         val uptimeSeconds = (System.currentTimeMillis() - sessionStartTime) / 1000
         
         try {
-            // Get inventory summary from slot manager
-            val slotInventoryManager = SlotInventoryManager.getInstance(context)
-            val inventorySummary = slotInventoryManager.getInventorySummary()
-            
-            // Create base payload
+            // Create base payload (matches logMachineHealthSchema in backend)
             val payload = JSONObject().apply {
                 put("machineId", currentMachineId)
                 put("status", "active")
@@ -144,35 +141,14 @@ class MachineHealthMonitor private constructor(private val context: Context) {
                 put("lastErrorCode", lastErrorCode ?: "none")
                 put("appVersion", BuildConfig.VERSION_NAME)
                 put("sdkVersion", android.os.Build.VERSION.SDK_INT)
-                
-                // Add inventory summary
-                put("inventorySummary", JSONObject().apply {
-                    inventorySummary.forEach { (key, value) ->
-                        put(key, value)
-                    }
-                })
             }
             
-            // Add certificate authentication fields
+            // Add certificate authentication fields (same pattern as BackendSlotService)
             val authenticatedPayload = SecurityModule.createAuthenticatedRequest("logMachineHealth", payload)
-            
-            // Convert JSONObject to HashMap for Firebase Functions
-            val healthData = hashMapOf<String, Any>()
-            authenticatedPayload.keys().forEach { key ->
-                val value = authenticatedPayload.get(key)
-                when (value) {
-                    is String -> healthData[key] = value
-                    is Int -> healthData[key] = value
-                    is Long -> healthData[key] = value
-                    is Double -> healthData[key] = value
-                    is Boolean -> healthData[key] = value
-                    else -> healthData[key] = value.toString()
-                }
-            }
             
             functions
                 .getHttpsCallable("logMachineHealth")
-                .call(healthData)
+                .call(authenticatedPayload.toMap())
                 .addOnSuccessListener { result ->
                     val data = result.data as? Map<*, *>
                     val documentId = data?.get("documentId") as? String
@@ -211,5 +187,27 @@ class MachineHealthMonitor private constructor(private val context: Context) {
                 (successfulDispensesToday.toFloat() / totalDispensesToday * 100).toInt()
             } else 100
         )
+    }
+    
+    /**
+     * Extension function to convert JSONObject to Map for Firebase Functions
+     * Same implementation as BackendSlotService for consistency
+     */
+    private fun JSONObject.toMap(): Map<String, Any?> {
+        val map = mutableMapOf<String, Any?>()
+        keys().forEach { key ->
+            map[key] = when (val value = get(key)) {
+                is JSONObject -> value.toMap()
+                is JSONArray -> {
+                    val list = mutableListOf<Any?>()
+                    for (i in 0 until value.length()) {
+                        list.add(value.get(i))
+                    }
+                    list
+                }
+                else -> value
+            }
+        }
+        return map
     }
 }

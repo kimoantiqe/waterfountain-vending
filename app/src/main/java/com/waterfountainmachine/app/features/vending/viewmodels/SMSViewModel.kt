@@ -43,7 +43,7 @@ class SMSViewModel @Inject constructor(
     private val _phoneNumber = MutableStateFlow("")
     val phoneNumber: StateFlow<String> = _phoneNumber.asStateFlow()
 
-    private val _isPhoneVisible = MutableStateFlow(true)  // Default to visible
+    private val _isPhoneVisible = MutableStateFlow(false)  // Default to hidden
     val isPhoneVisible: StateFlow<Boolean> = _isPhoneVisible.asStateFlow()
 
     private val _isInCriticalState = MutableStateFlow(false)

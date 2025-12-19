@@ -53,6 +53,10 @@ class SMSVerifyActivity : AppCompatActivity() {
     // Runnable references for error restore callbacks
     private var errorRestoreRunnable: Runnable? = null
     
+    // Flag to prevent double verification
+    private var isVerifying = false
+    private var autoVerifyRunnable: Runnable? = null
+    
     companion object {
         private const val TAG = "SMSVerifyActivity"
         private const val MAX_OTP_LENGTH = 6
@@ -151,23 +155,32 @@ class SMSVerifyActivity : AppCompatActivity() {
     private fun handleUiState(state: SMSVerifyUiState) {
         when (state) {
             is SMSVerifyUiState.EnteringOtp -> {
+                isVerifying = false
                 setLoadingState(false)
             }
             is SMSVerifyUiState.IncompleteOtp -> {
+                isVerifying = false
                 showIncompleteOtpHint()
             }
             is SMSVerifyUiState.Verifying -> {
+                // isVerifying flag already set in verifyAndProceed()
                 setLoadingState(true)
             }
             is SMSVerifyUiState.VerificationSuccess -> {
+                isVerifying = false
                 navigateToVendingAnimation()
             }
             is SMSVerifyUiState.IncorrectOtp -> {
+                isVerifying = false
+                // Hide loading spinner and button animations only
+                // Don't re-enable keypad yet - showIncorrectCodeHint will manage it during error animation
+                hideLoadingSpinner()
                 showIncorrectCodeHint(state.attemptsRemaining)
-                setLoadingState(false)
             }
             is SMSVerifyUiState.Error -> {
-                showError(state.message)
+                isVerifying = false
+                // Navigate to error screen for all errors (including too many attempts)
+                navigateToErrorScreen(state.message)
             }
             is SMSVerifyUiState.ResendingOtp -> {
                 // Show resending state if needed
@@ -183,6 +196,7 @@ class SMSVerifyActivity : AppCompatActivity() {
                 // Don't show error - just let the timer display handle it
                 // The updateTimerDisplay() function will show the resend button
                 // when timeRemaining reaches 0
+                isVerifying = false
                 setLoadingState(false)
             }
         }
@@ -426,6 +440,14 @@ class SMSVerifyActivity : AppCompatActivity() {
     }
 
     private fun verifyAndProceed() {
+        // Prevent double verification
+        if (isVerifying) {
+            AppLog.d(TAG, "Already verifying, ignoring duplicate call")
+            return
+        }
+        
+        isVerifying = true
+        
         // Delegate to ViewModel
         viewModel.verifyOtp()
     }
@@ -474,6 +496,35 @@ class SMSVerifyActivity : AppCompatActivity() {
             // Keypad is always enabled - no failed attempts tracking here (handled by ViewModel)
             setKeypadEnabled(true)
         }
+    }
+    
+    /**
+     * Hide loading spinner without re-enabling keypad
+     * Used when we want to show error animation instead of returning to normal state
+     */
+    private fun hideLoadingSpinner() {
+        // Fade out and hide spinner
+        binding.loadingSpinner.animate()
+            .alpha(0f)
+            .setDuration(200)
+            .withEndAction {
+                binding.loadingSpinner.visibility = View.GONE
+                
+                // Fade button back in
+                binding.verifyOtpButton.animate()
+                    .alpha(1f)
+                    .setDuration(300)
+                    .start()
+            }
+            .start()
+        
+        val isComplete = otpCode.length == MAX_OTP_LENGTH
+        // Update button visual state after fade in
+        binding.verifyOtpButton.postDelayed({
+            updateButtonDisabledState(binding.verifyOtpButton, isComplete)
+        }, 300)
+        
+        // NOTE: Keypad state is NOT changed here - caller is responsible for managing it
     }
     
     private fun setKeypadEnabled(enabled: Boolean) {
@@ -633,13 +684,33 @@ class SMSVerifyActivity : AppCompatActivity() {
 
     private fun addDigit(digit: String) {
         viewModel.addDigit(digit)
+        
+        // Auto-verify when all 6 digits are entered
+        if (viewModel.otpCode.value.length == MAX_OTP_LENGTH && !isVerifying) {
+            AppLog.d(TAG, "OTP complete, auto-verifying...")
+            
+            // Cancel any previous auto-verify that might be pending
+            autoVerifyRunnable?.let { binding.otpBox1.removeCallbacks(it) }
+            
+            // Small delay for better UX (user sees the last digit appear)
+            autoVerifyRunnable = Runnable {
+                if (!isVerifying) {
+                    verifyAndProceed()
+                }
+            }
+            binding.otpBox1.postDelayed(autoVerifyRunnable!!, 300)
+        }
     }
 
     private fun removeLastDigit() {
+        // Cancel auto-verify when user deletes a digit
+        autoVerifyRunnable?.let { binding.otpBox1.removeCallbacks(it) }
         viewModel.deleteDigit()
     }
 
     private fun clearInput() {
+        // Cancel auto-verify when user clears
+        autoVerifyRunnable?.let { binding.otpBox1.removeCallbacks(it) }
         viewModel.clearOtp()
     }
     
@@ -817,6 +888,9 @@ class SMSVerifyActivity : AppCompatActivity() {
         // Set error flag to prevent box updates
         isShowingError = true
         
+        // Disable keypad during error animation
+        setKeypadEnabled(false)
+        
         // Play error sound
         soundManager.playSound(R.raw.error, 0.7f)
         
@@ -848,6 +922,8 @@ class SMSVerifyActivity : AppCompatActivity() {
             isShowingError = false
             updateOtpBoxes()
             updateButtonDisabledState(binding.verifyOtpButton, false)
+            // Re-enable keypad after animation completes
+            setKeypadEnabled(true)
         }
         binding.otpBox1.postDelayed(errorRestoreRunnable!!, 1500)
     }
@@ -1043,6 +1119,10 @@ class SMSVerifyActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         inactivityTimer.cleanup()
+        
+        // Clean up pending callbacks
+        autoVerifyRunnable?.let { binding.otpBox1.removeCallbacks(it) }
+        errorRestoreRunnable?.let { binding.otpBox1.removeCallbacks(it) }
         
         // Clean up animations
         questionMarkAnimator?.apply {

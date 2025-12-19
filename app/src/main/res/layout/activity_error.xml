@@ -68,11 +68,11 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="We are very sorry,\nPlease come visit tomorrow."
-                android:textSize="42sp"
+                android:textSize="40sp"
                 android:textColor="#555555"
                 android:fontFamily="@font/gilroy"
                 android:gravity="center"
-                android:maxLines="2"
+                android:maxLines="4"
                 android:lineSpacingExtra="8dp"/>
 
         </LinearLayout>
