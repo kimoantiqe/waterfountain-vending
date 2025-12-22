@@ -1,15 +1,22 @@
 package com.waterfountainmachine.app.analytics
 
 import android.content.Context
-import android.os.Handler
-import android.os.Looper
 import com.google.firebase.functions.FirebaseFunctions
 import com.google.firebase.functions.ktx.functions
 import com.google.firebase.ktx.Firebase
 import com.waterfountainmachine.app.BuildConfig
 import com.waterfountainmachine.app.security.SecurityModule
 import com.waterfountainmachine.app.utils.AppLog
+import com.waterfountainmachine.app.utils.CrashlyticsHelper
 import com.waterfountainmachine.app.core.slot.SlotInventoryManager
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.tasks.await
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -19,11 +26,14 @@ import org.json.JSONObject
  * 
  * Security: All health data requires certificate authentication.
  * Uses SecurityModule to sign requests with machine certificate.
+ * 
+ * Implementation: Uses coroutines for periodic heartbeats instead of Handler
  */
 class MachineHealthMonitor private constructor(private val context: Context) {
     
     private val functions: FirebaseFunctions = Firebase.functions
-    private val handler = Handler(Looper.getMainLooper())
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    private var heartbeatJob: Job? = null
     private var machineId: String? = null
     private var isRunning = false
     
@@ -49,13 +59,6 @@ class MachineHealthMonitor private constructor(private val context: Context) {
         }
     }
     
-    private val heartbeatRunnable = object : Runnable {
-        override fun run() {
-            sendHealthHeartbeat()
-            handler.postDelayed(this, HEARTBEAT_INTERVAL_MS)
-        }
-    }
-    
     /**
      * Start the health monitor
      */
@@ -69,11 +72,17 @@ class MachineHealthMonitor private constructor(private val context: Context) {
         this.sessionStartTime = System.currentTimeMillis()
         this.isRunning = true
         
-        // Send initial heartbeat
-        sendHealthHeartbeat()
-        
-        // Schedule periodic heartbeats
-        handler.postDelayed(heartbeatRunnable, HEARTBEAT_INTERVAL_MS)
+        // Start periodic heartbeat coroutine
+        heartbeatJob = scope.launch {
+            // Send initial heartbeat
+            sendHealthHeartbeat()
+            
+            // Schedule periodic heartbeats
+            while (isRunning) {
+                delay(HEARTBEAT_INTERVAL_MS)
+                sendHealthHeartbeat()
+            }
+        }
         
         AppLog.i(TAG, "Health monitor started for machine: $machineId")
     }
@@ -86,13 +95,25 @@ class MachineHealthMonitor private constructor(private val context: Context) {
             return
         }
         
-        handler.removeCallbacks(heartbeatRunnable)
+        // Cancel heartbeat coroutine
+        heartbeatJob?.cancel()
+        heartbeatJob = null
         isRunning = false
         
         // Send final heartbeat
-        sendHealthHeartbeat()
+        scope.launch {
+            sendHealthHeartbeat()
+        }
         
         AppLog.i(TAG, "Health monitor stopped")
+    }
+    
+    /**
+     * Clean up resources (call when app is destroyed)
+     */
+    fun cleanup() {
+        stop()
+        scope.cancel()
     }
     
     /**
@@ -113,8 +134,10 @@ class MachineHealthMonitor private constructor(private val context: Context) {
     /**
      * Send health heartbeat via backend function
      * Backend validates machine certificate and writes to Firestore
+     * 
+     * Suspend function with proper error handling
      */
-    private fun sendHealthHeartbeat() {
+    private suspend fun sendHealthHeartbeat() {
         val currentMachineId = machineId
         if (currentMachineId == null) {
             AppLog.w(TAG, "Cannot send heartbeat: machineId not set")
@@ -146,19 +169,20 @@ class MachineHealthMonitor private constructor(private val context: Context) {
             // Add certificate authentication fields (same pattern as BackendSlotService)
             val authenticatedPayload = SecurityModule.createAuthenticatedRequest("logMachineHealth", payload)
             
-            functions
+            // Use coroutines-compatible await() instead of callbacks
+            val result = functions
                 .getHttpsCallable("logMachineHealth")
                 .call(authenticatedPayload.toMap())
-                .addOnSuccessListener { result ->
-                    val data = result.data as? Map<*, *>
-                    val documentId = data?.get("documentId") as? String
-                    AppLog.d(TAG, "✅ Health heartbeat sent: uptime=${uptimeSeconds}s, dispenses=$totalDispensesToday, docId=$documentId")
-                }
-                .addOnFailureListener { e ->
-                    AppLog.e(TAG, "❌ Failed to send health heartbeat", e)
-                }
+                .await()
+            
+            val data = result.data as? Map<*, *>
+            val documentId = data?.get("documentId") as? String
+            AppLog.d(TAG, "✅ Health heartbeat sent: uptime=${uptimeSeconds}s, dispenses=$totalDispensesToday, docId=$documentId")
+            
         } catch (e: Exception) {
-            AppLog.e(TAG, "Error creating authenticated health request", e)
+            // Log to AppLog and Crashlytics (standardized error logging)
+            AppLog.e(TAG, "❌ Failed to send health heartbeat: uptime=${uptimeSeconds}s", e)
+            CrashlyticsHelper.recordException(e)
         }
     }
     

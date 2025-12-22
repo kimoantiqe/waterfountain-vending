@@ -65,7 +65,7 @@ class MockBackendSlotService(private val context: Context) : IBackendSlotService
     override suspend fun recordVendWithSlot(
         machineId: String,
         slot: Int,
-        phoneHash: String?,
+        phone: String?,
         success: Boolean,
         errorCode: String?,
         totalJourneyDurationMs: Long?,

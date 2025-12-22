@@ -44,7 +44,10 @@ data class OtpRequestResponse(
 data class OtpVerifyResponse(
     val success: Boolean,
     val message: String? = null,
-    val sessionToken: String? = null // Optional session token from backend
+    val sessionToken: String? = null, // Optional session token from backend
+    val dailyVendLimit: Int = 2, // Maximum vends per day (default 2)
+    val vendsUsedToday: Int = 0, // Number of vends used today
+    val vendsRemainingToday: Int = 2 // Remaining vends for today
 )
 
 /**

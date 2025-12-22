@@ -1,57 +1,57 @@
 package com.waterfountainmachine.app.config
 
+import com.waterfountainmachine.app.BuildConfig
+
 /**
  * API Configuration for different environments
  * 
+ * Automatically configured via product flavors (dev/prod)
+ * No manual switching required - environment is determined at build time.
+ * 
  * Environments:
- * - LOCAL: Firebase Emulator on localhost
- * - DEV: Development Firebase project
- * - PROD: Production Firebase project
+ * - DEV: Development Firebase project (waterfountain-dev)
+ * - PROD: Production Firebase project (waterfountain-25886)
+ * 
+ * Build commands:
+ * - Development: ./gradlew assembleDevDebug or assembleDevRelease
+ * - Production: ./gradlew assembleProdDebug or assembleProdRelease
  */
-enum class ApiEnvironment(
-    val baseUrl: String,
-    val projectId: String,
-    val region: String = "us-central1"
-) {
-    /**
-     * Local Firebase Emulator
-     * Run: firebase emulators:start
-     */
-    LOCAL(
-        baseUrl = "http://10.0.2.2:5001/waterfountain-dev/us-central1", // Android emulator
-        projectId = "waterfountain-dev"
-    ),
+object ApiEnvironment {
     
     /**
-     * Development Firebase Project
+     * Base URL for Firebase Functions
+     * Set via BuildConfig from product flavors
      */
-    DEV(
-        baseUrl = "https://us-central1-waterfountain-dev.cloudfunctions.net",
-        projectId = "waterfountain-dev"
-    ),
+    val baseUrl: String = BuildConfig.API_BASE_URL
     
     /**
-     * Production Firebase Project
+     * Firebase Project ID
+     * Set via BuildConfig from product flavors
      */
-    PROD(
-        baseUrl = "https://us-central1-waterfountain-25886.cloudfunctions.net",
-        projectId = "waterfountain-25886"
-    );
+    val projectId: String = BuildConfig.FIREBASE_PROJECT_ID
     
     /**
-     * Get full endpoint URL
+     * Check if running in production environment
+     */
+    val isProduction: Boolean = BuildConfig.IS_PRODUCTION
+    
+    /**
+     * Get environment name for logging
+     */
+    val environmentName: String = BuildConfig.ENVIRONMENT
+    
+    /**
+     * Firebase Functions region
+     */
+    const val region: String = "us-central1"
+    
+    /**
+     * Get full endpoint URL for a Firebase Function
+     * 
+     * @param functionName Name of the Firebase Function (e.g., "requestOtpFn")
+     * @return Full HTTPS URL to the function
      */
     fun getEndpointUrl(functionName: String): String {
         return "$baseUrl/$functionName"
-    }
-    
-    companion object {
-        /**
-         * Get current environment (can be configured)
-         */
-        fun getCurrent(): ApiEnvironment {
-            // TODO: Read from BuildConfig or SharedPreferences
-            return DEV // Default to DEV
-        }
     }
 }

@@ -9,6 +9,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityOptionsCompat
 import androidx.lifecycle.lifecycleScope
 import com.waterfountainmachine.app.R
+import com.waterfountainmachine.app.config.WaterFountainConfig
 import com.waterfountainmachine.app.databinding.ActivityErrorBinding
 import com.waterfountainmachine.app.utils.AppLog
 import com.waterfountainmachine.app.utils.FullScreenUtils

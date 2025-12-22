@@ -747,7 +747,7 @@
                             android:id="@+id/faq4Answer"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="You can get one water per day.\n(Resets at midnight)"
+                            android:text="You can get 2 free waters per day.\n(Resets at midnight)"
                             android:textSize="@dimen/modal_text_size"
                             android:textColor="#555555"
                             android:fontFamily="@font/gilroy"

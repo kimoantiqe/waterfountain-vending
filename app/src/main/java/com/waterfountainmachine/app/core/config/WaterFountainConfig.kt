@@ -72,7 +72,6 @@ class WaterFountainConfig private constructor(context: Context) {
         // Admin Security
         const val ADMIN_MAX_ATTEMPTS = 3
         const val ADMIN_LOCKOUT_DURATION_MS = 60 * 60 * 1000L // 1 hour
-        const val ADMIN_LOCKOUT_MINUTES = 60L // 1 hour in minutes
         
         // Progress Ring Animation
         const val PROGRESS_RING_COLOR_FADE_PERCENT = 8f // First 8% of progress
@@ -113,6 +112,51 @@ class WaterFountainConfig private constructor(context: Context) {
         // Animation Colors (as Int for setColorFilter)
         const val COLOR_PURPLE_ACCENT = 0xFF8B7BA8.toInt()
         const val COLOR_DARK_GRAY = 0xFF555555.toInt()
+        
+        // Slot Configuration
+        const val MAX_CANS_PER_SLOT = 5
+        const val DEFAULT_SLOT_CAPACITY = 7
+        const val TOTAL_SLOTS = 48 // 6 rows × 8 columns
+        const val TOTAL_ROWS = 6
+        const val TOTAL_COLUMNS = 8
+        const val LOW_INVENTORY_THRESHOLD_PERCENT = 20 // Alert when below 20% capacity
+        
+        // Lane Manager Configuration
+        const val MAX_CONSECUTIVE_SLOT_FAILURES = 3
+        const val LOAD_BALANCE_THRESHOLD = 10 // Switch slots every N successful dispenses
+        const val MAX_FALLBACK_ATTEMPTS = 3
+        
+        // OTP & Retry Configuration  
+        const val MAX_OTP_RETRY_ATTEMPTS = 2 // Allow 2 retries (3 total attempts)
+        const val MIN_LOADING_DISPLAY_TIME_MS = 800L
+        const val OTP_TIMEOUT_SECONDS = 300 // 5 minutes
+        
+        // Phone Number Formatting
+        const val PHONE_SHORT_LENGTH = 3
+        const val PHONE_MEDIUM_LENGTH = 6
+        const val PHONE_MASK_MIN_LENGTH = 7
+        
+        // Certificate Warning Thresholds
+        const val CERT_DAYS_CRITICAL = 7 // Red warning
+        const val CERT_DAYS_WARNING = 30 // Orange warning
+        
+        // Machine Health Monitoring
+        const val HEALTH_HEARTBEAT_INTERVAL_MS = 60 * 60 * 1000L // 1 hour
+        
+        // Admin Gesture Detection
+        const val ADMIN_GESTURE_KEY_PRESS_TIMEOUT_MS = 1000L
+        const val ADMIN_GESTURE_REQUIRED_PRESSES = 7
+        
+        // Debug Mode Configuration
+        const val DEBUG_FAST_POLLING_INTERVAL_MS = 200L
+        const val DEBUG_SLOW_POLLING_INTERVAL_MS = 500L
+        
+        // Inactivity Timeouts (per screen)
+        const val SMS_VERIFY_INACTIVITY_TIMEOUT_MS = 300_000L // 5 minutes
+        const val ADMIN_AUTH_TIMEOUT_MS = 60_000L // 60 seconds
+        
+        // Error Display Configuration
+        const val ERROR_DEFAULT_DISPLAY_DURATION_MS = 15_000L // 15 seconds
         
         @Volatile
         private var INSTANCE: WaterFountainConfig? = null

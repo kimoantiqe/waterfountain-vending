@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.waterfountainmachine.app.auth.AuthenticationException
 import com.waterfountainmachine.app.auth.IAuthenticationRepository
 import com.waterfountainmachine.app.utils.AppLog
+import com.waterfountainmachine.app.utils.PhoneNumberUtils
 import com.waterfountainmachine.app.utils.UserErrorMessages
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
@@ -59,6 +60,10 @@ class SMSVerifyViewModel @Inject constructor(
     // Timer job
     private var timerJob: Job? = null
 
+    // Request tracking for debouncing
+    private var verifyOtpJob: Job? = null
+    private var lastVerifyTime = 0L
+
     /**
      * Initialize with phone number from previous screen
      */
@@ -98,6 +103,7 @@ class SMSVerifyViewModel @Inject constructor(
 
     /**
      * Verify the entered OTP code
+     * Includes debouncing to prevent spam verifications
      */
     fun verifyOtp() {
         if (_otpCode.value.length != MAX_OTP_LENGTH) {
@@ -106,14 +112,21 @@ class SMSVerifyViewModel @Inject constructor(
             return
         }
 
+        // Check debounce - prevent rapid repeated verifications
+        val now = System.currentTimeMillis()
+        if (now - lastVerifyTime < 1000) {
+            AppLog.d(TAG, "Verify request debounced")
+            return
+        }
+
         viewModelScope.launch {
             try {
                 _isInCriticalState.value = true
                 _uiState.value = SMSVerifyUiState.Verifying
 
-                // Format phone with country code
-                val formattedPhone = "+1${_phoneNumber.value}"
-                AppLog.d(TAG, "Verifying OTP for phone: +1***-***-${_phoneNumber.value.takeLast(4)}")
+                // Normalize phone to E.164 format
+                val formattedPhone = PhoneNumberUtils.normalizePhoneNumber(_phoneNumber.value)
+                AppLog.d(TAG, "Verifying OTP for phone: ${PhoneNumberUtils.maskPhoneForLogging(formattedPhone)}")
 
                 // Add minimum display time for loading spinner
                 val startTime = System.currentTimeMillis()
@@ -208,8 +221,8 @@ class SMSVerifyViewModel @Inject constructor(
                 _isInCriticalState.value = true
                 _uiState.value = SMSVerifyUiState.ResendingOtp
 
-                val formattedPhone = "+1${_phoneNumber.value}"
-                AppLog.i(TAG, "Resending OTP to: +1***-***-${_phoneNumber.value.takeLast(4)}")
+                val formattedPhone = PhoneNumberUtils.normalizePhoneNumber(_phoneNumber.value)
+                AppLog.i(TAG, "Resending OTP to: ${PhoneNumberUtils.maskPhoneForLogging(formattedPhone)}")
 
                 val result = authRepository.requestOtp(formattedPhone)
 

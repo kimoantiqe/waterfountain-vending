@@ -22,6 +22,8 @@ import com.waterfountainmachine.app.utils.AppLog
 import com.waterfountainmachine.app.views.ProgressRingView
 import com.waterfountainmachine.app.utils.FullScreenUtils
 import com.waterfountainmachine.app.utils.SoundManager
+import com.waterfountainmachine.app.utils.PhoneNumberUtils
+import com.waterfountainmachine.app.utils.MachineIdProvider
 import com.waterfountainmachine.app.config.WaterFountainConfig
 import com.waterfountainmachine.app.viewmodels.VendingViewModel
 import com.waterfountainmachine.app.viewmodels.VendingUiState
@@ -124,8 +126,7 @@ class VendingAnimationActivity : AppCompatActivity() {
         
         // Sync inventory before vend to ensure latest stock levels
         lifecycleScope.launch(Dispatchers.IO) {
-            val machineId = getSharedPreferences("machine_config", android.content.Context.MODE_PRIVATE)
-                .getString("machine_id", null)
+            val machineId = MachineIdProvider.getMachineId(this@VendingAnimationActivity)
             if (machineId != null) {
                 AppLog.d(TAG, "Syncing inventory before vend...")
                 backendSlotService.syncInventoryWithBackend(machineId).fold(
@@ -663,27 +664,18 @@ class VendingAnimationActivity : AppCompatActivity() {
                     System.currentTimeMillis() - journeyStartTime
                 } else null
                 
-                // Hash phone number for privacy
-                val phoneHash = phoneNumber?.let { phone ->
-                    try {
-                        val digest = java.security.MessageDigest.getInstance("SHA-256")
-                        digest.digest(phone.toByteArray()).joinToString("") { "%02x".format(it) }
-                    } catch (e: Exception) {
-                        AppLog.e(TAG, "Failed to hash phone number", e)
-                        null
-                    }
-                }
-                
-                // Get machine ID from preferences
-                val machineId = this@VendingAnimationActivity.getSharedPreferences("machine_config", android.content.Context.MODE_PRIVATE)
-                    .getString("machine_id", null)
+                // Get machine ID from certificate
+                val machineId = MachineIdProvider.getMachineId(this@VendingAnimationActivity)
                 
                 if (machineId != null) {
-                    // Record vend event to backend
+                    // Normalize phone to E.164 before sending to backend
+                    val normalizedPhone = phoneNumber?.let { PhoneNumberUtils.normalizePhoneNumber(it) }
+                    
+                    // Record vend event to backend with phone number (not hash)
                     val result = backendSlotService.recordVendWithSlot(
                         machineId = machineId,
                         slot = slot,
-                        phoneHash = phoneHash,
+                        phone = normalizedPhone,
                         success = true,
                         totalJourneyDurationMs = totalJourneyDurationMs,
                         dispenseDurationMs = dispensingTimeMs
@@ -732,27 +724,18 @@ class VendingAnimationActivity : AppCompatActivity() {
     private fun recordFailedVend(slot: Int, errorCode: String?) {
         lifecycleScope.launch(Dispatchers.IO) {
             try {
-                // Hash phone number for privacy
-                val phoneHash = phoneNumber?.let { phone ->
-                    try {
-                        val digest = java.security.MessageDigest.getInstance("SHA-256")
-                        digest.digest(phone.toByteArray()).joinToString("") { "%02x".format(it) }
-                    } catch (e: Exception) {
-                        AppLog.e(TAG, "Failed to hash phone number", e)
-                        null
-                    }
-                }
-                
-                // Get machine ID from preferences
-                val machineId = this@VendingAnimationActivity.getSharedPreferences("machine_config", android.content.Context.MODE_PRIVATE)
-                    .getString("machine_id", null)
+                // Get machine ID from certificate
+                val machineId = MachineIdProvider.getMachineId(this@VendingAnimationActivity)
                 
                 if (machineId != null) {
-                    // Record failed vend event to backend
+                    // Normalize phone to E.164 before sending to backend
+                    val normalizedPhone = phoneNumber?.let { PhoneNumberUtils.normalizePhoneNumber(it) }
+                    
+                    // Record failed vend event to backend with phone number (not hash)
                     val result = backendSlotService.recordVendWithSlot(
                         machineId = machineId,
                         slot = slot,
-                        phoneHash = phoneHash,
+                        phone = normalizedPhone,
                         success = false,
                         errorCode = errorCode
                     )

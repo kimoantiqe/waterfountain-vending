@@ -5,8 +5,11 @@ import androidx.lifecycle.viewModelScope
 import com.waterfountainmachine.app.auth.IAuthenticationRepository
 import com.waterfountainmachine.app.config.WaterFountainConfig
 import com.waterfountainmachine.app.utils.AppLog
+import com.waterfountainmachine.app.utils.PhoneNumberUtils
 import com.waterfountainmachine.app.utils.UserErrorMessages
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -48,6 +51,10 @@ class SMSViewModel @Inject constructor(
 
     private val _isInCriticalState = MutableStateFlow(false)
     val isInCriticalState: StateFlow<Boolean> = _isInCriticalState.asStateFlow()
+
+    // Request tracking for debouncing
+    private var requestOtpJob: Job? = null
+    private var lastRequestTime = 0L
 
     companion object {
         private const val TAG = "SMSViewModel"
@@ -111,16 +118,17 @@ class SMSViewModel @Inject constructor(
      * Get masked phone number for display
      * Format: (***) ***-7890
      */
-    fun getMaskedPhoneNumber(): String {
+    private fun getMaskedPhoneNumber(): String {
         val phone = _phoneNumber.value
         return when {
-            phone.length < 7 -> "*".repeat(phone.length)
+            phone.length < WaterFountainConfig.PHONE_MASK_MIN_LENGTH -> "*".repeat(phone.length)
             else -> "(***) ***-${phone.substring(6)}"
         }
     }
 
     /**
      * Request OTP for the entered phone number
+     * Includes debouncing to prevent spam requests
      */
     fun requestOtp() {
         val phone = _phoneNumber.value
@@ -129,6 +137,16 @@ class SMSViewModel @Inject constructor(
         if (phone.length != PHONE_LENGTH) {
             _uiState.value = SMSUiState.InvalidPhoneNumber
             AppLog.w(TAG, "Invalid phone number length: ${phone.length} (expected $PHONE_LENGTH)")
+            return
+        }
+
+        // Check debounce - prevent rapid repeated requests
+        val now = System.currentTimeMillis()
+        val timeSinceLastRequest = now - lastRequestTime
+        if (timeSinceLastRequest < 2000) {
+            val waitSeconds = ((2000 - timeSinceLastRequest) / 1000) + 1
+            AppLog.d(TAG, "Request debounced, wait $waitSeconds seconds")
+            _uiState.value = SMSUiState.Error("Please wait $waitSeconds seconds before requesting again")
             return
         }
 
@@ -146,13 +164,14 @@ class SMSViewModel @Inject constructor(
                     return@launch
                 }
 
-                // Format phone with country code (+1 for US)
-                val formattedPhone = "+1$phone"
+                // Normalize phone to E.164 format for consistent backend processing
+                val formattedPhone = PhoneNumberUtils.normalizePhoneNumber(phone)
 
                 // Request OTP from repository
                 val result = authRepository.requestOtp(formattedPhone)
 
                 if (result.isSuccess) {
+                    lastRequestTime = System.currentTimeMillis()
                     AppLog.i(TAG, "OTP requested successfully")
                     _uiState.value = SMSUiState.OtpRequestSuccess(
                         phoneNumber = phone,

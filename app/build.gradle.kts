@@ -59,6 +59,8 @@ android {
             // BuildConfig fields for runtime environment detection
             buildConfigField("String", "ENVIRONMENT", "\"development\"")
             buildConfigField("boolean", "IS_PRODUCTION", "false")
+            buildConfigField("String", "API_BASE_URL", "\"https://us-central1-waterfountain-dev.cloudfunctions.net\"")
+            buildConfigField("String", "FIREBASE_PROJECT_ID", "\"waterfountain-dev\"")
         }
         
         create("prod") {
@@ -68,6 +70,8 @@ android {
             // BuildConfig fields
             buildConfigField("String", "ENVIRONMENT", "\"production\"")
             buildConfigField("boolean", "IS_PRODUCTION", "true")
+            buildConfigField("String", "API_BASE_URL", "\"https://us-central1-waterfountain-25886.cloudfunctions.net\"")
+            buildConfigField("String", "FIREBASE_PROJECT_ID", "\"waterfountain-25886\"")
         }
     }
 
@@ -122,6 +126,15 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
             excludes += "/META-INF/LICENSE*"
         }
+    }
+}
+
+// Kapt configuration
+kapt {
+    correctErrorTypes = true
+    arguments {
+        arg("dagger.fastInit", "enabled")
+        arg("dagger.strictMode", "enabled")
     }
 }
 

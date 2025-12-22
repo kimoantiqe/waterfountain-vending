@@ -22,7 +22,7 @@ interface IBackendSlotService {
     suspend fun recordVendWithSlot(
         machineId: String,
         slot: Int,
-        phoneHash: String?,
+        phone: String?,
         success: Boolean,
         errorCode: String? = null,
         totalJourneyDurationMs: Long? = null,

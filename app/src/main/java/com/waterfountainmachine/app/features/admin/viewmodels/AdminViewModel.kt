@@ -149,10 +149,10 @@ class AdminViewModel @Inject constructor(
 
                     if (failedAttempts >= WaterFountainConfig.ADMIN_MAX_ATTEMPTS) {
                         // Max attempts reached - trigger lockout
-                        lockoutUntil = System.currentTimeMillis() + (WaterFountainConfig.ADMIN_LOCKOUT_MINUTES * 60 * 1000)
+                        lockoutUntil = System.currentTimeMillis() + WaterFountainConfig.ADMIN_LOCKOUT_DURATION_MS
                         AdminPinManager.saveRateLimitState(context, failedAttempts, lockoutUntil)
-                        _uiState.value = AdminUiState.MaxAttemptsReached(WaterFountainConfig.ADMIN_LOCKOUT_MINUTES)
-                        AppLog.w(TAG, "Max attempts reached, locked out for ${WaterFountainConfig.ADMIN_LOCKOUT_MINUTES} minutes")
+                        _uiState.value = AdminUiState.MaxAttemptsReached(WaterFountainConfig.ADMIN_LOCKOUT_DURATION_MS / 60000)
+                        AppLog.w(TAG, "Max attempts reached, locked out for ${WaterFountainConfig.ADMIN_LOCKOUT_DURATION_MS / 60000} minutes")
                     } else {
                         // Still have attempts remaining
                         val remainingAttempts = WaterFountainConfig.ADMIN_MAX_ATTEMPTS - failedAttempts

@@ -105,7 +105,8 @@ class VendingViewModelTest {
             advanceUntilIdle()
             
             assertThat(awaitItem()).isEqualTo(VendingUiState.Dispensing)
-            assertThat(awaitItem()).isEqualTo(VendingUiState.DispensingComplete)
+            val completedState = awaitItem()
+            assertThat(completedState).isInstanceOf(VendingUiState.DispensingComplete::class.java)
         }
     }
 
@@ -315,7 +316,7 @@ class VendingViewModelTest {
         advanceUntilIdle()
         
         // Should transition to DispensingComplete
-        assertThat(viewModel.uiState.value).isEqualTo(VendingUiState.DispensingComplete)
+        assertThat(viewModel.uiState.value).isInstanceOf(VendingUiState.DispensingComplete::class.java)
     }
 
     @Test

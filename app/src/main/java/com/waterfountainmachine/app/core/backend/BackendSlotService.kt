@@ -141,7 +141,7 @@ class BackendSlotService private constructor(private val context: Context) : IBa
     override suspend fun recordVendWithSlot(
         machineId: String,
         slot: Int,
-        phoneHash: String?,
+        phone: String?,
         success: Boolean,
         errorCode: String?,
         totalJourneyDurationMs: Long?,
@@ -156,7 +156,7 @@ class BackendSlotService private constructor(private val context: Context) : IBa
                     val payload = JSONObject().apply {
                         put("machineId", machineId)
                         put("slot", slot)
-                        if (phoneHash != null) put("phoneHash", phoneHash)
+                        if (phone != null) put("phone", phone)
                         put("success", success)
                         if (errorCode != null) put("errorCode", errorCode)
                         if (totalJourneyDurationMs != null) put("totalJourneyDurationMs", totalJourneyDurationMs)

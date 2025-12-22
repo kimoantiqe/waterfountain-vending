@@ -1,7 +1,12 @@
 package com.waterfountainmachine.app.utils
 
-import android.os.Handler
-import android.os.Looper
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.cancel
 
 /**
  * Utility class for managing inactivity timers in activities.
@@ -11,13 +16,15 @@ import android.os.Looper
  * 
  * Supports critical state mode to prevent timeout during important operations
  * like water dispensing, OTP requests, or admin PIN validation.
+ * 
+ * Implementation: Uses coroutines instead of Handler for better lifecycle management
  */
 class InactivityTimer(
     private val timeoutMillis: Long,
     private val onTimeout: () -> Unit
 ) {
-    private val handler = Handler(Looper.getMainLooper())
-    private var runnable: Runnable? = null
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    private var timerJob: Job? = null
     
     /**
      * Critical state flag - when true, timer will not trigger timeout
@@ -35,23 +42,23 @@ class InactivityTimer(
      */
     fun start() {
         stop()
-        runnable = Runnable { 
+        timerJob = scope.launch {
+            delay(timeoutMillis)
             if (!isInCriticalState) {
                 onTimeout()
             } else {
                 // Reschedule if in critical state
-                runnable?.let { handler.postDelayed(it, timeoutMillis) }
+                start()
             }
         }
-        runnable?.let { handler.postDelayed(it, timeoutMillis) }
     }
     
     /**
      * Stop and clear the inactivity timer
      */
     fun stop() {
-        runnable?.let { handler.removeCallbacks(it) }
-        runnable = null
+        timerJob?.cancel()
+        timerJob = null
     }
     
     /**
@@ -99,7 +106,7 @@ class InactivityTimer(
      */
     fun cleanup() {
         stop()
-        handler.removeCallbacksAndMessages(null)
+        scope.cancel()
         isInCriticalState = false
     }
     

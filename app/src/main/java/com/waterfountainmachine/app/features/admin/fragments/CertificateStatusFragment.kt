@@ -15,6 +15,7 @@ import com.waterfountainmachine.app.setup.CertificateSetupActivity
 import com.waterfountainmachine.app.utils.AppLog
 import com.waterfountainmachine.app.utils.AdminDebugConfig
 import com.waterfountainmachine.app.config.ApiEnvironment
+import com.waterfountainmachine.app.config.WaterFountainConfig
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.Dispatchers
@@ -235,7 +236,7 @@ class CertificateStatusFragment : Fragment() {
         
         try {
             // Get backend URL
-            val baseUrl = ApiEnvironment.getCurrent().baseUrl
+            val baseUrl = ApiEnvironment.baseUrl
             val healthEndpoint = "$baseUrl/api/v1/health"
             
             AdminDebugConfig.logAdmin(requireContext(), TAG, "Testing connection to: $healthEndpoint")
@@ -296,7 +297,7 @@ class CertificateStatusFragment : Fragment() {
             AppLog.e(TAG, "Connection test failed: Unknown host", e)
             ConnectionTestResult(
                 success = false,
-                endpoint = ApiEnvironment.getCurrent().baseUrl,
+                endpoint = ApiEnvironment.baseUrl,
                 statusCode = 0,
                 responseTime = System.currentTimeMillis() - startTime,
                 error = "Cannot reach backend server (DNS/Network issue)"
@@ -305,7 +306,7 @@ class CertificateStatusFragment : Fragment() {
             AppLog.e(TAG, "Connection test failed: SSL error", e)
             ConnectionTestResult(
                 success = false,
-                endpoint = ApiEnvironment.getCurrent().baseUrl,
+                endpoint = ApiEnvironment.baseUrl,
                 statusCode = 0,
                 responseTime = System.currentTimeMillis() - startTime,
                 error = "SSL/Certificate error: ${e.message}"
@@ -314,7 +315,7 @@ class CertificateStatusFragment : Fragment() {
             AppLog.e(TAG, "Connection test failed: Timeout", e)
             ConnectionTestResult(
                 success = false,
-                endpoint = ApiEnvironment.getCurrent().baseUrl,
+                endpoint = ApiEnvironment.baseUrl,
                 statusCode = 0,
                 responseTime = System.currentTimeMillis() - startTime,
                 error = "Connection timeout (backend not responding)"
@@ -323,7 +324,7 @@ class CertificateStatusFragment : Fragment() {
             AppLog.e(TAG, "Connection test failed: ${e.javaClass.simpleName}", e)
             ConnectionTestResult(
                 success = false,
-                endpoint = ApiEnvironment.getCurrent().baseUrl,
+                endpoint = ApiEnvironment.baseUrl,
                 statusCode = 0,
                 responseTime = System.currentTimeMillis() - startTime,
                 error = "${e.javaClass.simpleName}: ${e.message}"

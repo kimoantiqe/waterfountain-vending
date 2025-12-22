@@ -6,6 +6,7 @@ import com.waterfountainmachine.app.hardware.sdk.SlotValidator
 import com.waterfountainmachine.app.hardware.sdk.WaterDispenseResult
 import com.waterfountainmachine.app.core.slot.SlotInventoryManager
 import com.waterfountainmachine.app.utils.AppLog
+import com.waterfountainmachine.app.config.WaterFountainConfig
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -41,8 +42,8 @@ class LaneManager private constructor(private val context: Context) {
         const val LANE_STATUS_DISABLED = 3
         
         // Configuration
-        const val MAX_CONSECUTIVE_FAILURES = 3
-        const val LOAD_BALANCE_THRESHOLD = 10 // Switch slots every N successful dispenses
+        const val MAX_CONSECUTIVE_FAILURES = WaterFountainConfig.MAX_CONSECUTIVE_SLOT_FAILURES
+        const val LOAD_BALANCE_THRESHOLD = WaterFountainConfig.LOAD_BALANCE_THRESHOLD
         
         @Volatile
         private var INSTANCE: LaneManager? = null
@@ -59,8 +60,28 @@ class LaneManager private constructor(private val context: Context) {
         SlotInventoryManager.getInstance(context)
     }
     
-    // Configuration - All 48 valid slots enabled by default
-    private val enabledLanes = SlotValidator.VALID_SLOTS
+    // Configuration - Column-first rotation pattern
+    // Pattern: Row1-Slot1, Row2-Slot1, Row3-Slot1, Row4-Slot1, Row5-Slot1, Row6-Slot1,
+    //          then Row1-Slot2, Row2-Slot2, Row3-Slot2... etc.
+    // This distributes cans evenly across all rows before moving to next column
+    private val enabledLanes = listOf(
+        // Column 1 (all rows)
+        1, 11, 21, 31, 41, 51,
+        // Column 2 (all rows)
+        2, 12, 22, 32, 42, 52,
+        // Column 3 (all rows)
+        3, 13, 23, 33, 43, 53,
+        // Column 4 (all rows)
+        4, 14, 24, 34, 44, 54,
+        // Column 5 (all rows)
+        5, 15, 25, 35, 45, 55,
+        // Column 6 (all rows)
+        6, 16, 26, 36, 46, 56,
+        // Column 7 (all rows)
+        7, 17, 27, 37, 47, 57,
+        // Column 8 (all rows)
+        8, 18, 28, 38, 48, 58
+    )
     
     /**
      * Get the next best lane for water dispensing
@@ -115,7 +136,7 @@ class LaneManager private constructor(private val context: Context) {
             .filter { slotInventoryManager.isSlotAvailable(it) } // Check inventory
             .filter { isLaneUsableHardwareOnly(it) } // Check hardware status
             .sortedBy { getLaneFailureCount(it) } // Prefer lanes with fewer failures
-            .take(3) // Limit to 3 fallback attempts
+            .take(WaterFountainConfig.MAX_FALLBACK_ATTEMPTS)
     }
     
     /**
@@ -206,8 +227,7 @@ class LaneManager private constructor(private val context: Context) {
      */
     private fun updateBackendSlotStatus(lane: Int, errorCode: Byte?) {
         val backendSlotService = com.waterfountainmachine.app.di.BackendModule.getBackendSlotService(context)
-        val machineId = context.getSharedPreferences("machine_config", Context.MODE_PRIVATE)
-            .getString("machine_id", null)
+        val machineId = com.waterfountainmachine.app.security.SecurityModule.getMachineId()
         
         if (machineId == null) {
             AppLog.w(TAG, "Cannot update backend - machine ID not found")

@@ -145,6 +145,9 @@ class RealAuthenticationRepository(
             val success = responseData?.get("success") as? Boolean ?: false
             val message = responseData?.get("message") as? String ?: "OTP verified"
             val sessionToken = responseData?.get("sessionToken") as? String
+            val dailyVendLimit = (responseData?.get("dailyVendLimit") as? Number)?.toInt() ?: 2
+            val vendsUsedToday = (responseData?.get("vendsUsedToday") as? Number)?.toInt() ?: 0
+            val vendsRemainingToday = (responseData?.get("vendsRemainingToday") as? Number)?.toInt() ?: dailyVendLimit
             
             if (!success) {
                 AppLog.w(TAG, "OTP verification returned success=false: $message")
@@ -153,12 +156,15 @@ class RealAuthenticationRepository(
                 )
             }
             
-            AppLog.i(TAG, "OTP verification successful: $message")
+            AppLog.i(TAG, "OTP verification successful: $message (Limit: $dailyVendLimit, Used: $vendsUsedToday, Remaining: $vendsRemainingToday)")
             Result.success(
                 OtpVerifyResponse(
                     success = true,
                     message = message,
-                    sessionToken = sessionToken
+                    sessionToken = sessionToken,
+                    dailyVendLimit = dailyVendLimit,
+                    vendsUsedToday = vendsUsedToday,
+                    vendsRemainingToday = vendsRemainingToday
                 )
             )
         } catch (e: FirebaseFunctionsException) {

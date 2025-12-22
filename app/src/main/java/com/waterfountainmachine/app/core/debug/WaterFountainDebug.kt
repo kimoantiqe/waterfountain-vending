@@ -91,7 +91,7 @@ object WaterFountainDebug {
         
         config.waterSlot = 1
         config.serialBaudRate = 9600
-        config.statusPollingIntervalMs = 200L
+        config.statusPollingIntervalMs = WaterFountainConfig.DEBUG_FAST_POLLING_INTERVAL_MS
         config.maxPollingAttempts = 10
         
         AppLog.i(TAG, "Water fountain configured for testing")
@@ -103,7 +103,7 @@ object WaterFountainDebug {
         
         config.waterSlot = 1
         config.serialBaudRate = 9600
-        config.statusPollingIntervalMs = 500L
+        config.statusPollingIntervalMs = WaterFountainConfig.DEBUG_SLOW_POLLING_INTERVAL_MS
         config.maxPollingAttempts = 20
         
         AppLog.i(TAG, "Water fountain configured for production")
