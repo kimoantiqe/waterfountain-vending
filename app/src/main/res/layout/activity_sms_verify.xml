@@ -476,7 +476,8 @@
             android:orientation="vertical"
             android:padding="@dimen/modal_padding"
             android:gravity="center"
-            android:elevation="16dp">
+            android:elevation="16dp"
+            android:animateLayoutChanges="true">
 
             <!-- Header with Title and Close Button -->
             <RelativeLayout
@@ -490,7 +491,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_centerInParent="true"
-                    android:text="Frequently Asked Questions"
+                    android:text="FAQ"
                     android:textSize="@dimen/modal_title_size"
                     android:textColor="#555555"
                     android:fontFamily="@font/gilroy"
@@ -513,6 +514,7 @@
 
             </RelativeLayout>
 
+            
             <!-- Accordion FAQ Items in ScrollView -->
             <ScrollView
                 android:layout_width="match_parent"
@@ -520,23 +522,26 @@
                 android:maxHeight="500dp"
                 android:layout_marginBottom="@dimen/margin_large"
                 android:fillViewport="false"
-                android:scrollbars="vertical">
+                android:scrollbars="none"
+                android:fadeScrollbars="true">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:paddingHorizontal="16dp">
+                    android:paddingHorizontal="20dp"
+                    android:animateLayoutChanges="true">
 
                     <!-- FAQ Item 1: How it works -->
                     <LinearLayout
+                        android:id="@+id/faq1Container"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="vertical"
-                        android:background="@drawable/glass_phone_display_background"
-                        android:padding="20dp"
+                        android:background="@drawable/faq_card_background"
+                        android:padding="24dp"
                         android:layout_marginBottom="16dp"
-                        android:elevation="2dp">
+                        android:elevation="4dp">
 
                         <LinearLayout
                             android:id="@+id/faq1Header"
@@ -546,14 +551,15 @@
                             android:gravity="center_vertical"
                             android:clickable="true"
                             android:focusable="true"
-                            android:background="?android:attr/selectableItemBackground">
+                            android:background="@drawable/faq_card_ripple"
+                            android:paddingVertical="4dp">
 
                             <TextView
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
                                 android:text="How it works"
-                                android:textSize="@dimen/modal_text_size"
+                                android:textSize="24sp"
                                 android:textColor="#8B7BA8"
                                 android:fontFamily="@font/gilroy"
                                 android:textStyle="bold"
@@ -561,8 +567,8 @@
 
                             <ImageView
                                 android:id="@+id/faq1Chevron"
-                                android:layout_width="24dp"
-                                android:layout_height="24dp"
+                                android:layout_width="26dp"
+                                android:layout_height="26dp"
                                 android:src="@drawable/ic_chevron_down"
                                 app:tint="#8B7BA8"
                                 android:rotation="0"/>
@@ -574,13 +580,13 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="You enter your phone number, we text you a verification code. That's it."
-                            android:textSize="@dimen/modal_text_size"
-                            android:textColor="#555555"
+                            android:textSize="20sp"
+                            android:textColor="#2f2f2f"
                             android:fontFamily="@font/gilroy"
                             android:gravity="start"
-                            android:lineSpacingExtra="4dp"
-                            android:lineSpacingMultiplier="1.15"
-                            android:layout_marginTop="12dp"
+                            android:lineSpacingExtra="6dp"
+                            android:lineSpacingMultiplier="1.2"
+                            android:layout_marginTop="16dp"
                             android:visibility="gone"
                             android:alpha="0"/>
 
@@ -588,13 +594,14 @@
 
                     <!-- FAQ Item 2: Why it works -->
                     <LinearLayout
+                        android:id="@+id/faq2Container"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="vertical"
-                        android:background="@drawable/glass_phone_display_background"
-                        android:padding="20dp"
+                        android:background="@drawable/faq_card_background"
+                        android:padding="24dp"
                         android:layout_marginBottom="16dp"
-                        android:elevation="2dp">
+                        android:elevation="4dp">
 
                         <LinearLayout
                             android:id="@+id/faq2Header"
@@ -604,14 +611,15 @@
                             android:gravity="center_vertical"
                             android:clickable="true"
                             android:focusable="true"
-                            android:background="?android:attr/selectableItemBackground">
+                            android:background="@drawable/faq_card_ripple"
+                            android:paddingVertical="4dp">
 
                             <TextView
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
                                 android:text="Why it works"
-                                android:textSize="@dimen/modal_text_size"
+                                android:textSize="24sp"
                                 android:textColor="#8B7BA8"
                                 android:fontFamily="@font/gilroy"
                                 android:textStyle="bold"
@@ -619,8 +627,8 @@
 
                             <ImageView
                                 android:id="@+id/faq2Chevron"
-                                android:layout_width="24dp"
-                                android:layout_height="24dp"
+                                android:layout_width="26dp"
+                                android:layout_height="26dp"
                                 android:src="@drawable/ic_chevron_down"
                                 app:tint="#8B7BA8"
                                 android:rotation="0"/>
@@ -632,13 +640,13 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="We partner with local businesses who cover the cost by advertising on each can."
-                            android:textSize="@dimen/modal_text_size"
-                            android:textColor="#555555"
+                            android:textSize="20sp"
+                            android:textColor="#2f2f2f"
                             android:fontFamily="@font/gilroy"
                             android:gravity="start"
-                            android:lineSpacingExtra="4dp"
-                            android:lineSpacingMultiplier="1.15"
-                            android:layout_marginTop="12dp"
+                            android:lineSpacingExtra="6dp"
+                            android:lineSpacingMultiplier="1.2"
+                            android:layout_marginTop="16dp"
                             android:visibility="gone"
                             android:alpha="0"/>
 
@@ -646,13 +654,14 @@
 
                     <!-- FAQ Item 3: Why we need your phone number -->
                     <LinearLayout
+                        android:id="@+id/faq3Container"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="vertical"
-                        android:background="@drawable/glass_phone_display_background"
-                        android:padding="20dp"
+                        android:background="@drawable/faq_card_background"
+                        android:padding="24dp"
                         android:layout_marginBottom="16dp"
-                        android:elevation="2dp">
+                        android:elevation="4dp">
 
                         <LinearLayout
                             android:id="@+id/faq3Header"
@@ -662,14 +671,15 @@
                             android:gravity="center_vertical"
                             android:clickable="true"
                             android:focusable="true"
-                            android:background="?android:attr/selectableItemBackground">
+                            android:background="@drawable/faq_card_ripple"
+                            android:paddingVertical="4dp">
 
                             <TextView
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
                                 android:text="Why we need your phone number"
-                                android:textSize="@dimen/modal_text_size"
+                                android:textSize="24sp"
                                 android:textColor="#8B7BA8"
                                 android:fontFamily="@font/gilroy"
                                 android:textStyle="bold"
@@ -677,8 +687,8 @@
 
                             <ImageView
                                 android:id="@+id/faq3Chevron"
-                                android:layout_width="24dp"
-                                android:layout_height="24dp"
+                                android:layout_width="26dp"
+                                android:layout_height="26dp"
                                 android:src="@drawable/ic_chevron_down"
                                 app:tint="#8B7BA8"
                                 android:rotation="0"/>
@@ -690,13 +700,13 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="We use your number to make sure there's enough for everyone."
-                            android:textSize="@dimen/modal_text_size"
-                            android:textColor="#555555"
+                            android:textSize="20sp"
+                            android:textColor="#2f2f2f"
                             android:fontFamily="@font/gilroy"
                             android:gravity="start"
-                            android:lineSpacingExtra="4dp"
-                            android:lineSpacingMultiplier="1.15"
-                            android:layout_marginTop="12dp"
+                            android:lineSpacingExtra="6dp"
+                            android:lineSpacingMultiplier="1.2"
+                            android:layout_marginTop="16dp"
                             android:visibility="gone"
                             android:alpha="0"/>
 
@@ -704,13 +714,14 @@
 
                     <!-- FAQ Item 4: How many you can take -->
                     <LinearLayout
+                        android:id="@+id/faq4Container"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="vertical"
-                        android:background="@drawable/glass_phone_display_background"
-                        android:padding="20dp"
+                        android:background="@drawable/faq_card_background"
+                        android:padding="24dp"
                         android:layout_marginBottom="16dp"
-                        android:elevation="2dp">
+                        android:elevation="4dp">
 
                         <LinearLayout
                             android:id="@+id/faq4Header"
@@ -720,14 +731,15 @@
                             android:gravity="center_vertical"
                             android:clickable="true"
                             android:focusable="true"
-                            android:background="?android:attr/selectableItemBackground">
+                            android:background="@drawable/faq_card_ripple"
+                            android:paddingVertical="4dp">
 
                             <TextView
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
                                 android:text="How many you can take"
-                                android:textSize="@dimen/modal_text_size"
+                                android:textSize="24sp"
                                 android:textColor="#8B7BA8"
                                 android:fontFamily="@font/gilroy"
                                 android:textStyle="bold"
@@ -735,8 +747,8 @@
 
                             <ImageView
                                 android:id="@+id/faq4Chevron"
-                                android:layout_width="24dp"
-                                android:layout_height="24dp"
+                                android:layout_width="26dp"
+                                android:layout_height="26dp"
                                 android:src="@drawable/ic_chevron_down"
                                 app:tint="#8B7BA8"
                                 android:rotation="0"/>
@@ -748,13 +760,13 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="You can get 2 free waters per day.\n(Resets at midnight)"
-                            android:textSize="@dimen/modal_text_size"
-                            android:textColor="#555555"
+                            android:textSize="20sp"
+                            android:textColor="#2f2f2f"
                             android:fontFamily="@font/gilroy"
                             android:gravity="start"
-                            android:lineSpacingExtra="4dp"
-                            android:lineSpacingMultiplier="1.15"
-                            android:layout_marginTop="12dp"
+                            android:lineSpacingExtra="6dp"
+                            android:lineSpacingMultiplier="1.2"
+                            android:layout_marginTop="16dp"
                             android:visibility="gone"
                             android:alpha="0"/>
 
@@ -762,12 +774,13 @@
 
                     <!-- FAQ Item 5: About the water -->
                     <LinearLayout
+                        android:id="@+id/faq5Container"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="vertical"
-                        android:background="@drawable/glass_phone_display_background"
-                        android:padding="20dp"
-                        android:elevation="2dp">
+                        android:background="@drawable/faq_card_background"
+                        android:padding="24dp"
+                        android:elevation="4dp">
 
                         <LinearLayout
                             android:id="@+id/faq5Header"
@@ -777,14 +790,15 @@
                             android:gravity="center_vertical"
                             android:clickable="true"
                             android:focusable="true"
-                            android:background="?android:attr/selectableItemBackground">
+                            android:background="@drawable/faq_card_ripple"
+                            android:paddingVertical="4dp">
 
                             <TextView
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
                                 android:text="About the water"
-                                android:textSize="@dimen/modal_text_size"
+                                android:textSize="24sp"
                                 android:textColor="#8B7BA8"
                                 android:fontFamily="@font/gilroy"
                                 android:textStyle="bold"
@@ -792,8 +806,8 @@
 
                             <ImageView
                                 android:id="@+id/faq5Chevron"
-                                android:layout_width="24dp"
-                                android:layout_height="24dp"
+                                android:layout_width="26dp"
+                                android:layout_height="26dp"
                                 android:src="@drawable/ic_chevron_down"
                                 app:tint="#8B7BA8"
                                 android:rotation="0"/>
@@ -805,13 +819,13 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="We only use natural spring water sourced from right here in BC."
-                            android:textSize="@dimen/modal_text_size"
-                            android:textColor="#555555"
+                            android:textSize="20sp"
+                            android:textColor="#2f2f2f"
                             android:fontFamily="@font/gilroy"
                             android:gravity="start"
-                            android:lineSpacingExtra="4dp"
-                            android:lineSpacingMultiplier="1.15"
-                            android:layout_marginTop="12dp"
+                            android:lineSpacingExtra="6dp"
+                            android:lineSpacingMultiplier="1.2"
+                            android:layout_marginTop="16dp"
                             android:visibility="gone"
                             android:alpha="0"/>
 
@@ -821,16 +835,22 @@
 
             </ScrollView>
 
-            <!-- QR Code Button -->
-            <androidx.appcompat.widget.AppCompatButton
+            <!-- More Details Button -->
+            <TextView
                 android:id="@+id/showQrCodeButton"
-                style="@style/GlassActionButtonStyle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Show QR Code for More Details"
-                android:textSize="24sp"
-                android:paddingHorizontal="32dp"
+                android:layout_gravity="center"
+                android:text="More Details"
+                android:textSize="20sp"
+                android:textColor="#FFFFFF"
+                android:fontFamily="@font/gilroy"
+                android:textStyle="bold"
+                android:paddingHorizontal="20dp"
                 android:paddingVertical="16dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:background="@drawable/more_details_ripple"
                 android:layout_marginBottom="@dimen/margin_medium"/>
 
         </LinearLayout>

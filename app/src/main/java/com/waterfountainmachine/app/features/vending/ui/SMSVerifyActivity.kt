@@ -51,6 +51,9 @@ class SMSVerifyActivity : AppCompatActivity() {
     private var isVerifying = false
     private var autoVerifyRunnable: Runnable? = null
     
+    // Flag to prevent box updates during error animation
+    private var isShowingError = false
+    
     companion object {
         private const val TAG = "SMSVerifyActivity"
         private const val MAX_OTP_LENGTH = 6
@@ -305,65 +308,93 @@ class SMSVerifyActivity : AppCompatActivity() {
         binding.faq1Header.setOnClickListener {
             soundManager.playSound(R.raw.click, 0.6f)
             inactivityTimer.reset()
-            toggleFaqItem(binding.faq1Answer, binding.faq1Chevron)
+            toggleFaqItem(binding.faq1Container, binding.faq1Answer, binding.faq1Chevron)
         }
 
         // FAQ Item 2
         binding.faq2Header.setOnClickListener {
             soundManager.playSound(R.raw.click, 0.6f)
             inactivityTimer.reset()
-            toggleFaqItem(binding.faq2Answer, binding.faq2Chevron)
+            toggleFaqItem(binding.faq2Container, binding.faq2Answer, binding.faq2Chevron)
         }
 
         // FAQ Item 3
         binding.faq3Header.setOnClickListener {
             soundManager.playSound(R.raw.click, 0.6f)
             inactivityTimer.reset()
-            toggleFaqItem(binding.faq3Answer, binding.faq3Chevron)
+            toggleFaqItem(binding.faq3Container, binding.faq3Answer, binding.faq3Chevron)
         }
 
         // FAQ Item 4
         binding.faq4Header.setOnClickListener {
             soundManager.playSound(R.raw.click, 0.6f)
             inactivityTimer.reset()
-            toggleFaqItem(binding.faq4Answer, binding.faq4Chevron)
+            toggleFaqItem(binding.faq4Container, binding.faq4Answer, binding.faq4Chevron)
         }
 
         // FAQ Item 5
         binding.faq5Header.setOnClickListener {
             soundManager.playSound(R.raw.click, 0.6f)
             inactivityTimer.reset()
-            toggleFaqItem(binding.faq5Answer, binding.faq5Chevron)
+            toggleFaqItem(binding.faq5Container, binding.faq5Answer, binding.faq5Chevron)
         }
     }
 
-    private fun toggleFaqItem(answerView: TextView, chevronView: android.widget.ImageView) {
+    private fun toggleFaqItem(containerView: android.view.ViewGroup, answerView: TextView, chevronView: android.widget.ImageView) {
         if (answerView.visibility == View.GONE) {
-            // Expand: Show answer with fade in animation and rotate chevron
+            // Expand: Show answer with smooth slide and fade in animation
             answerView.visibility = View.VISIBLE
+            answerView.translationY = -20f
+            
             answerView.animate()
                 .alpha(1f)
-                .setDuration(200)
+                .translationY(0f)
+                .setDuration(300)
+                .setInterpolator(android.view.animation.DecelerateInterpolator())
                 .start()
             
+            // Rotate chevron smoothly and change to purple
             chevronView.animate()
                 .rotation(180f)
-                .setDuration(200)
+                .setDuration(300)
+                .setInterpolator(android.view.animation.DecelerateInterpolator())
                 .start()
+            
+            // Change chevron color to light purple
+            chevronView.setColorFilter(
+                android.graphics.Color.parseColor("#B5A8C9"),
+                android.graphics.PorterDuff.Mode.SRC_IN
+            )
+            
+            // Change card background to highlighted state
+            containerView.setBackgroundResource(R.drawable.faq_card_background_expanded)
         } else {
-            // Collapse: Fade out answer and rotate chevron back
+            // Collapse: Fade out answer with slide up animation
             answerView.animate()
                 .alpha(0f)
-                .setDuration(200)
+                .translationY(-20f)
+                .setDuration(250)
+                .setInterpolator(android.view.animation.AccelerateInterpolator())
                 .withEndAction {
                     answerView.visibility = View.GONE
                 }
                 .start()
             
+            // Rotate chevron back smoothly and change to original color
             chevronView.animate()
                 .rotation(0f)
-                .setDuration(200)
+                .setDuration(300)
+                .setInterpolator(android.view.animation.DecelerateInterpolator())
                 .start()
+            
+            // Change chevron color back to original purple
+            chevronView.setColorFilter(
+                android.graphics.Color.parseColor("#8B7BA8"),
+                android.graphics.PorterDuff.Mode.SRC_IN
+            )
+            
+            // Change card background back to normal
+            containerView.setBackgroundResource(R.drawable.faq_card_background)
         }
     }
 
@@ -661,7 +692,10 @@ class SMSVerifyActivity : AppCompatActivity() {
      * Update OTP display based on ViewModel state
      */
     private fun updateOtpDisplay(code: String) {
-        updateOtpBoxes()
+        // Don't update boxes if showing error animation
+        if (!isShowingError) {
+            updateOtpBoxes()
+        }
         val isComplete = code.length == MAX_OTP_LENGTH
         updateButtonDisabledState(binding.verifyOtpButton, isComplete)
     }
@@ -759,7 +793,13 @@ class SMSVerifyActivity : AppCompatActivity() {
         // Disable keypad during animation
         setKeypadEnabled(false)
         
+        // Set flag to prevent observer from updating boxes
+        isShowingError = true
+        
         val boxes = getOtpBoxes()
+        
+        // Clear the code in ViewModel
+        viewModel.clearOtp()
         
         // Show all boxes in red with shake animation
         for (box in boxes) {
@@ -774,15 +814,20 @@ class SMSVerifyActivity : AppCompatActivity() {
             shake.start()
         }
         
-        // Clear the code in ViewModel
-        viewModel.clearOtp()
-        
-        // After animation, restore to normal state
+        // Keep boxes red for 1.5 seconds, then restore to normal state
         binding.otpBox1.postDelayed({
-            updateOtpBoxes()
+            // Clear error flag
+            isShowingError = false
+            
+            // Manually reset each box to normal background
+            for (box in boxes) {
+                box.setBackgroundResource(R.drawable.otp_box_background)
+            }
+            // Highlight the first box for input
+            boxes[0].setBackgroundResource(R.drawable.otp_box_highlighted)
             setKeypadEnabled(true)
             AppLog.d(TAG, "Error animation complete - ready for input")
-        }, 1000)
+        }, 1500)
     }
     
     /**
