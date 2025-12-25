@@ -270,6 +270,9 @@ class SMSVerifyActivity : AppCompatActivity() {
 
         // Setup FAQ accordion functionality
         setupFaqAccordion()
+        
+        // Setup smooth layout transitions
+        setupSmoothLayoutTransitions()
 
         // Show QR Code button click - transition from info modal to QR modal
         binding.showQrCodeButton.setOnClickListener {
@@ -339,16 +342,25 @@ class SMSVerifyActivity : AppCompatActivity() {
             toggleFaqItem(binding.faq5Container, binding.faq5Answer, binding.faq5Chevron)
         }
     }
+    
+    private fun setupSmoothLayoutTransitions() {
+        val transition = android.animation.LayoutTransition()
+        transition.setDuration(android.animation.LayoutTransition.CHANGING, 300)
+        transition.setInterpolator(android.animation.LayoutTransition.CHANGING, android.view.animation.DecelerateInterpolator())
+        transition.enableTransitionType(android.animation.LayoutTransition.CHANGING)
+        
+        binding.modalContent.layoutTransition = transition
+    }
 
     private fun toggleFaqItem(containerView: android.view.ViewGroup, answerView: TextView, chevronView: android.widget.ImageView) {
         if (answerView.visibility == View.GONE) {
-            // Expand: Show answer with smooth slide and fade in animation
+            // Expand: Show answer with smooth fade in animation
             answerView.visibility = View.VISIBLE
-            answerView.translationY = -20f
+            answerView.alpha = 0f
             
+            // Fade in smoothly
             answerView.animate()
                 .alpha(1f)
-                .translationY(0f)
                 .setDuration(300)
                 .setInterpolator(android.view.animation.DecelerateInterpolator())
                 .start()
@@ -369,10 +381,9 @@ class SMSVerifyActivity : AppCompatActivity() {
             // Change card background to highlighted state
             containerView.setBackgroundResource(R.drawable.faq_card_background_expanded)
         } else {
-            // Collapse: Fade out answer with slide up animation
+            // Collapse: Fade out answer
             answerView.animate()
                 .alpha(0f)
-                .translationY(-20f)
                 .setDuration(250)
                 .setInterpolator(android.view.animation.AccelerateInterpolator())
                 .withEndAction {
