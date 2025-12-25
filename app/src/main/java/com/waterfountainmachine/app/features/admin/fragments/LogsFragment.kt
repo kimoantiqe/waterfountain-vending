@@ -246,8 +246,8 @@ class LogsFragment : Fragment() {
                 writer.write("Total Entries: ${allLogEntries.size}\n\n")
                 
                 allLogEntries.forEach { entry ->
-                    val timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date(entry.timestamp))
-                    writer.write("[$timestamp] [${entry.level.name}] [${entry.tag}] ${entry.message}\n")
+                    val entryTimestamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date(entry.timestamp))
+                    writer.write("[$entryTimestamp] [${entry.level.name}] [${entry.tag}] ${entry.message}\n")
                 }
             }
             

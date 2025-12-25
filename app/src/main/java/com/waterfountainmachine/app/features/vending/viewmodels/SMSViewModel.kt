@@ -1,4 +1,4 @@
-package com.waterfountainmachine.app.viewmodels
+package com.waterfountainmachine.app.features.vending.viewmodels
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -8,8 +8,6 @@ import com.waterfountainmachine.app.utils.AppLog
 import com.waterfountainmachine.app.utils.PhoneNumberUtils
 import com.waterfountainmachine.app.utils.UserErrorMessages
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -53,7 +51,6 @@ class SMSViewModel @Inject constructor(
     val isInCriticalState: StateFlow<Boolean> = _isInCriticalState.asStateFlow()
 
     // Request tracking for debouncing
-    private var requestOtpJob: Job? = null
     private var lastRequestTime = 0L
 
     companion object {
@@ -146,7 +143,8 @@ class SMSViewModel @Inject constructor(
         if (timeSinceLastRequest < 2000) {
             val waitSeconds = ((2000 - timeSinceLastRequest) / 1000) + 1
             AppLog.d(TAG, "Request debounced, wait $waitSeconds seconds")
-            _uiState.value = SMSUiState.Error("Please wait $waitSeconds seconds before requesting again")
+            _uiState.value =
+                SMSUiState.Error("Please wait $waitSeconds seconds before requesting again")
             return
         }
 
@@ -229,13 +227,13 @@ class SMSViewModel @Inject constructor(
  * UI States for SMS/Phone Entry
  */
 sealed class SMSUiState {
-    object PhoneEntry : SMSUiState()
-    object InvalidPhoneNumber : SMSUiState()
-    object RequestingOtp : SMSUiState()
+    data object PhoneEntry : SMSUiState()
+    data object InvalidPhoneNumber : SMSUiState()
+    data object RequestingOtp : SMSUiState()
     data class OtpRequestSuccess(
         val phoneNumber: String,
         val isPhoneVisible: Boolean
     ) : SMSUiState()
-    object DailyLimitReached : SMSUiState()
+    data object DailyLimitReached : SMSUiState()
     data class Error(val message: String) : SMSUiState()
 }

@@ -49,6 +49,7 @@ interface IBackendSlotService {
     data class VendEventResult(
         val eventId: String,
         val campaignId: String?,
-        val canDesignId: String?
+        val canDesignId: String?,
+        val advertiserId: String?
     )
 }

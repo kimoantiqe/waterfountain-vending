@@ -86,7 +86,8 @@ class MockBackendSlotService(private val context: Context) : IBackendSlotService
                 IBackendSlotService.VendEventResult(
                     eventId = eventId,
                     campaignId = "mock_campaign",
-                    canDesignId = "mock_design"
+                    canDesignId = "mock_design",
+                    advertiserId = "mock_advertiser"
                 )
             )
         } catch (e: Exception) {

@@ -189,9 +189,9 @@ class AdminViewModel @Inject constructor(
  * UI States for Admin Authentication
  */
 sealed class AdminUiState {
-    object EnteringPin : AdminUiState()
-    object Validating : AdminUiState()
-    object Authenticated : AdminUiState()
+    data object EnteringPin : AdminUiState()
+    data object Validating : AdminUiState()
+    data object Authenticated : AdminUiState()
     data class InvalidPin(val remainingAttempts: Int) : AdminUiState()
     data class MaxAttemptsReached(val lockoutMinutes: Long) : AdminUiState()
     data class LockedOut(val remainingMinutes: Int) : AdminUiState()

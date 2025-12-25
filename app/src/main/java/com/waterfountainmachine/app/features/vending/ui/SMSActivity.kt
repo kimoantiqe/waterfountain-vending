@@ -18,8 +18,8 @@ import com.waterfountainmachine.app.utils.AppLog
 import com.waterfountainmachine.app.utils.SoundManager
 import com.waterfountainmachine.app.utils.UserErrorMessages
 import com.waterfountainmachine.app.config.WaterFountainConfig
-import com.waterfountainmachine.app.viewmodels.SMSViewModel
-import com.waterfountainmachine.app.viewmodels.SMSUiState
+import com.waterfountainmachine.app.features.vending.viewmodels.SMSViewModel
+import com.waterfountainmachine.app.features.vending.viewmodels.SMSUiState
 import com.waterfountainmachine.app.analytics.AnalyticsManager
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
@@ -118,7 +118,7 @@ class SMSActivity : AppCompatActivity() {
         
         // Observe phone number changes
         lifecycleScope.launch {
-            viewModel.phoneNumber.collect { phoneNumber ->
+            viewModel.phoneNumber.collect { _ ->
                 updatePhoneDisplay()
                 updateVerifyButtonState()
             }
@@ -126,7 +126,7 @@ class SMSActivity : AppCompatActivity() {
         
         // Observe phone visibility changes
         lifecycleScope.launch {
-            viewModel.isPhoneVisible.collect { isVisible ->
+            viewModel.isPhoneVisible.collect { _ ->
                 updatePhoneDisplay()
                 updateToggleIcon()
             }

@@ -1,4 +1,4 @@
-package com.waterfountainmachine.app.viewmodels
+package com.waterfountainmachine.app.features.vending.viewmodels
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -51,8 +51,6 @@ class SMSVerifyViewModel @Inject constructor(
 
     // Failed attempts tracking
     private val _failedAttempts = MutableStateFlow(0)
-    val failedAttempts: StateFlow<Int> = _failedAttempts.asStateFlow()
-
     // Critical state for inactivity timer
     private val _isInCriticalState = MutableStateFlow(false)
     val isInCriticalState: StateFlow<Boolean> = _isInCriticalState.asStateFlow()
@@ -61,7 +59,6 @@ class SMSVerifyViewModel @Inject constructor(
     private var timerJob: Job? = null
 
     // Request tracking for debouncing
-    private var verifyOtpJob: Job? = null
     private var lastVerifyTime = 0L
 
     /**

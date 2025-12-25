@@ -19,8 +19,8 @@ import com.waterfountainmachine.app.utils.InactivityTimer
 import com.waterfountainmachine.app.utils.AppLog
 import com.waterfountainmachine.app.utils.SoundManager
 import com.waterfountainmachine.app.utils.UserErrorMessages
-import com.waterfountainmachine.app.viewmodels.SMSVerifyViewModel
-import com.waterfountainmachine.app.viewmodels.SMSVerifyUiState
+import com.waterfountainmachine.app.features.vending.viewmodels.SMSVerifyViewModel
+import com.waterfountainmachine.app.features.vending.viewmodels.SMSVerifyUiState
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
@@ -46,12 +46,6 @@ class SMSVerifyActivity : AppCompatActivity() {
     
     // Debounce flag for question mark button
     private var isQuestionMarkClickable = true
-    
-    // Flag to prevent box updates during error animation
-    private var isShowingError = false
-    
-    // Runnable references for error restore callbacks
-    private var errorRestoreRunnable: Runnable? = null
     
     // Flag to prevent double verification
     private var isVerifying = false
@@ -153,6 +147,8 @@ class SMSVerifyActivity : AppCompatActivity() {
      * Handle UI state changes from ViewModel
      */
     private fun handleUiState(state: SMSVerifyUiState) {
+        AppLog.d(TAG, "handleUiState: $state")
+        
         when (state) {
             is SMSVerifyUiState.EnteringOtp -> {
                 isVerifying = false
@@ -160,10 +156,11 @@ class SMSVerifyActivity : AppCompatActivity() {
             }
             is SMSVerifyUiState.IncompleteOtp -> {
                 isVerifying = false
-                showIncompleteOtpHint()
+                setLoadingState(false)
+                showIncompleteOtpError()
             }
             is SMSVerifyUiState.Verifying -> {
-                // isVerifying flag already set in verifyAndProceed()
+                // Don't change isVerifying here - already set in verifyAndProceed()
                 setLoadingState(true)
             }
             is SMSVerifyUiState.VerificationSuccess -> {
@@ -172,18 +169,15 @@ class SMSVerifyActivity : AppCompatActivity() {
             }
             is SMSVerifyUiState.IncorrectOtp -> {
                 isVerifying = false
-                // Hide loading spinner and button animations only
-                // Don't re-enable keypad yet - showIncorrectCodeHint will manage it during error animation
-                hideLoadingSpinner()
-                showIncorrectCodeHint(state.attemptsRemaining)
+                setLoadingState(false)
+                showIncorrectOtpError(state.attemptsRemaining)
             }
             is SMSVerifyUiState.Error -> {
                 isVerifying = false
-                // Navigate to error screen for all errors (including too many attempts)
+                setLoadingState(false)
                 navigateToErrorScreen(state.message)
             }
             is SMSVerifyUiState.ResendingOtp -> {
-                // Show resending state if needed
                 AppLog.d(TAG, "Resending OTP...")
             }
             is SMSVerifyUiState.OtpResent -> {
@@ -193,9 +187,6 @@ class SMSVerifyActivity : AppCompatActivity() {
                 showResendError(state.message)
             }
             is SMSVerifyUiState.OtpExpired -> {
-                // Don't show error - just let the timer display handle it
-                // The updateTimerDisplay() function will show the resend button
-                // when timeRemaining reaches 0
                 isVerifying = false
                 setLoadingState(false)
             }
@@ -420,7 +411,7 @@ class SMSVerifyActivity : AppCompatActivity() {
         return bitmap
     }
 
-    private fun setupVerificationUI(isPhoneNumberVisible: Boolean) {
+    private fun setupVerificationUI(@Suppress("UNUSED_PARAMETER") isPhoneNumberVisible: Boolean) {
         // Note: Phone number display logic removed since subtitle text view doesn't exist in layout
         // The layout uses titleText for "Enter verification code" and an info message above
         
@@ -446,9 +437,12 @@ class SMSVerifyActivity : AppCompatActivity() {
             return
         }
         
+        val currentCode = viewModel.otpCode.value
+        AppLog.d(TAG, "verifyAndProceed called - code length: ${currentCode.length}, isVerifying: $isVerifying")
+        
         isVerifying = true
         
-        // Delegate to ViewModel
+        // Delegate to ViewModel (it will check if code is complete)
         viewModel.verifyOtp()
     }
     
@@ -556,44 +550,9 @@ class SMSVerifyActivity : AppCompatActivity() {
         binding.btnClear.alpha = alpha
     }
     
-    // Note: handleVerificationError removed - error handling now in ViewModel via handleUiState
+
     
-    private fun showVerificationError(errorMessage: String = "Incorrect PIN") {
-        // Set all boxes to error state (red borders)
-        setOtpBoxesErrorState()
-        
-        // Smoothly fade out and slide up keypad during error
-        animateKeypadError()
-        
-        lifecycleScope.launch {
-            // Wait for animations
-            delay(600)
-            
-            // Clear the OTP code and boxes
-            viewModel.clearOtp()
-            
-            // Reset button state
-            setLoadingState(false)
-            
-            // Wait before restoring keypad
-            delay(2000)
-            
-            // Smoothly fade in and slide down keypad after error clears
-            delay(200)
-            animateKeypadRestore()
-        }
-    }
-    
-    private fun showErrorAndReturnToMain(errorMessage: String = "Too many failed attempts") {
-        // Set all boxes to error state
-        setOtpBoxesErrorState()
-        
-        // Return to main screen after brief delay
-        lifecycleScope.launch {
-            delay(2000) // Show error message for 2 seconds
-            returnToMainScreen()
-        }
-    }
+
     
     /**
      * Show error message in subtitle
@@ -623,29 +582,7 @@ class SMSVerifyActivity : AppCompatActivity() {
         overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
     }
     
-    private fun animateKeypadError() {
-        // Smoother fade out with gentle scale and translation
-        binding.keypadLayout.animate()
-            .alpha(0.3f)
-            .scaleX(0.96f)
-            .scaleY(0.96f)
-            .translationY(15f)
-            .setDuration(400)
-            .setInterpolator(AccelerateDecelerateInterpolator())
-            .start()
-    }
-    
-    private fun animateKeypadRestore() {
-        // Smoother fade in and restore with spring-like effect
-        binding.keypadLayout.animate()
-            .alpha(1f)
-            .scaleX(1f)
-            .scaleY(1f)
-            .translationY(0f)
-            .setDuration(500)
-            .setInterpolator(AccelerateDecelerateInterpolator())
-            .start()
-    }
+
     
     /**
      * Navigate to vending animation screen after successful OTP verification
@@ -686,7 +623,10 @@ class SMSVerifyActivity : AppCompatActivity() {
         viewModel.addDigit(digit)
         
         // Auto-verify when all 6 digits are entered
-        if (viewModel.otpCode.value.length == MAX_OTP_LENGTH && !isVerifying) {
+        val currentLength = viewModel.otpCode.value.length
+        AppLog.d(TAG, "Added digit: $digit, current length: $currentLength, isVerifying: $isVerifying")
+        
+        if (currentLength == MAX_OTP_LENGTH && !isVerifying) {
             AppLog.d(TAG, "OTP complete, auto-verifying...")
             
             // Cancel any previous auto-verify that might be pending
@@ -695,7 +635,10 @@ class SMSVerifyActivity : AppCompatActivity() {
             // Small delay for better UX (user sees the last digit appear)
             autoVerifyRunnable = Runnable {
                 if (!isVerifying) {
+                    AppLog.d(TAG, "Auto-verify executing now")
                     verifyAndProceed()
+                } else {
+                    AppLog.d(TAG, "Auto-verify skipped - already verifying")
                 }
             }
             binding.otpBox1.postDelayed(autoVerifyRunnable!!, 300)
@@ -718,11 +661,7 @@ class SMSVerifyActivity : AppCompatActivity() {
      * Update OTP display based on ViewModel state
      */
     private fun updateOtpDisplay(code: String) {
-        // Don't update boxes if we're showing an error animation
-        if (isShowingError) {
-            return
-        }
-        updateOtpBoxesWithAnimation()
+        updateOtpBoxes()
         val isComplete = code.length == MAX_OTP_LENGTH
         updateButtonDisabledState(binding.verifyOtpButton, isComplete)
     }
@@ -763,169 +702,87 @@ class SMSVerifyActivity : AppCompatActivity() {
         }
     }
     
+
+    
+
+    
     /**
-     * Update OTP boxes with animation
+     * Show error when user clicks verify with incomplete OTP
+     * Shows empty boxes in red with shake animation
      */
-    private fun updateOtpBoxesWithAnimation() {
+    private fun showIncompleteOtpError() {
+        AppLog.d(TAG, "Incomplete OTP - showing error (${otpCode.length}/${MAX_OTP_LENGTH})")
+        
+        // Play error sound
+        soundManager.playSound(R.raw.error, 0.5f)
+        
         val boxes = getOtpBoxes()
+        val currentLength = otpCode.length
         
-        // Animate the box that just changed
-        val changedIndex = otpCode.length - 1
-        if (changedIndex >= 0 && changedIndex < boxes.size) {
-            val box = boxes[changedIndex]
-            box.text = otpCode[changedIndex].toString()
-            
-            // Scale animation for the new digit
-            box.scaleX = 0.7f
-            box.scaleY = 0.7f
-            box.animate()
-                .scaleX(1f)
-                .scaleY(1f)
-                .setDuration(200)
-                .setInterpolator(AccelerateDecelerateInterpolator())
-                .start()
-        }
-        
-        // Update all boxes
+        // Show each box with appropriate background
         for (i in boxes.indices) {
-            if (i < otpCode.length) {
-                boxes[i].text = otpCode[i].toString()
+            // Cancel any existing animations
+            boxes[i].animate().cancel()
+            boxes[i].translationX = 0f
+            
+            if (i < currentLength) {
+                // Filled boxes - keep normal background
                 boxes[i].setBackgroundResource(R.drawable.otp_box_background)
             } else {
-                boxes[i].text = ""
-                boxes[i].setBackgroundResource(R.drawable.otp_box_background)
+                // Empty boxes - show red error background
+                boxes[i].setBackgroundResource(R.drawable.otp_box_error)
+                
+                // Shake animation for empty boxes only
+                val shake = ObjectAnimator.ofFloat(boxes[i], "translationX", 0f, -12f, 12f, -8f, 8f, -4f, 4f, 0f)
+                shake.duration = 600
+                shake.interpolator = AccelerateDecelerateInterpolator()
+                shake.start()
             }
         }
         
-        // Highlight the next empty box
-        if (otpCode.length < MAX_OTP_LENGTH) {
-            boxes[otpCode.length].setBackgroundResource(R.drawable.otp_box_highlighted)
-        }
-    }
-    
-    /**
-     * Set all boxes to error state (red borders)
-     */
-    private fun setOtpBoxesErrorState() {
-        val boxes = getOtpBoxes()
-        
-        // Shake and turn red
-        for (box in boxes) {
-            box.setBackgroundResource(R.drawable.otp_box_error)
-            
-            // Shake animation
-            val shake = ObjectAnimator.ofFloat(box, "translationX", 0f, -15f, 15f, -10f, 10f, -5f, 5f, 0f)
-            shake.duration = 600
-            shake.interpolator = AccelerateDecelerateInterpolator()
-            shake.start()
-        }
-    }
-    
-    /**
-     * Show hint when user clicks verify with incomplete OTP
-     */
-    private fun showIncompleteOtpHint() {
-        // Cancel any pending error restore callbacks
-        errorRestoreRunnable?.let { binding.otpBox1.removeCallbacks(it) }
-        
-        // Set error flag to prevent box updates during animation
-        isShowingError = true
-        
-        // Turn empty boxes red and pulse the next one
-        if (otpCode.length < MAX_OTP_LENGTH) {
-            val boxes = getOtpBoxes()
-            
-            // First, cancel any existing animations and reset properties to ensure animation works
-            for (i in otpCode.length until boxes.size) {
-                boxes[i].animate().cancel()
-                boxes[i].translationX = 0f
-                boxes[i].scaleX = 1f
-                boxes[i].scaleY = 1f
-                boxes[i].setBackgroundResource(R.drawable.otp_box_background)
-            }
-            
-            // Then set all empty boxes to error state (red border) after a tiny delay
-            boxes[otpCode.length].postDelayed({
-                for (i in otpCode.length until boxes.size) {
-                    boxes[i].setBackgroundResource(R.drawable.otp_box_error)
-                }
-            }, 50)
-            
-            // Pulse the next empty box
-            val emptyBox = boxes[otpCode.length]
-            emptyBox.animate()
-                .scaleX(1.15f)
-                .scaleY(1.15f)
-                .setDuration(200)
-                .withEndAction {
-                    emptyBox.animate()
-                        .scaleX(1f)
-                        .scaleY(1f)
-                        .setDuration(200)
-                        .start()
-                }
-                .start()
-        }
-        
-        // Auto-restore box backgrounds after 2.5s
-        errorRestoreRunnable = Runnable {
-            isShowingError = false
+        // After 1.5 seconds, restore normal backgrounds
+        binding.otpBox1.postDelayed({
             updateOtpBoxes()
-        }
-        binding.otpBox1.postDelayed(errorRestoreRunnable!!, 2500)
+        }, 1500)
     }
     
     /**
-     * Show hint when OTP code is incorrect with remaining attempts
-     * Clears the code and turns empty boxes red simultaneously
+     * Show error when OTP code is incorrect
+     * Clears the code and shows all boxes in red with shake
      */
-    private fun showIncorrectCodeHint(attemptsRemaining: Int) {
-        AppLog.d(TAG, "Showing incorrect code hint. Attempts remaining: $attemptsRemaining")
-        
-        // Cancel any pending error restore callbacks
-        errorRestoreRunnable?.let { binding.otpBox1.removeCallbacks(it) }
-        
-        // Set error flag to prevent box updates
-        isShowingError = true
-        
-        // Disable keypad during error animation
-        setKeypadEnabled(false)
+    private fun showIncorrectOtpError(attemptsRemaining: Int) {
+        AppLog.d(TAG, "Incorrect OTP - showing error (attempts remaining: $attemptsRemaining)")
         
         // Play error sound
         soundManager.playSound(R.raw.error, 0.7f)
         
-        // Clear the OTP code in ViewModel (but don't update display yet)
-        viewModel.clearOtp()
+        // Disable keypad during animation
+        setKeypadEnabled(false)
         
-        // Now set all boxes to error state (shake and turn red)
         val boxes = getOtpBoxes()
         
+        // Show all boxes in red with shake animation
         for (box in boxes) {
-            // Cancel any existing animations and reset position
             box.animate().cancel()
             box.translationX = 0f
-            
-            // Clear the text
             box.text = ""
-            // Set red background
             box.setBackgroundResource(R.drawable.otp_box_error)
             
-            // Shake animation
             val shake = ObjectAnimator.ofFloat(box, "translationX", 0f, -15f, 15f, -10f, 10f, -5f, 5f, 0f)
             shake.duration = 600
             shake.interpolator = AccelerateDecelerateInterpolator()
             shake.start()
         }
         
-        // Auto-restore to normal state after 1.5 seconds
-        errorRestoreRunnable = Runnable {
-            isShowingError = false
+        // Clear the code in ViewModel
+        viewModel.clearOtp()
+        
+        // After animation, restore to normal state
+        binding.otpBox1.postDelayed({
             updateOtpBoxes()
-            updateButtonDisabledState(binding.verifyOtpButton, false)
-            // Re-enable keypad after animation completes
             setKeypadEnabled(true)
-        }
-        binding.otpBox1.postDelayed(errorRestoreRunnable!!, 1500)
+            AppLog.d(TAG, "Error animation complete - ready for input")
+        }, 1000)
     }
     
     /**
@@ -1122,7 +979,6 @@ class SMSVerifyActivity : AppCompatActivity() {
         
         // Clean up pending callbacks
         autoVerifyRunnable?.let { binding.otpBox1.removeCallbacks(it) }
-        errorRestoreRunnable?.let { binding.otpBox1.removeCallbacks(it) }
         
         // Clean up animations
         questionMarkAnimator?.apply {

@@ -149,10 +149,6 @@ class VendingAnimationActivity : AppCompatActivity() {
         dispenseStartTime = System.currentTimeMillis()
         analyticsManager.logDispensingStarted(slot, journeyStartTime)
         
-        // Record dispense attempt in health monitor
-        val app = application as WaterFountainApplication
-        val healthMonitor = app.getHealthMonitor()
-        
         // Initialize sound manager
         soundManager = SoundManager(this)
         soundManager.loadSound(R.raw.fireworks)
@@ -652,9 +648,6 @@ class VendingAnimationActivity : AppCompatActivity() {
     private fun recordSuccessfulVend(slot: Int, dispensingTimeMs: Long) {
         lifecycleScope.launch(Dispatchers.IO) {
             try {
-                // Get slot inventory to retrieve campaign/design attribution
-                val slotInventory = slotInventoryManager.getSlotInventory(slot)
-                
                 // Decrement local inventory
                 slotInventoryManager.decrementInventory(slot)
                 
@@ -683,13 +676,17 @@ class VendingAnimationActivity : AppCompatActivity() {
                     
                     result.fold(
                         onSuccess = { vendResult ->
-                            AppLog.i(TAG, "Vend event recorded: ${vendResult.eventId}, campaign=${vendResult.campaignId}")
+                            AppLog.i(TAG, "Vend event recorded: ${vendResult.eventId}, campaign=${vendResult.campaignId}, advertiser=${vendResult.advertiserId}")
                             
                             // Log analytics with campaign attribution
                             analyticsManager.logVendingCompleted(slot, dispensingTimeMs)
                             if (vendResult.campaignId != null) {
                                 // Log campaign-attributed vend for ROI tracking
-                                analyticsManager.logCampaignVend(vendResult.campaignId, vendResult.canDesignId)
+                                analyticsManager.logCampaignVend(
+                                    vendResult.campaignId, 
+                                    vendResult.canDesignId,
+                                    vendResult.advertiserId
+                                )
                             }
                         },
                         onFailure = { error ->

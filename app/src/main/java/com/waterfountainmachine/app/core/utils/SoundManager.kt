@@ -169,7 +169,7 @@ class SoundManager(private val context: Context) {
                 }
                 
                 // Handle errors
-                setOnErrorListener { mp, what, extra ->
+                setOnErrorListener { _, what, extra ->
                     AppLog.e(TAG, "MediaPlayer error: what=$what, extra=$extra, resourceId=$resourceId")
                     false // Return false to trigger OnCompletionListener
                 }

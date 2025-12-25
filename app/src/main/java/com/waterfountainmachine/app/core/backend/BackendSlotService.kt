@@ -181,13 +181,15 @@ class BackendSlotService private constructor(private val context: Context) : IBa
             val eventId = resultData?.get("eventId") as? String
             val campaignId = resultData?.get("campaignId") as? String
             val canDesignId = resultData?.get("canDesignId") as? String
+            val advertiserId = resultData?.get("advertiserId") as? String
             
-            AppLog.i(TAG, "Vend event recorded: eventId=$eventId, campaign=$campaignId, design=$canDesignId")
+            AppLog.i(TAG, "Vend event recorded: eventId=$eventId, campaign=$campaignId, design=$canDesignId, advertiser=$advertiserId")
             
             Result.success(IBackendSlotService.VendEventResult(
                 eventId = eventId ?: "",
                 campaignId = campaignId,
-                canDesignId = canDesignId
+                canDesignId = canDesignId,
+                advertiserId = advertiserId
             ))
         } catch (e: Exception) {
             AppLog.e(TAG, "Failed to record vend event", e)

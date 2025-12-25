@@ -53,7 +53,7 @@ class HardwareTestingFragment : Fragment() {
         
         // Observe hardware state changes using StateFlow (lifecycle-safe)
         viewLifecycleOwner.lifecycleScope.launch {
-            app.hardwareStateFlow.collect { state ->
+            app.hardwareStateFlow.collect { _ ->
                 updateStatus()
             }
         }

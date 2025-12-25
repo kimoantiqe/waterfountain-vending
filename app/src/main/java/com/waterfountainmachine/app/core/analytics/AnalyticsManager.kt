@@ -26,7 +26,7 @@ import java.util.Locale
  * - Session duration tracking
  * - Error tracking
  */
-class AnalyticsManager private constructor(context: Context) {
+class AnalyticsManager private constructor() {
     
     private val firebaseAnalytics: FirebaseAnalytics = Firebase.analytics
     
@@ -36,9 +36,9 @@ class AnalyticsManager private constructor(context: Context) {
         @Volatile
         private var instance: AnalyticsManager? = null
         
-        fun getInstance(context: Context): AnalyticsManager {
+        fun getInstance(@Suppress("UNUSED_PARAMETER") context: Context): AnalyticsManager {
             return instance ?: synchronized(this) {
-                instance ?: AnalyticsManager(context.applicationContext).also { instance = it }
+                instance ?: AnalyticsManager().also { instance = it }
             }
         }
         
@@ -483,14 +483,17 @@ class AnalyticsManager private constructor(context: Context) {
     /**
      * Track campaign-attributed vend for ROI tracking
      */
-    fun logCampaignVend(campaignId: String, canDesignId: String?) {
+    fun logCampaignVend(campaignId: String, canDesignId: String?, advertiserId: String?) {
         firebaseAnalytics.logEvent("campaign_vend") {
             param("campaign_id", campaignId)
             if (canDesignId != null) {
                 param("can_design_id", canDesignId)
             }
+            if (advertiserId != null) {
+                param("advertiser_id", advertiserId)
+            }
         }
-        AppLog.d(TAG, "Event: campaign_vend (campaign=$campaignId, design=$canDesignId)")
+        AppLog.d(TAG, "Event: campaign_vend (campaign=$campaignId, design=$canDesignId, advertiser=$advertiserId)")
     }
     
     // ==================== USER FLOW & ABANDONMENT ====================
