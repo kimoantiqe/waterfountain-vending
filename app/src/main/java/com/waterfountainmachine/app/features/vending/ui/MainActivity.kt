@@ -29,6 +29,7 @@ import com.waterfountainmachine.app.utils.AnimationUtils
 import com.waterfountainmachine.app.utils.HardwareKeyHandler
 import com.waterfountainmachine.app.utils.SoundManager
 import com.waterfountainmachine.app.analytics.AnalyticsManager
+import com.waterfountainmachine.app.security.SecurityModule
 
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
@@ -70,6 +71,8 @@ class MainActivity : AppCompatActivity() {
         setupAdminGesture()
         
         initializeHardware()
+        
+        // Track app opened (machine_id auto-attached from context)
         analyticsManager.logAppOpened()
         
         // Start screen duration tracking

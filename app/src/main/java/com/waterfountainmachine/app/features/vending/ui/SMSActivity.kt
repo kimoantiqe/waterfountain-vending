@@ -21,6 +21,7 @@ import com.waterfountainmachine.app.config.WaterFountainConfig
 import com.waterfountainmachine.app.features.vending.viewmodels.SMSViewModel
 import com.waterfountainmachine.app.features.vending.viewmodels.SMSUiState
 import com.waterfountainmachine.app.analytics.AnalyticsManager
+import com.waterfountainmachine.app.security.SecurityModule
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import androidx.activity.viewModels
@@ -89,7 +90,8 @@ class SMSActivity : AppCompatActivity() {
         // Initialize inactivity timer FIRST (needed by observers)
         inactivityTimer = InactivityTimer(WaterFountainConfig.INACTIVITY_TIMEOUT_MS) { 
             val screenDurationMs = System.currentTimeMillis() - screenEnterTime
-            analyticsManager.logTimeoutOccurred(SCREEN_NAME, screenDurationMs)
+            val machineId = SecurityModule.getMachineId()
+            analyticsManager.logTimeoutOccurred(SCREEN_NAME, screenDurationMs, machineId)
             returnToMainScreen()
         }
         inactivityTimer.start()
@@ -162,7 +164,8 @@ class SMSActivity : AppCompatActivity() {
             is SMSUiState.RequestingOtp -> {
                 // Show loading state
                 showLoading()
-                analyticsManager.logSmsSendRequested(viewModel.phoneNumber.value)
+                val machineId = SecurityModule.getMachineId()
+                analyticsManager.logSmsSendRequested(viewModel.phoneNumber.value, machineId)
             }
             is SMSUiState.OtpRequestSuccess -> {
                 // Navigate to verification screen
@@ -701,7 +704,8 @@ class SMSActivity : AppCompatActivity() {
         // Track when phone number is completed
         if (currentLength == WaterFountainConfig.MAX_PHONE_LENGTH) {
             val timeToComplete = System.currentTimeMillis() - phoneNumberStartTime
-            analyticsManager.logPhoneNumberCompleted(viewModel.phoneNumber.value, timeToComplete)
+            val machineId = SecurityModule.getMachineId()
+            analyticsManager.logPhoneNumberCompleted(viewModel.phoneNumber.value, timeToComplete, machineId)
         }
     }
 

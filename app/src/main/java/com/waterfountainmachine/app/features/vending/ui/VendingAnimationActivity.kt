@@ -32,6 +32,7 @@ import com.waterfountainmachine.app.WaterFountainApplication
 import com.waterfountainmachine.app.core.slot.SlotInventoryManager
 import com.waterfountainmachine.app.core.backend.IBackendSlotService
 import com.waterfountainmachine.app.di.BackendModule
+import com.waterfountainmachine.app.security.SecurityModule
 import dagger.hilt.android.AndroidEntryPoint
 import nl.dionsegijn.konfetti.core.Party
 import nl.dionsegijn.konfetti.core.Position
@@ -140,7 +141,14 @@ class VendingAnimationActivity : AppCompatActivity() {
             }
         }
         
-        // Track vending started
+        // Get campaign data for this vending session (will be attached to all events)
+        // TODO: Get actual campaign data from intent extras when campaign flow is implemented
+        val campaignId: String? = null // intent.getStringExtra("campaign_id")
+        val advertiserId: String? = null // intent.getStringExtra("advertiser_id")
+        val canDesignId: String? = null // intent.getStringExtra("can_design_id")
+        analyticsManager.setCampaignContext(campaignId, advertiserId, canDesignId)
+        
+        // Track vending started (machine_id and campaign auto-attached)
         vendingStartTime = System.currentTimeMillis()
         analyticsManager.logVendingStarted(slot)
         
@@ -615,15 +623,21 @@ class VendingAnimationActivity : AppCompatActivity() {
     }
 
     private fun returnToMainScreen() {
-        // Track vending completed
+        // Track vending completed (campaign context auto-attached)
         val vendingDuration = System.currentTimeMillis() - vendingStartTime
-        analyticsManager.logVendingCompleted(slot, vendingDuration)
+        analyticsManager.logVendingCompleted(
+            slotNumber = slot,
+            durationMs = vendingDuration
+        )
         
-        // Track journey completed
+        // Track journey completed (includes campaign context for per-campaign analysis)
         val journeyStartTime = WaterFountainApplication.journeyStartTime
         val totalJourneyDurationMs = WaterFountainApplication.getJourneyDuration()
         val dispenseDurationMs = System.currentTimeMillis() - dispenseStartTime
         analyticsManager.logJourneyCompleted(totalJourneyDurationMs, dispenseDurationMs, journeyStartTime)
+        
+        // Clear campaign context after vending session ends
+        analyticsManager.clearCampaignContext()
         
         // Record dispense success in health monitor
         val app = application as WaterFountainApplication
@@ -678,15 +692,24 @@ class VendingAnimationActivity : AppCompatActivity() {
                         onSuccess = { vendResult ->
                             AppLog.i(TAG, "Vend event recorded: ${vendResult.eventId}, campaign=${vendResult.campaignId}, advertiser=${vendResult.advertiserId}")
                             
-                            // Log analytics with campaign attribution
-                            analyticsManager.logVendingCompleted(slot, dispensingTimeMs)
+                            // Update campaign context with backend response (in case it differs)
+                            if (vendResult.campaignId != null) {
+                                analyticsManager.setCampaignContext(
+                                    campaignId = vendResult.campaignId,
+                                    advertiserId = vendResult.advertiserId,
+                                    canDesignId = vendResult.canDesignId
+                                )
+                            }
+                            
+                            // Log analytics (campaign context auto-attached)
+                            analyticsManager.logVendingCompleted(
+                                slotNumber = slot,
+                                durationMs = dispensingTimeMs
+                            )
+                            
                             if (vendResult.campaignId != null) {
                                 // Log campaign-attributed vend for ROI tracking
-                                analyticsManager.logCampaignVend(
-                                    vendResult.campaignId, 
-                                    vendResult.canDesignId,
-                                    vendResult.advertiserId
-                                )
+                                analyticsManager.logCampaignVend(slotNumber = slot)
                             }
                         },
                         onFailure = { error ->
@@ -749,7 +772,7 @@ class VendingAnimationActivity : AppCompatActivity() {
                     AppLog.w(TAG, "Machine ID not found, cannot record vend to backend")
                 }
                 
-                // Log analytics
+                // Log analytics (campaign context auto-attached if vend was campaign-based)
                 analyticsManager.logVendingFailed(slot, errorCode ?: "unknown")
             } catch (e: Exception) {
                 AppLog.e(TAG, "Error recording failed vend", e)

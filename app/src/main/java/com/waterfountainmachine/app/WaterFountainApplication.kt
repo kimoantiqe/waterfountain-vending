@@ -94,6 +94,12 @@ class WaterFountainApplication : Application() {
         
         Firebase.initialize(context = this)
         
+        // Initialize analytics with machine context
+        val machineId = SecurityModule.getMachineId()
+        val analyticsManager = com.waterfountainmachine.app.analytics.AnalyticsManager.getInstance(this)
+        analyticsManager.setMachineContext(machineId)
+        AppLog.i(TAG, "Analytics machine context set: ${machineId?.let { "****${it.takeLast(4)}" } ?: "null"}")
+        
         val appCheckProviderFactory = if (BuildConfig.DEBUG) {
             AppLog.i(TAG, "Firebase App Check: DEBUG Provider")
             AppLog.i(TAG, "Check logcat for debug token and register in Firebase Console")

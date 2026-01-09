@@ -30,6 +30,14 @@ class AnalyticsManager private constructor() {
     
     private val firebaseAnalytics: FirebaseAnalytics = Firebase.analytics
     
+    // Store machine context to attach to all events
+    private var currentMachineId: String? = null
+    
+    // Store campaign context for the current vending session
+    private var currentCampaignId: String? = null
+    private var currentAdvertiserId: String? = null
+    private var currentCanDesignId: String? = null
+    
     companion object {
         private const val TAG = "AnalyticsManager"
         
@@ -91,12 +99,80 @@ class AnalyticsManager private constructor() {
         private const val PARAM_TOTAL_JOURNEY_DURATION_MS = "total_journey_duration_ms"
         private const val PARAM_DISPENSE_DURATION_MS = "dispense_duration_ms"
         private const val PARAM_JOURNEY_START_TIME = "journey_start_time"
+        private const val PARAM_MACHINE_ID = "machine_id"
+        private const val PARAM_CAMPAIGN_ID = "campaign_id"
+        private const val PARAM_ADVERTISER_ID = "advertiser_id"
+        private const val PARAM_CAN_DESIGN_ID = "can_design_id"
     }
     
     init {
         // Enable analytics collection
         firebaseAnalytics.setAnalyticsCollectionEnabled(true)
         AppLog.i(TAG, "AnalyticsManager initialized")
+    }
+    
+    // ==================== DATA VALIDATION ====================
+    
+    /**
+     * Validate machine_id to prevent sending bogus data.
+     * Returns validated machine_id or null if invalid.
+     */
+    private fun validateMachineId(machineId: String?): String? {
+        if (machineId.isNullOrBlank()) {
+            AppLog.w(TAG, "⚠️ machine_id is null or blank - analytics event will show (not set)")
+            return null
+        }
+        
+        // Additional validation: check if it looks like a valid UUID or machine ID format
+        if (machineId.length < 10) {
+            AppLog.w(TAG, "⚠️ machine_id seems too short: '$machineId' - may be invalid")
+            return null
+        }
+        
+        return machineId
+    }
+    
+    /**
+     * Validate slot number to prevent sending invalid slot data.
+     */
+    private fun validateSlotNumber(slotNumber: Int): Int? {
+        if (slotNumber < 1 || slotNumber > 18) {
+            AppLog.e(TAG, "❌ Invalid slot number: $slotNumber (valid range: 1-18)")
+            return null
+        }
+        return slotNumber
+    }
+    
+    /**
+     * Validate campaign/advertiser IDs to prevent sending empty strings.
+     */
+    private fun validateCampaignId(campaignId: String?): String? {
+        if (campaignId.isNullOrBlank()) {
+            return null
+        }
+        return campaignId
+    }
+    
+    private fun validatePhoneNumber(phoneNumber: String?): String? {
+        if (phoneNumber.isNullOrBlank()) {
+            AppLog.w(TAG, "⚠️ phone_number is null or blank")
+            return null
+        }
+        // Check if it's at least 10 digits (US standard)
+        val digitsOnly = phoneNumber.replace(Regex("[^0-9]"), "")
+        if (digitsOnly.length < 10) {
+            AppLog.w(TAG, "⚠️ phone_number too short: '$phoneNumber' (${digitsOnly.length} digits)")
+            return null
+        }
+        return phoneNumber
+    }
+    
+    private fun validateScreenName(screenName: String?): String? {
+        if (screenName.isNullOrBlank()) {
+            AppLog.w(TAG, "⚠️ screen_name is null or blank")
+            return null
+        }
+        return screenName
     }
     
     // ==================== CONTEXT HELPERS ====================
@@ -150,7 +226,48 @@ class AnalyticsManager private constructor() {
             putString("day_of_week", getDayOfWeek())
             putString("app_version", BuildConfig.VERSION_NAME)
             putLong("timestamp", System.currentTimeMillis())
+            
+            // Always attach machine_id if available (critical for multi-machine analytics)
+            currentMachineId?.let { putString(PARAM_MACHINE_ID, it) }
+            
+            // Attach campaign context if in an active vending session
+            currentCampaignId?.let { putString(PARAM_CAMPAIGN_ID, it) }
+            currentAdvertiserId?.let { putString(PARAM_ADVERTISER_ID, it) }
+            currentCanDesignId?.let { putString(PARAM_CAN_DESIGN_ID, it) }
         }
+    }
+    
+    // ==================== CONTEXT MANAGEMENT ====================
+    
+    /**
+     * Set machine context - call this once at app start
+     * This ensures machine_id is attached to ALL events
+     */
+    fun setMachineContext(machineId: String?) {
+        val validMachineId = validateMachineId(machineId)
+        currentMachineId = validMachineId
+        AppLog.i(TAG, "Machine context set: ${validMachineId?.let { "****${it.takeLast(4)}" } ?: "null"}")
+    }
+    
+    /**
+     * Set campaign context for current vending session
+     * Call this when vending starts with campaign data
+     */
+    fun setCampaignContext(campaignId: String?, advertiserId: String?, canDesignId: String?) {
+        currentCampaignId = validateCampaignId(campaignId)
+        currentAdvertiserId = validateCampaignId(advertiserId)
+        currentCanDesignId = validateCampaignId(canDesignId)
+        AppLog.d(TAG, "Campaign context set: campaign=$currentCampaignId, advertiser=$currentAdvertiserId, design=$currentCanDesignId")
+    }
+    
+    /**
+     * Clear campaign context after vending completes or fails
+     */
+    fun clearCampaignContext() {
+        currentCampaignId = null
+        currentAdvertiserId = null
+        currentCanDesignId = null
+        AppLog.d(TAG, "Campaign context cleared")
     }
     
     /**
@@ -179,11 +296,12 @@ class AnalyticsManager private constructor() {
     
     /**
      * Track app opened event
+     * Note: machine_id is now auto-attached via getCommonParameters()
      */
     fun logAppOpened() {
         val params = getCommonParameters()
         firebaseAnalytics.logEvent(EVENT_APP_OPENED, params)
-        AppLog.d(TAG, "Event: app_opened | device=${params.getString("device_model")}, time=${params.getString("time_of_day")}, day=${params.getString("day_of_week")}")
+        AppLog.d(TAG, "Event: app_opened | machine=$currentMachineId, device=${params.getString("device_model")}, time=${params.getString("time_of_day")}, day=${params.getString("day_of_week")}")
     }
     
     /**
@@ -211,13 +329,16 @@ class AnalyticsManager private constructor() {
     
     /**
      * Track phone number completion
+     * Note: machine_id is now auto-attached via getCommonParameters()
      */
     fun logPhoneNumberCompleted(phoneNumber: String, timeToCompleteMs: Long) {
+        val validPhoneNumber = validatePhoneNumber(phoneNumber)
+        
         firebaseAnalytics.logEvent(EVENT_PHONE_NUMBER_COMPLETED) {
             param(PARAM_PHONE_LENGTH, phoneNumber.length.toLong())
             param(PARAM_TIME_TO_COMPLETE, timeToCompleteMs)
         }
-        AppLog.d(TAG, "Event: phone_number_completed (length=${phoneNumber.length}, time=${timeToCompleteMs}ms)")
+        AppLog.d(TAG, "Event: phone_number_completed (machine=$currentMachineId, valid=$validPhoneNumber, length=${phoneNumber.length}, time=${timeToCompleteMs}ms)")
     }
     
     /**
@@ -268,12 +389,15 @@ class AnalyticsManager private constructor() {
     
     /**
      * Track SMS send requested
+     * Note: machine_id is now auto-attached via getCommonParameters()
      */
     fun logSmsSendRequested(phoneNumber: String) {
+        val validPhoneNumber = validatePhoneNumber(phoneNumber)
+        
         firebaseAnalytics.logEvent(EVENT_SMS_SEND_REQUESTED) {
             param(PARAM_PHONE_LENGTH, phoneNumber.length.toLong())
         }
-        AppLog.d(TAG, "Event: sms_send_requested")
+        AppLog.d(TAG, "Event: sms_send_requested (machine=$currentMachineId, valid=$validPhoneNumber)")
     }
     
     /**
@@ -352,21 +476,25 @@ class AnalyticsManager private constructor() {
      * Track FAQ modal opened
      */
     fun logFaqOpened(screenName: String) {
+        val validScreenName = validateScreenName(screenName) ?: return
+        
         firebaseAnalytics.logEvent(EVENT_FAQ_OPENED) {
-            param(PARAM_SCREEN_NAME, screenName)
+            param(PARAM_SCREEN_NAME, validScreenName)
         }
-        AppLog.d(TAG, "Event: faq_opened (screen=$screenName)")
+        AppLog.d(TAG, "Event: faq_opened (screen=$validScreenName)")
     }
     
     /**
      * Track FAQ modal closed
      */
     fun logFaqClosed(screenName: String, durationMs: Long) {
+        val validScreenName = validateScreenName(screenName) ?: return
+        
         firebaseAnalytics.logEvent(EVENT_FAQ_CLOSED) {
-            param(PARAM_SCREEN_NAME, screenName)
+            param(PARAM_SCREEN_NAME, validScreenName)
             param(PARAM_DURATION, durationMs)
         }
-        AppLog.d(TAG, "Event: faq_closed (screen=$screenName, duration=${durationMs}ms)")
+        AppLog.d(TAG, "Event: faq_closed (screen=$validScreenName, duration=${durationMs}ms)")
     }
     
     // ==================== SCREEN DURATION TRACKING ====================
@@ -375,150 +503,188 @@ class AnalyticsManager private constructor() {
      * Track screen entered
      */
     fun logScreenEntered(screenName: String) {
+        val validScreenName = validateScreenName(screenName) ?: return
+        
         firebaseAnalytics.logEvent(EVENT_SCREEN_ENTERED) {
-            param(PARAM_SCREEN_NAME, screenName)
+            param(PARAM_SCREEN_NAME, validScreenName)
         }
-        AppLog.d(TAG, "Event: screen_entered (screen=$screenName)")
+        AppLog.d(TAG, "Event: screen_entered (screen=$validScreenName)")
     }
     
     /**
      * Track screen exited with duration
      */
     fun logScreenExited(screenName: String, durationMs: Long) {
+        val validScreenName = validateScreenName(screenName) ?: return
+        
         firebaseAnalytics.logEvent(EVENT_SCREEN_EXITED) {
-            param(PARAM_SCREEN_NAME, screenName)
+            param(PARAM_SCREEN_NAME, validScreenName)
             param(PARAM_SCREEN_DURATION_MS, durationMs)
         }
-        AppLog.d(TAG, "Event: screen_exited (screen=$screenName, duration=${durationMs}ms)")
+        AppLog.d(TAG, "Event: screen_exited (screen=$validScreenName, duration=${durationMs}ms)")
     }
     
     // ==================== JOURNEY COMPLETION TRACKING ====================
     
     /**
      * Track complete user journey with timing metrics
+     * Now includes campaign context for per-campaign journey time analysis
      */
     fun logJourneyCompleted(
         totalJourneyDurationMs: Long,
         dispenseDurationMs: Long,
         journeyStartTime: Long
     ) {
-        firebaseAnalytics.logEvent(EVENT_JOURNEY_COMPLETED) {
-            param(PARAM_TOTAL_JOURNEY_DURATION_MS, totalJourneyDurationMs)
-            param(PARAM_DISPENSE_DURATION_MS, dispenseDurationMs)
-            param(PARAM_JOURNEY_START_TIME, journeyStartTime)
-        }
-        AppLog.d(TAG, "Event: journey_completed (total=${totalJourneyDurationMs}ms, dispense=${dispenseDurationMs}ms)")
+        val params = getCommonParameters()
+        params.putLong(PARAM_TOTAL_JOURNEY_DURATION_MS, totalJourneyDurationMs)
+        params.putLong(PARAM_DISPENSE_DURATION_MS, dispenseDurationMs)
+        params.putLong(PARAM_JOURNEY_START_TIME, journeyStartTime)
+        
+        firebaseAnalytics.logEvent(EVENT_JOURNEY_COMPLETED, params)
+        AppLog.d(TAG, "Event: journey_completed (machine=$currentMachineId, campaign=$currentCampaignId, total=${totalJourneyDurationMs}ms, dispense=${dispenseDurationMs}ms)")
     }
     
     /**
      * Track dispensing started (water pickup)
+     * Note: machine_id is now auto-attached via getCommonParameters()
      */
     fun logDispensingStarted(slotNumber: Int, journeyStartTime: Long) {
+        val validSlot = validateSlotNumber(slotNumber) ?: return
+        
         val journeyDurationMs = System.currentTimeMillis() - journeyStartTime
-        firebaseAnalytics.logEvent(EVENT_DISPENSING_STARTED) {
-            param(PARAM_SLOT_NUMBER, slotNumber.toLong())
-            param(PARAM_JOURNEY_START_TIME, journeyStartTime)
-            param(PARAM_TOTAL_JOURNEY_DURATION_MS, journeyDurationMs)
-        }
-        AppLog.d(TAG, "Event: dispensing_started (slot=$slotNumber, journey=${journeyDurationMs}ms)")
+        val params = getCommonParameters()
+        params.putLong(PARAM_SLOT_NUMBER, validSlot.toLong())
+        params.putLong(PARAM_JOURNEY_START_TIME, journeyStartTime)
+        params.putLong(PARAM_TOTAL_JOURNEY_DURATION_MS, journeyDurationMs)
+        
+        firebaseAnalytics.logEvent(EVENT_DISPENSING_STARTED, params)
+        AppLog.d(TAG, "Event: dispensing_started (machine=$currentMachineId, campaign=$currentCampaignId, slot=$validSlot, journey=${journeyDurationMs}ms)")
     }
     
     // ==================== VENDING ====================
     
     /**
      * Track vending animation started
+     * Now includes campaign context for campaign conversion rate tracking
+     * Note: machine_id is auto-attached via getCommonParameters()
      */
     fun logVendingStarted(slotNumber: Int) {
-        firebaseAnalytics.logEvent(EVENT_VENDING_STARTED) {
-            param(PARAM_SLOT_NUMBER, slotNumber.toLong())
-        }
-        AppLog.d(TAG, "Event: vending_started (slot=$slotNumber)")
+        val validSlot = validateSlotNumber(slotNumber) ?: return
+        
+        val params = getCommonParameters()
+        params.putLong(PARAM_SLOT_NUMBER, validSlot.toLong())
+        
+        firebaseAnalytics.logEvent(EVENT_VENDING_STARTED, params)
+        AppLog.d(TAG, "Event: vending_started (machine=$currentMachineId, campaign=$currentCampaignId, slot=$validSlot)")
     }
     
     /**
-     * Track vending completed successfully
+     * Track vending completed
+     * Campaign context is auto-attached via getCommonParameters()
      */
     fun logVendingCompleted(slotNumber: Int, durationMs: Long) {
-        firebaseAnalytics.logEvent(EVENT_VENDING_COMPLETED) {
-            param(PARAM_SLOT_NUMBER, slotNumber.toLong())
-            param(PARAM_DURATION, durationMs)
-            param(PARAM_SUCCESS, "true")
-        }
-        AppLog.d(TAG, "Event: vending_completed (slot=$slotNumber, duration=${durationMs}ms)")
+        val validSlot = validateSlotNumber(slotNumber) ?: return
+        
+        val params = getCommonParameters()
+        params.putLong(PARAM_SLOT_NUMBER, validSlot.toLong())
+        params.putLong(PARAM_DURATION, durationMs)
+        params.putString(PARAM_SUCCESS, "true")
+        
+        firebaseAnalytics.logEvent(EVENT_VENDING_COMPLETED, params)
+        AppLog.d(TAG, "Event: vending_completed (machine=$currentMachineId, slot=$validSlot, duration=${durationMs}ms, campaign=$currentCampaignId)")
     }
     
     /**
      * Track vending failed
+     * Campaign context is auto-attached via getCommonParameters() for accurate failure attribution
      */
     fun logVendingFailed(slotNumber: Int, errorMessage: String) {
-        firebaseAnalytics.logEvent(EVENT_VENDING_FAILED) {
-            param(PARAM_SLOT_NUMBER, slotNumber.toLong())
-            param(PARAM_ERROR_MESSAGE, errorMessage)
-            param(PARAM_SUCCESS, "false")
-        }
-        AppLog.d(TAG, "Event: vending_failed (slot=$slotNumber, error=$errorMessage)")
+        val validSlot = validateSlotNumber(slotNumber) ?: return
+        
+        val params = getCommonParameters()
+        params.putLong(PARAM_SLOT_NUMBER, validSlot.toLong())
+        params.putString(PARAM_ERROR_MESSAGE, errorMessage)
+        params.putString(PARAM_SUCCESS, "false")
+        
+        firebaseAnalytics.logEvent(EVENT_VENDING_FAILED, params)
+        AppLog.d(TAG, "Event: vending_failed (machine=$currentMachineId, slot=$validSlot, campaign=$currentCampaignId, error=$errorMessage)")
     }
     
     /**
      * Track slot empty event (inventory reached 0)
+     * Note: machine_id is auto-attached via getCommonParameters()
      */
     fun logSlotEmpty(slotNumber: Int) {
-        firebaseAnalytics.logEvent("slot_empty") {
-            param(PARAM_SLOT_NUMBER, slotNumber.toLong())
-        }
-        AppLog.d(TAG, "Event: slot_empty (slot=$slotNumber)")
+        val validSlot = validateSlotNumber(slotNumber) ?: return
+        
+        val params = getCommonParameters()
+        params.putLong(PARAM_SLOT_NUMBER, validSlot.toLong())
+        
+        firebaseAnalytics.logEvent("slot_empty", params)
+        AppLog.d(TAG, "Event: slot_empty (machine=$currentMachineId, slot=$validSlot)")
     }
     
     /**
      * Track slot low inventory event
+     * Note: machine_id is auto-attached via getCommonParameters()
      */
     fun logSlotInventoryLow(slotNumber: Int, remainingBottles: Int) {
-        firebaseAnalytics.logEvent("slot_inventory_low") {
-            param(PARAM_SLOT_NUMBER, slotNumber.toLong())
-            param("remaining_bottles", remainingBottles.toLong())
-        }
-        AppLog.d(TAG, "Event: slot_inventory_low (slot=$slotNumber, bottles=$remainingBottles)")
+        val validSlot = validateSlotNumber(slotNumber) ?: return
+        
+        val params = getCommonParameters()
+        params.putLong(PARAM_SLOT_NUMBER, validSlot.toLong())
+        params.putLong("remaining_bottles", remainingBottles.toLong())
+        
+        firebaseAnalytics.logEvent("slot_inventory_low", params)
+        AppLog.d(TAG, "Event: slot_inventory_low (machine=$currentMachineId, slot=$validSlot, bottles=$remainingBottles)")
     }
     
     /**
      * Track campaign-attributed vend for ROI tracking
+     * Campaign context is already attached via getCommonParameters()
+     * This event is for additional campaign-specific analytics
      */
-    fun logCampaignVend(campaignId: String, canDesignId: String?, advertiserId: String?) {
-        firebaseAnalytics.logEvent("campaign_vend") {
-            param("campaign_id", campaignId)
-            if (canDesignId != null) {
-                param("can_design_id", canDesignId)
-            }
-            if (advertiserId != null) {
-                param("advertiser_id", advertiserId)
-            }
-        }
-        AppLog.d(TAG, "Event: campaign_vend (campaign=$campaignId, design=$canDesignId, advertiser=$advertiserId)")
+    fun logCampaignVend(slotNumber: Int? = null) {
+        val validSlot = slotNumber?.let { validateSlotNumber(it) }
+        
+        val params = getCommonParameters()
+        validSlot?.let { params.putLong(PARAM_SLOT_NUMBER, it.toLong()) }
+        
+        firebaseAnalytics.logEvent("campaign_vend", params)
+        AppLog.d(TAG, "Event: campaign_vend (machine=$currentMachineId, campaign=$currentCampaignId, slot=$validSlot, design=$currentCanDesignId, advertiser=$currentAdvertiserId)")
     }
     
     // ==================== USER FLOW & ABANDONMENT ====================
     
     /**
      * Track user abandoned the flow with screen duration
+     * Note: machine_id is auto-attached via getCommonParameters()
      */
-    fun logUserAbandoned(screenName: String, screenDurationMs: Long, reason: String = "unknown") {
-        firebaseAnalytics.logEvent(EVENT_USER_ABANDONED) {
-            param(PARAM_SCREEN_NAME, screenName)
-            param(PARAM_SCREEN_DURATION_MS, screenDurationMs)
-            param(PARAM_REASON, reason)
-        }
-        AppLog.d(TAG, "Event: user_abandoned (screen=$screenName, duration=${screenDurationMs}ms, reason=$reason)")
+    fun logUserAbandoned(
+        screenName: String, 
+        screenDurationMs: Long, 
+        reason: String = "unknown"
+    ) {
+        val params = getCommonParameters()
+        params.putString(PARAM_SCREEN_NAME, screenName)
+        params.putLong(PARAM_SCREEN_DURATION_MS, screenDurationMs)
+        params.putString(PARAM_REASON, reason)
+        
+        firebaseAnalytics.logEvent(EVENT_USER_ABANDONED, params)
+        AppLog.d(TAG, "Event: user_abandoned (machine=$currentMachineId, campaign=$currentCampaignId, screen=$screenName, duration=${screenDurationMs}ms, reason=$reason)")
     }
     
     /**
      * Track timeout occurred with screen duration
+     * Note: machine_id is auto-attached via getCommonParameters()
      */
     fun logTimeoutOccurred(screenName: String, screenDurationMs: Long) {
-        firebaseAnalytics.logEvent(EVENT_TIMEOUT_OCCURRED) {
-            param(PARAM_SCREEN_NAME, screenName)
-            param(PARAM_SCREEN_DURATION_MS, screenDurationMs)
-        }
-        AppLog.d(TAG, "Event: timeout_occurred (screen=$screenName, duration=${screenDurationMs}ms)")
+        val params = getCommonParameters()
+        params.putString(PARAM_SCREEN_NAME, screenName)
+        params.putLong(PARAM_SCREEN_DURATION_MS, screenDurationMs)
+        
+        firebaseAnalytics.logEvent(EVENT_TIMEOUT_OCCURRED, params)
+        AppLog.d(TAG, "Event: timeout_occurred (machine=$currentMachineId, campaign=$currentCampaignId, screen=$screenName, duration=${screenDurationMs}ms)")
     }
     
     /**
@@ -536,13 +702,22 @@ class AnalyticsManager private constructor() {
     
     /**
      * Track hardware error
+     * Note: machine_id is auto-attached via getCommonParameters()
      */
-    fun logHardwareError(errorMessage: String, errorCode: String? = null) {
-        firebaseAnalytics.logEvent(EVENT_HARDWARE_ERROR) {
-            param(PARAM_ERROR_MESSAGE, errorMessage)
-            errorCode?.let { param(PARAM_ERROR_CODE, it) }
-        }
-        AppLog.d(TAG, "Event: hardware_error (error=$errorMessage)")
+    fun logHardwareError(
+        errorMessage: String, 
+        errorCode: String? = null,
+        slotNumber: Int? = null
+    ) {
+        val validSlot = slotNumber?.let { validateSlotNumber(it) }
+        
+        val params = getCommonParameters()
+        params.putString(PARAM_ERROR_MESSAGE, errorMessage)
+        errorCode?.let { params.putString(PARAM_ERROR_CODE, it) }
+        validSlot?.let { params.putLong(PARAM_SLOT_NUMBER, it.toLong()) }
+        
+        firebaseAnalytics.logEvent(EVENT_HARDWARE_ERROR, params)
+        AppLog.d(TAG, "Event: hardware_error (machine=$currentMachineId, slot=$validSlot, error=$errorMessage, code=$errorCode)")
     }
     
     // ==================== SCREEN TRACKING ====================
