@@ -90,8 +90,7 @@ class SMSActivity : AppCompatActivity() {
         // Initialize inactivity timer FIRST (needed by observers)
         inactivityTimer = InactivityTimer(WaterFountainConfig.INACTIVITY_TIMEOUT_MS) { 
             val screenDurationMs = System.currentTimeMillis() - screenEnterTime
-            val machineId = SecurityModule.getMachineId()
-            analyticsManager.logTimeoutOccurred(SCREEN_NAME, screenDurationMs, machineId)
+            analyticsManager.logTimeoutOccurred(SCREEN_NAME, screenDurationMs) // machine_id auto-attached
             returnToMainScreen()
         }
         inactivityTimer.start()
@@ -164,8 +163,7 @@ class SMSActivity : AppCompatActivity() {
             is SMSUiState.RequestingOtp -> {
                 // Show loading state
                 showLoading()
-                val machineId = SecurityModule.getMachineId()
-                analyticsManager.logSmsSendRequested(viewModel.phoneNumber.value, machineId)
+                analyticsManager.logSmsSendRequested(viewModel.phoneNumber.value) // machine_id auto-attached
             }
             is SMSUiState.OtpRequestSuccess -> {
                 // Navigate to verification screen
@@ -704,8 +702,7 @@ class SMSActivity : AppCompatActivity() {
         // Track when phone number is completed
         if (currentLength == WaterFountainConfig.MAX_PHONE_LENGTH) {
             val timeToComplete = System.currentTimeMillis() - phoneNumberStartTime
-            val machineId = SecurityModule.getMachineId()
-            analyticsManager.logPhoneNumberCompleted(viewModel.phoneNumber.value, timeToComplete, machineId)
+            analyticsManager.logPhoneNumberCompleted(viewModel.phoneNumber.value, timeToComplete) // machine_id auto-attached
         }
     }
 

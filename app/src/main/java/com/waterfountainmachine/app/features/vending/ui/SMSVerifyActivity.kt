@@ -54,6 +54,10 @@ class SMSVerifyActivity : AppCompatActivity() {
     // Flag to prevent box updates during error animation
     private var isShowingError = false
     
+    // QR code cache (simple in-memory cache to prevent memory leaks)
+    private var cachedQRCode: android.graphics.Bitmap? = null
+    private var cachedQRCodeText: String? = null
+    
     companion object {
         private const val TAG = "SMSVerifyActivity"
         private const val MAX_OTP_LENGTH = 6
@@ -421,9 +425,23 @@ class SMSVerifyActivity : AppCompatActivity() {
     }
 
     private fun showQrCodeModal() {
-        // Generate QR code for https://www.waterfountain.io
+        // Generate QR code for https://www.waterfountain.io with caching
         try {
-            val qrBitmap = generateQRCode("https://www.waterfountain.io", 400, 400)
+            val url = "https://www.waterfountain.io"
+            
+            // Check cache first
+            val qrBitmap = if (cachedQRCodeText == url && cachedQRCode != null) {
+                AppLog.d(TAG, "Using cached QR code")
+                cachedQRCode!!
+            } else {
+                AppLog.d(TAG, "Generating new QR code")
+                val newBitmap = generateQRCode(url, 400, 400)
+                // Cache the result
+                cachedQRCode = newBitmap
+                cachedQRCodeText = url
+                newBitmap
+            }
+            
             binding.qrCodeImage.setImageBitmap(qrBitmap)
         } catch (e: Exception) {
             AppLog.e(TAG, "Error generating QR code", e)
@@ -1045,6 +1063,11 @@ class SMSVerifyActivity : AppCompatActivity() {
         
         // Clean up sound manager
         soundManager.release()
+        
+        // Clean up QR code cache bitmap
+        cachedQRCode?.recycle()
+        cachedQRCode = null
+        cachedQRCodeText = null
         
         // Clean up hardware resources
         if (::waterFountainManager.isInitialized) {

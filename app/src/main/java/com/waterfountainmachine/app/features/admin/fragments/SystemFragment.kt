@@ -92,7 +92,7 @@ class SystemFragment : Fragment() {
     }
     
     private fun loadCurrentSettings() {
-        val prefs = requireContext().getSharedPreferences("system_settings", 0)
+        val prefs = com.waterfountainmachine.app.utils.SecurePreferences.getSystemSettings(requireContext())
         
         // Load toggle states WITHOUT triggering listeners
         binding.kioskModeToggle.isChecked = prefs.getBoolean("kiosk_mode", true)
@@ -160,7 +160,7 @@ class SystemFragment : Fragment() {
     private fun updateKioskMode(enabled: Boolean) {
         lifecycleScope.launch {
             try {
-                requireContext().getSharedPreferences("system_settings", 0)
+                com.waterfountainmachine.app.utils.SecurePreferences.getSystemSettings(requireContext())
                     .edit()
                     .putBoolean("kiosk_mode", enabled)
                     .apply()
@@ -279,7 +279,7 @@ class SystemFragment : Fragment() {
     private fun updateDemoMode(enabled: Boolean) {
         lifecycleScope.launch {
             try {
-                requireContext().getSharedPreferences("system_settings", 0)
+                com.waterfountainmachine.app.utils.SecurePreferences.getSystemSettings(requireContext())
                     .edit()
                     .putBoolean("demo_mode", enabled)
                     .apply()
@@ -297,7 +297,7 @@ class SystemFragment : Fragment() {
     private fun updateDebugMode(enabled: Boolean) {
         lifecycleScope.launch {
             try {
-                requireContext().getSharedPreferences("system_settings", 0)
+                com.waterfountainmachine.app.utils.SecurePreferences.getSystemSettings(requireContext())
                     .edit()
                     .putBoolean("debug_mode", enabled)
                     .apply()
@@ -338,7 +338,7 @@ class SystemFragment : Fragment() {
     private fun updateAnalyticsDebugMode(enabled: Boolean) {
         lifecycleScope.launch {
             try {
-                requireContext().getSharedPreferences("system_settings", 0)
+                com.waterfountainmachine.app.utils.SecurePreferences.getSystemSettings(requireContext())
                     .edit()
                     .putBoolean("analytics_debug_mode", enabled)
                     .apply()
@@ -404,7 +404,7 @@ class SystemFragment : Fragment() {
     private fun updateHardwareMode(enabled: Boolean) {
         lifecycleScope.launch {
             try {
-                requireContext().getSharedPreferences("system_settings", 0)
+                com.waterfountainmachine.app.utils.SecurePreferences.getSystemSettings(requireContext())
                     .edit()
                     .putBoolean("use_real_serial", enabled)
                     .apply()
@@ -423,7 +423,7 @@ class SystemFragment : Fragment() {
     private fun toggleMaintenanceMode(enabled: Boolean) {
         lifecycleScope.launch {
             try {
-                requireContext().getSharedPreferences("system_settings", 0)
+                com.waterfountainmachine.app.utils.SecurePreferences.getSystemSettings(requireContext())
                     .edit()
                     .putBoolean("maintenance_mode", enabled)
                     .putLong("maintenance_mode_timestamp", System.currentTimeMillis())

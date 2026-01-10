@@ -115,7 +115,7 @@ class SMSViewModel @Inject constructor(
      * Get masked phone number for display
      * Format: (***) ***-7890
      */
-    private fun getMaskedPhoneNumber(): String {
+    internal fun getMaskedPhoneNumber(): String {
         val phone = _phoneNumber.value
         return when {
             phone.length < WaterFountainConfig.PHONE_MASK_MIN_LENGTH -> "*".repeat(phone.length)

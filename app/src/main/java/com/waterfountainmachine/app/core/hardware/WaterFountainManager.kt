@@ -137,16 +137,6 @@ class WaterFountainManager private constructor(
     fun isReady(): Boolean = isInitialized && (sdk?.isReady() == true)
     
     /**
-     * Get current active water slot/lane
-     * HARDCODED TO SLOT 1 FOR TESTING
-     */
-    fun getCurrentSlot(): Int {
-        AppLog.d(TAG, "getCurrentSlot() - HARDCODED to slot 1")
-        return 15  // Hardcoded to slot 1 for testing
-        // return laneManager.getNextLane()  // Original implementation
-    }
-    
-    /**
      * Get comprehensive lane status report for diagnostics
      */
     fun getLaneStatusReport(): LaneStatusReport = laneManager.getLaneStatusReport()

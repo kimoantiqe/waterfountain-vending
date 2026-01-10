@@ -94,6 +94,9 @@ class WaterFountainApplication : Application() {
         
         Firebase.initialize(context = this)
         
+        // Initialize SecurityModule FIRST before using getMachineId()
+        initializeSecurityModule()
+        
         // Initialize analytics with machine context
         val machineId = SecurityModule.getMachineId()
         val analyticsManager = com.waterfountainmachine.app.analytics.AnalyticsManager.getInstance(this)
@@ -117,7 +120,6 @@ class WaterFountainApplication : Application() {
             AppLog.i(TAG, "Running in DEVELOPMENT environment")
         }
         
-        initializeSecurityModule()
         initializeCrashlytics()
         initializeAnalytics()
         initializeAuthModule()
