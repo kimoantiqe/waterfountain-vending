@@ -115,8 +115,8 @@ class WaterFountainConfig private constructor(context: Context) {
         const val COLOR_DARK_GRAY = 0xFF555555.toInt()
         
         // Slot Configuration
-        const val MAX_CANS_PER_SLOT = 5
-        const val DEFAULT_SLOT_CAPACITY = 7
+        const val MAX_CANS_PER_SLOT = 4
+        const val DEFAULT_SLOT_CAPACITY = 4
         const val TOTAL_SLOTS = 48 // 6 rows × 8 columns
         const val TOTAL_ROWS = 6
         const val TOTAL_COLUMNS = 8

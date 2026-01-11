@@ -197,6 +197,11 @@ class SMSVerifyActivity : AppCompatActivity() {
                 isVerifying = false
                 setLoadingState(false)
             }
+            is SMSVerifyUiState.DailyLimitReached -> {
+                isVerifying = false
+                setLoadingState(false)
+                navigateToErrorScreen("You have reached your daily vending limit. Please try again tomorrow.")
+            }
         }
     }
 
@@ -1079,6 +1084,8 @@ class SMSVerifyActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        // Re-apply immersive mode in case user swiped to reveal nav bar
+        com.waterfountainmachine.app.utils.ImmersiveModeHelper.applyImmersiveModeFromSettings(this)
         FullScreenUtils.reapplyFullScreen(window, binding.root)
         inactivityTimer.reset()
     }

@@ -417,6 +417,15 @@ class MainActivity : AppCompatActivity() {
         AppLog.d(TAG, "MainActivity stopped - animations paused")
     }
     
+    override fun onResume() {
+        super.onResume()
+        
+        // Re-apply immersive mode in case user swiped to reveal nav bar
+        com.waterfountainmachine.app.utils.ImmersiveModeHelper.applyImmersiveModeFromSettings(this)
+        
+        AppLog.d(TAG, "MainActivity resumed - immersive mode reapplied")
+    }
+    
     override fun onStart() {
         super.onStart()
         

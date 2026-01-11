@@ -80,6 +80,11 @@ class SystemFragment : Fragment() {
             simulateCrashForTesting()
         }
         
+        // Open Android Settings button
+        binding.openAndroidSettingsButton.setOnClickListener {
+            openAndroidSettings()
+        }
+        
         // Change Admin PIN button
         binding.changeAdminPinButton.setOnClickListener {
             showChangePinDialog()
@@ -111,6 +116,7 @@ class SystemFragment : Fragment() {
         binding.analyticsDebugToggle.isChecked = prefs.getBoolean("analytics_debug_mode", false)
         binding.maintenanceModeToggle.isChecked = prefs.getBoolean("maintenance_mode", false)
         binding.hardwareModeToggle.isChecked = prefs.getBoolean("use_real_serial", false)
+        binding.hideNavBarToggle.isChecked = prefs.getBoolean("hide_navigation_bar", true)
         
         // NOW set up listeners AFTER loading initial states
         // This prevents the restart dialog from appearing when entering the screen
@@ -154,6 +160,11 @@ class SystemFragment : Fragment() {
         // Analytics debug mode toggle
         binding.analyticsDebugToggle.setOnCheckedChangeListener { _, isChecked ->
             updateAnalyticsDebugMode(isChecked)
+        }
+        
+        // Hide navigation bar toggle
+        binding.hideNavBarToggle.setOnCheckedChangeListener { _, isChecked ->
+            updateHideNavigationBar(isChecked)
         }
     }
     
@@ -290,6 +301,31 @@ class SystemFragment : Fragment() {
             } catch (e: Exception) {
                 AppLog.e(TAG, "Error updating demo mode", e)
                 binding.systemStatusText.text = "Error updating demo mode: ${e.message}"
+            }
+        }
+    }
+    
+    private fun updateHideNavigationBar(enabled: Boolean) {
+        lifecycleScope.launch {
+            try {
+                com.waterfountainmachine.app.utils.SecurePreferences.getSystemSettings(requireContext())
+                    .edit()
+                    .putBoolean("hide_navigation_bar", enabled)
+                    .apply()
+                
+                // Apply immediately to current activity
+                if (enabled) {
+                    com.waterfountainmachine.app.utils.ImmersiveModeHelper.enableImmersiveMode(requireActivity())
+                } else {
+                    com.waterfountainmachine.app.utils.ImmersiveModeHelper.disableImmersiveMode(requireActivity())
+                }
+                
+                binding.systemStatusText.text = "Navigation bar ${if (enabled) "hidden" else "shown"}"
+                AdminDebugConfig.logAdminInfo(requireContext(), TAG, "Hide navigation bar ${if (enabled) "enabled" else "disabled"}")
+                
+            } catch (e: Exception) {
+                AppLog.e(TAG, "Error updating hide navigation bar", e)
+                binding.systemStatusText.text = "Error updating hide navigation bar: ${e.message}"
             }
         }
     }
@@ -712,6 +748,30 @@ class SystemFragment : Fragment() {
         }
         
         dialog.show()
+    }
+    
+    private fun openAndroidSettings() {
+        try {
+            AppLog.i(TAG, "Opening Android Settings")
+            AdminDebugConfig.logAdminInfo(requireContext(), TAG, "Opening Android Settings")
+            
+            val intent = Intent(android.provider.Settings.ACTION_SETTINGS)
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            
+            startActivity(intent)
+            
+            binding.systemStatusText.text = "Opened Android Settings"
+            
+        } catch (e: Exception) {
+            AppLog.e(TAG, "Error opening Android Settings", e)
+            binding.systemStatusText.text = "Error opening Android Settings: ${e.message}"
+            
+            androidx.appcompat.app.AlertDialog.Builder(requireContext())
+                .setTitle("Error")
+                .setMessage("Failed to open Android Settings: ${e.message}")
+                .setPositiveButton("OK", null)
+                .show()
+        }
     }
 
     override fun onDestroyView() {

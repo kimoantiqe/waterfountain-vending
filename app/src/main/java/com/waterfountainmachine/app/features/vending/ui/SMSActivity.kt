@@ -997,6 +997,8 @@ class SMSActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        // Re-apply immersive mode in case user swiped to reveal nav bar
+        com.waterfountainmachine.app.utils.ImmersiveModeHelper.applyImmersiveModeFromSettings(this)
         FullScreenUtils.reapplyFullScreen(window, binding.root)
         inactivityTimer.reset()
     }

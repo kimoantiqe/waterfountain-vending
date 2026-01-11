@@ -141,6 +141,14 @@ class SMSVerifyViewModel @Inject constructor(
                 result.onSuccess { response ->
                     AppLog.i(TAG, "✅ OTP verification successful: ${response.message}")
                     _failedAttempts.value = 0
+                    
+                    // Check if user has reached daily vend limit
+                    if (response.vendsRemainingToday <= 0) {
+                        AppLog.w(TAG, "Daily vend limit reached (${response.vendsUsedToday}/${response.dailyVendLimit})")
+                        _uiState.value = SMSVerifyUiState.DailyLimitReached
+                        return@onSuccess
+                    }
+                    
                     _uiState.value = SMSVerifyUiState.VerificationSuccess
                 }.onFailure { error ->
                     // Log technical error details for admin review
@@ -285,4 +293,5 @@ sealed class SMSVerifyUiState {
     data object OtpResent : SMSVerifyUiState()
     data class ResendError(val message: String) : SMSVerifyUiState()
     data object OtpExpired : SMSVerifyUiState()
+    data object DailyLimitReached : SMSVerifyUiState()
 }

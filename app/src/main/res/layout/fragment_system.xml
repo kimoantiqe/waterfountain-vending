@@ -119,6 +119,44 @@
 
                 </LinearLayout>
 
+                <!-- Hide Navigation Bar Toggle -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:layout_marginBottom="12dp">
+                    
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Hide Navigation Bar"
+                            android:textColor="@color/white_70"
+                            android:textSize="14sp" />
+
+                        <androidx.appcompat.widget.SwitchCompat
+                            android:id="@+id/hideNavBarToggle"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content" />
+
+                    </LinearLayout>
+                    
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="When ON: Hides Android navigation bar in fullscreen mode\nWhen OFF: Shows navigation bar (useful for development)"
+                        android:textColor="@color/white_50"
+                        android:textSize="11sp"
+                        android:layout_marginTop="4dp" />
+
+                </LinearLayout>
+
                 <!-- API Mode Toggle for SMS Authentication -->
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -424,6 +462,16 @@
                     android:text="🧪 Test Crash (Crashlytics)"
                     android:textColor="@color/white"
                     android:backgroundTint="#FF6B35"
+                    android:layout_marginBottom="12dp"
+                    style="@style/AdminButtonStyle" />
+
+                <!-- Open Android Settings Button -->
+                <Button
+                    android:id="@+id/openAndroidSettingsButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="⚙️ Open Android Settings"
+                    android:textColor="@color/white"
                     style="@style/AdminButtonStyle" />
 
             </LinearLayout>

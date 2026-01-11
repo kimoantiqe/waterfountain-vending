@@ -248,6 +248,12 @@ class VendingAnimationActivity : AppCompatActivity() {
     private fun setupFullscreen() {
         FullScreenUtils.setupFullScreen(window, window.decorView)
     }
+    
+    override fun onResume() {
+        super.onResume()
+        // Re-apply immersive mode in case user swiped to reveal nav bar
+        com.waterfountainmachine.app.utils.ImmersiveModeHelper.applyImmersiveModeFromSettings(this)
+    }
 
     private fun startRingAnimation() {
         // Use coroutines for sequential animations instead of Handler chains
@@ -662,6 +668,16 @@ class VendingAnimationActivity : AppCompatActivity() {
     private fun recordSuccessfulVend(slot: Int, dispensingTimeMs: Long) {
         lifecycleScope.launch(Dispatchers.IO) {
             try {
+                // Record dispense for health metrics (no extra API calls)
+                try {
+                    (application as? WaterFountainApplication)?.getHealthMonitor()?.recordDispenseAttempt(
+                        success = true,
+                        errorCode = null
+                    )
+                } catch (e: Exception) {
+                    AppLog.w(TAG, "Failed to record dispense to health monitor", e)
+                }
+                
                 // Decrement local inventory
                 slotInventoryManager.decrementInventory(slot)
                 
@@ -744,6 +760,16 @@ class VendingAnimationActivity : AppCompatActivity() {
     private fun recordFailedVend(slot: Int, errorCode: String?) {
         lifecycleScope.launch(Dispatchers.IO) {
             try {
+                // Record dispense failure for health metrics (no extra API calls)
+                try {
+                    (application as? WaterFountainApplication)?.getHealthMonitor()?.recordDispenseAttempt(
+                        success = false,
+                        errorCode = errorCode
+                    )
+                } catch (e: Exception) {
+                    AppLog.w(TAG, "Failed to record dispense to health monitor", e)
+                }
+                
                 // Get machine ID from certificate
                 val machineId = MachineIdProvider.getMachineId(this@VendingAnimationActivity)
                 
