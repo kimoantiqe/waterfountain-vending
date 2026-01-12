@@ -164,6 +164,15 @@ class LaneManager private constructor(private val context: Context) {
         }
         
         AppLog.i(TAG, "Lane $lane success count: ${getLaneSuccessCount(lane)}")
+        
+        // Move to next lane in rotation after successful dispense
+        val nextLane = findNextAvailableLane(lane)
+        if (nextLane != lane) {
+            AppLog.i(TAG, "Advancing to next lane: $nextLane")
+            setCurrentLane(nextLane)
+        } else {
+            AppLog.w(TAG, "No other lanes available, staying on lane $lane")
+        }
     }
     
     /**
