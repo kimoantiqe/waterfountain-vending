@@ -148,9 +148,8 @@ class BackendSlotService private constructor(private val context: Context) : IBa
         dispenseDurationMs: Long?
     ): Result<IBackendSlotService.VendEventResult> {
         return try {
-            AppLog.d(TAG, "Recording vend event: machine=$machineId, slot=$slot, success=$success")
+            AppLog.i(TAG, "🟢 Recording vend: machine=$machineId, slot=$slot, success=$success")
             
-            // Call backend with retry logic
             val result = retryOperation(
                 operation = {
                     val payload = JSONObject().apply {
@@ -168,37 +167,38 @@ class BackendSlotService private constructor(private val context: Context) : IBa
                         payload = payload
                     )
                     
-                    functions
-                        .getHttpsCallable("recordVendWithSlot")
+                    functions.getHttpsCallable("recordVendWithSlot")
                         .call(authenticatedRequest.toMap())
                         .await()
                 },
                 operationName = "recordVendWithSlot"
             )
             
-            // Parse response
             val resultData = result.data as? Map<*, *>
-            val eventId = resultData?.get("eventId") as? String
-            val campaignId = resultData?.get("campaignId") as? String
-            val canDesignId = resultData?.get("canDesignId") as? String
-            val advertiserId = resultData?.get("advertiserId") as? String
-            
-            AppLog.i(TAG, "Vend event recorded: eventId=$eventId, campaign=$campaignId, design=$canDesignId, advertiser=$advertiserId")
-            
             Result.success(IBackendSlotService.VendEventResult(
-                eventId = eventId ?: "",
-                campaignId = campaignId,
-                canDesignId = canDesignId,
-                advertiserId = advertiserId
+                eventId = resultData?.get("eventId") as? String ?: "",
+                campaignId = resultData?.get("campaignId") as? String,
+                canDesignId = resultData?.get("canDesignId") as? String,
+                advertiserId = resultData?.get("advertiserId") as? String
             ))
+        } catch (e: com.google.firebase.functions.FirebaseFunctionsException) {
+            when (e.code) {
+                com.google.firebase.functions.FirebaseFunctionsException.Code.RESOURCE_EXHAUSTED -> {
+                    AppLog.w(TAG, "Daily limit reached")
+                    Result.failure(DailyLimitReachedException(e.message ?: "Daily limit reached"))
+                }
+                else -> {
+                    AppLog.e(TAG, "Firebase error: ${e.code}", e)
+                    Result.failure(e)
+                }
+            }
         } catch (e: Exception) {
-            AppLog.e(TAG, "Failed to record vend event", e)
+            AppLog.e(TAG, "Failed to record vend", e)
             Result.failure(e)
         }
     }
     
-    // Note: Machines can only READ inventory and RECORD vends
-    // Only admin can UPDATE inventory via admin panel
+    class DailyLimitReachedException(message: String) : Exception(message)
     
     /**
      * Get slot inventory from backend

@@ -21,6 +21,16 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 /**
+ * Interface for Machine Health Monitor
+ * Allows polymorphic behavior between real and mock implementations
+ */
+interface IMachineHealthMonitor {
+    fun start(machineId: String)
+    fun stop()
+    fun recordDispense(slotNumber: Int, success: Boolean, errorCode: String? = null)
+}
+
+/**
  * Monitors machine health and sends heartbeat data via backend functions.
  * Tracks uptime, dispense metrics, and operational status.
  * 
@@ -29,7 +39,7 @@ import org.json.JSONObject
  * 
  * Implementation: Uses coroutines for periodic heartbeats instead of Handler
  */
-class MachineHealthMonitor private constructor(private val context: Context) {
+class MachineHealthMonitor private constructor(private val context: Context) : IMachineHealthMonitor {
     
     private val functions: FirebaseFunctions = Firebase.functions
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
@@ -47,7 +57,7 @@ class MachineHealthMonitor private constructor(private val context: Context) {
     companion object {
         private const val TAG = "MachineHealthMonitor"
         private const val COLLECTION_MACHINE_HEALTH = "machineHealth"
-        private const val HEARTBEAT_INTERVAL_MS = 60 * 60 * 1000L // 1 hour
+        private const val HEARTBEAT_INTERVAL_MS = 15 * 60 * 1000L // 15 minutes
         
         @Volatile
         private var instance: MachineHealthMonitor? = null
@@ -62,7 +72,7 @@ class MachineHealthMonitor private constructor(private val context: Context) {
     /**
      * Start the health monitor
      */
-    fun start(machineId: String) {
+    override fun start(machineId: String) {
         if (isRunning) {
             AppLog.w(TAG, "Health monitor already running")
             return
@@ -90,7 +100,7 @@ class MachineHealthMonitor private constructor(private val context: Context) {
     /**
      * Stop the health monitor
      */
-    fun stop() {
+    override fun stop() {
         if (!isRunning) {
             return
         }
@@ -119,7 +129,7 @@ class MachineHealthMonitor private constructor(private val context: Context) {
     /**
      * Record a dispense attempt
      */
-    fun recordDispenseAttempt(success: Boolean, errorCode: String? = null) {
+    override fun recordDispense(slotNumber: Int, success: Boolean, errorCode: String?) {
         totalDispensesToday++
         if (success) {
             successfulDispensesToday++
@@ -128,7 +138,7 @@ class MachineHealthMonitor private constructor(private val context: Context) {
             lastErrorCode = errorCode
         }
         
-        AppLog.d(TAG, "Dispense recorded: success=$success, total=$totalDispensesToday, successful=$successfulDispensesToday, failed=$failedDispensesToday")
+        AppLog.d(TAG, "Dispense recorded: slot=$slotNumber, success=$success, total=$totalDispensesToday, successful=$successfulDispensesToday, failed=$failedDispensesToday")
     }
     
     /**

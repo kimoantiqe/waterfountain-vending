@@ -59,6 +59,10 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
         
+        // Set volume control to media stream for proper audio routing
+        @Suppress("DEPRECATION")
+        volumeControlStream = android.media.AudioManager.STREAM_MUSIC
+        
         AppLog.i(TAG, "MainActivity created successfully")
 
         setupKioskMode()

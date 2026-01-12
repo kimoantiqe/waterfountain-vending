@@ -234,8 +234,14 @@ class RealAuthenticationRepository(
             FirebaseFunctionsException.Code.ALREADY_EXISTS ->
                 AuthenticationException.InvalidOtpError("OTP already used: ${e.message}")
             
-            FirebaseFunctionsException.Code.RESOURCE_EXHAUSTED ->
-                AuthenticationException.RateLimitError("Rate limit exceeded: ${e.message}")
+            FirebaseFunctionsException.Code.RESOURCE_EXHAUSTED -> {
+                // Check if this is daily limit vs rate limit
+                if (e.message?.contains("daily", ignoreCase = true) == true) {
+                    AuthenticationException.DailyLimitError(e.message ?: "Daily vending limit reached")
+                } else {
+                    AuthenticationException.RateLimitError(e.message ?: "Rate limit exceeded")
+                }
+            }
             
             FirebaseFunctionsException.Code.DEADLINE_EXCEEDED ->
                 AuthenticationException.InvalidOtpError("Request timeout: ${e.message}")

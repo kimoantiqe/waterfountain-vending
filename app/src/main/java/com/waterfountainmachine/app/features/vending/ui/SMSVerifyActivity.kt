@@ -76,6 +76,10 @@ class SMSVerifyActivity : AppCompatActivity() {
         
         binding = ActivitySmsVerifyBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        
+        // Set volume control to media stream for proper audio routing
+        @Suppress("DEPRECATION")
+        volumeControlStream = android.media.AudioManager.STREAM_MUSIC
 
         // Get phone number and visibility state from intent
         val phoneNumber = intent.getStringExtra(EXTRA_PHONE_NUMBER) ?: ""

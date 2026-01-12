@@ -2,6 +2,7 @@ package com.waterfountainmachine.app.features.vending.viewmodels
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.waterfountainmachine.app.auth.AuthenticationException
 import com.waterfountainmachine.app.auth.IAuthenticationRepository
 import com.waterfountainmachine.app.config.WaterFountainConfig
 import com.waterfountainmachine.app.utils.AppLog
@@ -177,26 +178,18 @@ class SMSViewModel @Inject constructor(
                     )
                 } else {
                     val error = result.exceptionOrNull()
-                    // Log technical error details for admin review
                     AppLog.e(TAG, "OTP request failed: ${error?.message}", error)
                     
-                    // Categorize error and show user-friendly message
-                    when {
-                        error?.message?.contains("daily limit", ignoreCase = true) == true -> {
+                    // Show appropriate error based on exception type
+                    when (error) {
+                        is AuthenticationException.DailyLimitError -> {
                             AppLog.w(TAG, "Daily limit reached for phone: ${getMaskedPhoneNumber()}")
                             _uiState.value = SMSUiState.DailyLimitReached
-                            return@launch
                         }
-                        error?.message?.contains("network", ignoreCase = true) == true -> {
-                            AppLog.w(TAG, "Network error during OTP request")
-                            _uiState.value = SMSUiState.Error(UserErrorMessages.NETWORK_ERROR)
-                        }
-                        error?.message?.contains("timeout", ignoreCase = true) == true -> {
-                            AppLog.w(TAG, "Request timeout during OTP request")
+                        is AuthenticationException.NetworkError -> {
                             _uiState.value = SMSUiState.Error(UserErrorMessages.NETWORK_ERROR)
                         }
                         else -> {
-                            AppLog.e(TAG, "Unexpected OTP request error: ${error?.javaClass?.simpleName}")
                             _uiState.value = SMSUiState.Error(UserErrorMessages.GENERIC_ERROR)
                         }
                     }

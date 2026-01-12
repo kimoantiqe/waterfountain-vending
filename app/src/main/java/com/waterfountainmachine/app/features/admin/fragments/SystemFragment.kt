@@ -104,11 +104,15 @@ class SystemFragment : Fragment() {
         
         // Load API mode (default to mock mode for safety)
         val useMockMode = AuthModule.loadApiModePreference(requireContext())
-        binding.apiModeToggle.isChecked = !useMockMode // Toggle shows "Use Real API"
+        binding.apiModeToggle.isChecked = !useMockMode // Toggle shows "Live SMS Authentication"
         
         // Load Backend Slot Service mode (default to real backend)
         val useMockSlotService = BackendModule.loadSlotServiceModePreference(requireContext())
-        binding.slotServiceModeToggle.isChecked = !useMockSlotService // Toggle shows "Use Real Backend"
+        binding.slotServiceModeToggle.isChecked = !useMockSlotService // Toggle shows "Sync Slots with Backend"
+        
+        // Load Health Monitor mode (default to real health monitoring)
+        val useMockHealthMonitor = com.waterfountainmachine.app.di.HealthMonitorModule.loadHealthMonitorModePreference(requireContext())
+        binding.healthMonitorModeToggle.isChecked = !useMockHealthMonitor // Toggle shows "Send Health Heartbeats"
         
         binding.demoModeToggle.isChecked = prefs.getBoolean("demo_mode", false)
         binding.debugModeToggle.isChecked = prefs.getBoolean("debug_mode", false)

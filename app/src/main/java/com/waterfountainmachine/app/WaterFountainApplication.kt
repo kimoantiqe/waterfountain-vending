@@ -53,9 +53,9 @@ class WaterFountainApplication : Application() {
     
     lateinit var hardwareManager: WaterFountainManager
         private set
-    
-    private lateinit var healthMonitor: com.waterfountainmachine.app.analytics.MachineHealthMonitor
-    
+
+    private lateinit var healthMonitor: com.waterfountainmachine.app.analytics.IMachineHealthMonitor
+
     lateinit var slotInventoryManager: SlotInventoryManager
         private set
     
@@ -125,7 +125,7 @@ class WaterFountainApplication : Application() {
         initializeAuthModule()
         
         hardwareManager = WaterFountainManager.getInstance(this)
-        healthMonitor = com.waterfountainmachine.app.analytics.MachineHealthMonitor.getInstance(this)
+        healthMonitor = com.waterfountainmachine.app.di.HealthMonitorModule.getMachineHealthMonitor(this)
         
         // Initialize slot inventory management
         slotInventoryManager = SlotInventoryManager.getInstance(this)
@@ -310,7 +310,7 @@ class WaterFountainApplication : Application() {
     /**
      * Get the health monitor instance
      */
-    fun getHealthMonitor(): com.waterfountainmachine.app.analytics.MachineHealthMonitor {
+    fun getHealthMonitor(): com.waterfountainmachine.app.analytics.IMachineHealthMonitor {
         return healthMonitor
     }
     

@@ -104,13 +104,20 @@ object BackendModule {
      */
     fun getBackendSlotService(context: Context): IBackendSlotService {
         if (cachedService != null) {
+            val serviceType = if (cachedService is MockBackendSlotService) "Mock" else "Real"
+            AppLog.d(TAG, "Returning cached service: $serviceType")
             return cachedService!!
         }
         
         val useMockMode = loadSlotServiceModePreference(context)
+        val mode = if (useMockMode) "Mock" else "Real Backend"
+        AppLog.i(TAG, "Creating new BackendSlotService: $mode")
+        
         val service = if (useMockMode) {
+            AppLog.i(TAG, "🔴 Using MockBackendSlotService - NO REAL API CALLS")
             MockBackendSlotService(context)
         } else {
+            AppLog.i(TAG, "🟢 Using BackendSlotService - REAL API CALLS TO FIREBASE")
             BackendSlotService.getInstance(context)
         }
         

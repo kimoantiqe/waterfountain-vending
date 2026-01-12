@@ -112,6 +112,10 @@ class VendingAnimationActivity : AppCompatActivity() {
         
         binding = ActivityVendingAnimationBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        
+        // Set volume control to media stream for proper audio routing
+        @Suppress("DEPRECATION")
+        volumeControlStream = android.media.AudioManager.STREAM_MUSIC
 
         phoneNumber = intent.getStringExtra("phoneNumber")
         dispensingTime = intent.getLongExtra("dispensingTime", 8000)
@@ -648,7 +652,7 @@ class VendingAnimationActivity : AppCompatActivity() {
         // Record dispense success in health monitor
         val app = application as WaterFountainApplication
         val healthMonitor = app.getHealthMonitor()
-        healthMonitor.recordDispenseAttempt(success = true)
+        healthMonitor.recordDispense(slotNumber = slot, success = true)
         
         // Notify ViewModel that animation is complete
         viewModel.onAnimationComplete()
@@ -670,7 +674,8 @@ class VendingAnimationActivity : AppCompatActivity() {
             try {
                 // Record dispense for health metrics (no extra API calls)
                 try {
-                    (application as? WaterFountainApplication)?.getHealthMonitor()?.recordDispenseAttempt(
+                    (application as? WaterFountainApplication)?.getHealthMonitor()?.recordDispense(
+                        slotNumber = slot,
                         success = true,
                         errorCode = null
                     )
@@ -706,31 +711,28 @@ class VendingAnimationActivity : AppCompatActivity() {
                     
                     result.fold(
                         onSuccess = { vendResult ->
-                            AppLog.i(TAG, "Vend event recorded: ${vendResult.eventId}, campaign=${vendResult.campaignId}, advertiser=${vendResult.advertiserId}")
+                            AppLog.i(TAG, "Vend recorded: ${vendResult.eventId}")
                             
-                            // Update campaign context with backend response (in case it differs)
                             if (vendResult.campaignId != null) {
                                 analyticsManager.setCampaignContext(
                                     campaignId = vendResult.campaignId,
                                     advertiserId = vendResult.advertiserId,
                                     canDesignId = vendResult.canDesignId
                                 )
-                            }
-                            
-                            // Log analytics (campaign context auto-attached)
-                            analyticsManager.logVendingCompleted(
-                                slotNumber = slot,
-                                durationMs = dispensingTimeMs
-                            )
-                            
-                            if (vendResult.campaignId != null) {
-                                // Log campaign-attributed vend for ROI tracking
                                 analyticsManager.logCampaignVend(slotNumber = slot)
                             }
+                            
+                            analyticsManager.logVendingCompleted(slotNumber = slot, durationMs = dispensingTimeMs)
                         },
                         onFailure = { error ->
-                            AppLog.e(TAG, "Failed to record vend event to backend", error)
-                            // Continue anyway - local inventory already decremented
+                            if (error is com.waterfountainmachine.app.core.backend.BackendSlotService.DailyLimitReachedException) {
+                                AppLog.w(TAG, "Daily limit reached - showing error")
+                                withContext(Dispatchers.Main) {
+                                    com.waterfountainmachine.app.utils.ErrorScreenUtil.showDailyLimitReached(this@VendingAnimationActivity)
+                                }
+                            } else {
+                                AppLog.e(TAG, "Failed to record vend", error)
+                            }
                         }
                     )
                 } else {
@@ -762,7 +764,8 @@ class VendingAnimationActivity : AppCompatActivity() {
             try {
                 // Record dispense failure for health metrics (no extra API calls)
                 try {
-                    (application as? WaterFountainApplication)?.getHealthMonitor()?.recordDispenseAttempt(
+                    (application as? WaterFountainApplication)?.getHealthMonitor()?.recordDispense(
+                        slotNumber = slot,
                         success = false,
                         errorCode = errorCode
                     )

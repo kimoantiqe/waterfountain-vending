@@ -56,6 +56,7 @@ data class OtpVerifyResponse(
 sealed class AuthenticationException(message: String) : Exception(message) {
     class NetworkError(message: String = "Network connection failed") : AuthenticationException(message)
     class RateLimitError(message: String = "Too many requests. Please try again later") : AuthenticationException(message)
+    class DailyLimitError(message: String = "Daily vending limit reached") : AuthenticationException(message)
     class InvalidOtpError(message: String = "Invalid OTP code") : AuthenticationException(message)
     class ExpiredOtpError(message: String = "OTP code has expired") : AuthenticationException(message)
     class CertificateError(message: String = "Certificate authentication failed") : AuthenticationException(message)
