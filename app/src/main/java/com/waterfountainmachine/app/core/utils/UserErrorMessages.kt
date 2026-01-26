@@ -79,4 +79,10 @@ object UserErrorMessages {
      * Shown when QR code cannot be read
      */
     const val QR_SCAN_FAILED = "We're sorry!\nPlease try scanning again."
+    
+    /**
+     * Machine remotely disabled
+     * Shown when admin has disabled machine for maintenance
+     */
+    const val MACHINE_DISABLED = "Thank you for using our service!\nWe are doing some maintenance.\nPlease come back later."
 }

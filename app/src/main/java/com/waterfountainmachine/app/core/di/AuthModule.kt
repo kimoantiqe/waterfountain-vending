@@ -65,6 +65,15 @@ object AuthModule {
     }
     
     /**
+     * Check if currently using live SMS (not mock)
+     * @param context Application context
+     * @return true if using live SMS, false if mock
+     */
+    fun isUsingLiveSMS(context: Context): Boolean {
+        return !loadApiModePreference(context)
+    }
+    
+    /**
      * Provide Firebase Functions instance
      */
     @Provides

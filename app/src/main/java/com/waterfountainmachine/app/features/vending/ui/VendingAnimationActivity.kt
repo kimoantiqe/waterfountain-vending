@@ -28,11 +28,14 @@ import com.waterfountainmachine.app.config.WaterFountainConfig
 import com.waterfountainmachine.app.viewmodels.VendingViewModel
 import com.waterfountainmachine.app.viewmodels.VendingUiState
 import com.waterfountainmachine.app.analytics.AnalyticsManager
+import com.waterfountainmachine.app.analytics.MachineHealthMonitor
 import com.waterfountainmachine.app.WaterFountainApplication
 import com.waterfountainmachine.app.core.slot.SlotInventoryManager
 import com.waterfountainmachine.app.core.backend.IBackendSlotService
 import com.waterfountainmachine.app.di.BackendModule
 import com.waterfountainmachine.app.security.SecurityModule
+import com.waterfountainmachine.app.utils.ErrorScreenUtil
+import com.waterfountainmachine.app.utils.UserErrorMessages
 import dagger.hilt.android.AndroidEntryPoint
 import nl.dionsegijn.konfetti.core.Party
 import nl.dionsegijn.konfetti.core.Position
@@ -59,7 +62,7 @@ class VendingAnimationActivity : AppCompatActivity() {
 
     private var phoneNumber: String? = null
     private var dispensingTime: Long = 0
-    private var slot: Int = 1
+    private var slot: Int = -1 // -1 indicates slot not yet determined by hardware
     private var vendingStartTime: Long = 0
     private var dispenseStartTime: Long = 0
     
@@ -117,9 +120,28 @@ class VendingAnimationActivity : AppCompatActivity() {
         @Suppress("DEPRECATION")
         volumeControlStream = android.media.AudioManager.STREAM_MUSIC
 
+        // Restore slot from savedInstanceState if activity was recreated
+        if (savedInstanceState != null) {
+            slot = savedInstanceState.getInt("slot", -1)
+        } else {
+            slot = intent.getIntExtra("slot", -1) // Default -1 if not provided, hardware will determine actual slot
+        }
+        
         phoneNumber = intent.getStringExtra("phoneNumber")
         dispensingTime = intent.getLongExtra("dispensingTime", 8000)
-        slot = intent.getIntExtra("slot", 1)
+        
+        // Check if machine is remotely disabled before starting vending
+        val machineHealthMonitor = MachineHealthMonitor.getInstance(this)
+        if (machineHealthMonitor.isMachineDisabled()) {
+            AppLog.w(TAG, "Machine is DISABLED - blocking vending operation")
+            ErrorScreenUtil.showError(
+                context = this,
+                message = UserErrorMessages.MACHINE_DISABLED,
+                displayDuration = 24 * 60 * 60 * 1000L // 24 hours
+            )
+            finish()
+            return
+        }
         
         // Initialize analytics
         analyticsManager = AnalyticsManager.getInstance(this)
@@ -145,21 +167,14 @@ class VendingAnimationActivity : AppCompatActivity() {
             }
         }
         
-        // Get campaign data for this vending session (will be attached to all events)
-        // TODO: Get actual campaign data from intent extras when campaign flow is implemented
-        val campaignId: String? = null // intent.getStringExtra("campaign_id")
-        val advertiserId: String? = null // intent.getStringExtra("advertiser_id")
-        val canDesignId: String? = null // intent.getStringExtra("can_design_id")
-        analyticsManager.setCampaignContext(campaignId, advertiserId, canDesignId)
+        // Campaign data is fetched from backend after successful vend
+        // See recordSuccessfulVend() where setCampaignContext() is called with backend response
+        // This ensures campaign attribution matches the actual slot inventory (backend is source of truth)
         
         // Track vending started (machine_id and campaign auto-attached)
         vendingStartTime = System.currentTimeMillis()
-        analyticsManager.logVendingStarted(slot)
-        
-        // Track dispensing started (water pickup = goal)
-        val journeyStartTime = WaterFountainApplication.journeyStartTime
         dispenseStartTime = System.currentTimeMillis()
-        analyticsManager.logDispensingStarted(slot, journeyStartTime)
+        analyticsManager.logVendingStarted()
         
         // Initialize sound manager
         soundManager = SoundManager(this)
@@ -210,6 +225,8 @@ class VendingAnimationActivity : AppCompatActivity() {
             }
             is VendingUiState.DispensingComplete -> {
                 AppLog.i(TAG, "Water dispensing completed")
+                // Update activity's slot with actual hardware-determined slot
+                slot = state.slot
                 // Record successful vend with slot tracking
                 recordSuccessfulVend(state.slot, state.dispensingTimeMs)
             }
@@ -633,26 +650,30 @@ class VendingAnimationActivity : AppCompatActivity() {
     }
 
     private fun returnToMainScreen() {
-        // Track vending completed (campaign context auto-attached)
-        val vendingDuration = System.currentTimeMillis() - vendingStartTime
-        analyticsManager.logVendingCompleted(
-            slotNumber = slot,
-            durationMs = vendingDuration
-        )
+        // Track vending completed (only if slot is known and not already tracked)
+        if (slot >= 1) {
+            val vendingDuration = System.currentTimeMillis() - vendingStartTime
+            // NOTE: Do NOT call logVendingCompleted here!
+            // It's already called in recordSuccessfulVend() which is called earlier
+            // This prevents duplicate vending_completed events in GA4
+            
+            // Record dispense success in health monitor
+            val app = application as WaterFountainApplication
+            val healthMonitor = app.getHealthMonitor()
+            healthMonitor.recordDispense(slotNumber = slot, success = true)
+        } else {
+            AppLog.w(TAG, "Skipping vending_completed analytics - slot unknown (slot=$slot)")
+        }
         
         // Track journey completed (includes campaign context for per-campaign analysis)
         val journeyStartTime = WaterFountainApplication.journeyStartTime
         val totalJourneyDurationMs = WaterFountainApplication.getJourneyDuration()
         val dispenseDurationMs = System.currentTimeMillis() - dispenseStartTime
-        analyticsManager.logJourneyCompleted(totalJourneyDurationMs, dispenseDurationMs, journeyStartTime)
+        val success = slot >= 1
+        analyticsManager.logJourneyCompleted(totalJourneyDurationMs, dispenseDurationMs, journeyStartTime, success)
         
-        // Clear campaign context after vending session ends
-        analyticsManager.clearCampaignContext()
-        
-        // Record dispense success in health monitor
-        val app = application as WaterFountainApplication
-        val healthMonitor = app.getHealthMonitor()
-        healthMonitor.recordDispense(slotNumber = slot, success = true)
+        // Clear session tracking (journey complete)
+        WaterFountainApplication.clearSession()
         
         // Notify ViewModel that animation is complete
         viewModel.onAnimationComplete()
@@ -670,6 +691,12 @@ class VendingAnimationActivity : AppCompatActivity() {
      * Record successful vend with slot tracking and backend synchronization
      */
     private fun recordSuccessfulVend(slot: Int, dispensingTimeMs: Long) {
+        // Skip if slot is unknown (error case where no actual dispense occurred)
+        if (slot < 1) {
+            AppLog.w(TAG, "Skipping vend recording - slot unknown (slot=$slot)")
+            return
+        }
+        
         lifecycleScope.launch(Dispatchers.IO) {
             try {
                 // Record dispense for health metrics (no extra API calls)
@@ -699,6 +726,9 @@ class VendingAnimationActivity : AppCompatActivity() {
                     // Normalize phone to E.164 before sending to backend
                     val normalizedPhone = phoneNumber?.let { PhoneNumberUtils.normalizePhoneNumber(it) }
                     
+                    // Get isMock flag from analytics manager
+                    val isMock = analyticsManager.getIsMock()
+                    
                     // Record vend event to backend with phone number (not hash)
                     val result = backendSlotService.recordVendWithSlot(
                         machineId = machineId,
@@ -706,7 +736,8 @@ class VendingAnimationActivity : AppCompatActivity() {
                         phone = normalizedPhone,
                         success = true,
                         totalJourneyDurationMs = totalJourneyDurationMs,
-                        dispenseDurationMs = dispensingTimeMs
+                        dispenseDurationMs = dispensingTimeMs,
+                        isMock = isMock
                     )
                     
                     result.fold(
@@ -719,7 +750,7 @@ class VendingAnimationActivity : AppCompatActivity() {
                                     advertiserId = vendResult.advertiserId,
                                     canDesignId = vendResult.canDesignId
                                 )
-                                analyticsManager.logCampaignVend(slotNumber = slot)
+                                // campaign_vend removed - vending_completed already includes campaign context
                             }
                             
                             analyticsManager.logVendingCompleted(slotNumber = slot, durationMs = dispensingTimeMs)
@@ -760,6 +791,24 @@ class VendingAnimationActivity : AppCompatActivity() {
      * Record failed vend without decrementing inventory
      */
     private fun recordFailedVend(slot: Int, errorCode: String?) {
+        // Skip recording if slot is unknown (error occurred before slot selection)
+        if (slot < 1) {
+            AppLog.w(TAG, "Skipping failed vend recording - slot unknown (slot=$slot)")
+            // Still log general hardware error to analytics (without slot)
+            lifecycleScope.launch(Dispatchers.IO) {
+                try {
+                    analyticsManager.logHardwareError(
+                        errorMessage = errorCode ?: "unknown",
+                        errorCode = errorCode,
+                        slotNumber = null
+                    )
+                } catch (e: Exception) {
+                    AppLog.e(TAG, "Error logging hardware error", e)
+                }
+            }
+            return
+        }
+        
         lifecycleScope.launch(Dispatchers.IO) {
             try {
                 // Record dispense failure for health metrics (no extra API calls)
@@ -773,6 +822,15 @@ class VendingAnimationActivity : AppCompatActivity() {
                     AppLog.w(TAG, "Failed to record dispense to health monitor", e)
                 }
                 
+                // Calculate total journey duration (same as successful vend)
+                val journeyStartTime = WaterFountainApplication.journeyStartTime
+                val totalJourneyDurationMs = if (journeyStartTime > 0) {
+                    System.currentTimeMillis() - journeyStartTime
+                } else null
+                
+                // Calculate dispense attempt duration
+                val dispenseDurationMs = System.currentTimeMillis() - dispenseStartTime
+                
                 // Get machine ID from certificate
                 val machineId = MachineIdProvider.getMachineId(this@VendingAnimationActivity)
                 
@@ -780,13 +838,20 @@ class VendingAnimationActivity : AppCompatActivity() {
                     // Normalize phone to E.164 before sending to backend
                     val normalizedPhone = phoneNumber?.let { PhoneNumberUtils.normalizePhoneNumber(it) }
                     
+                    // Get isMock flag from analytics manager
+                    val isMock = analyticsManager.getIsMock()
+                    
                     // Record failed vend event to backend with phone number (not hash)
+                    // Backend will retrieve campaignId/advertiserId from slot document
                     val result = backendSlotService.recordVendWithSlot(
                         machineId = machineId,
                         slot = slot,
                         phone = normalizedPhone,
                         success = false,
-                        errorCode = errorCode
+                        errorCode = errorCode,
+                        totalJourneyDurationMs = totalJourneyDurationMs,
+                        dispenseDurationMs = dispenseDurationMs,
+                        isMock = isMock
                     )
                     
                     result.fold(
@@ -816,20 +881,16 @@ class VendingAnimationActivity : AppCompatActivity() {
         // Intentionally not calling super.onBackPressed() to prevent user from interrupting animation
     }
     
-    override fun onPause() {
-        super.onPause()
-        // Clean up callbacks when activity is paused to prevent memory leaks
-        binding.logoImage.removeCallbacks(logoDelayedRunnable)
-        binding.root.removeCallbacks(confettiDelayedRunnable)
-        binding.pickupReminderPanel.removeCallbacks(pickupReminderRunnable)
-        binding.pickupReminderPanel.removeCallbacks(chevronPulseRunnable)
-        binding.pickupReminderPanel.removeCallbacks(shimmerRunnable)
-        
-        // Stop loading sound if playing
-        soundManager.stopLongSound()
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        // Save slot value in case activity is recreated
+        outState.putInt("slot", slot)
     }
     
     override fun onDestroy() {
+        // Clear campaign context when activity is destroyed
+        analyticsManager.clearCampaignContext()
+        
         // Additional cleanup in onDestroy as safety net
         binding.logoImage.removeCallbacks(logoDelayedRunnable)
         binding.root.removeCallbacks(confettiDelayedRunnable)

@@ -243,12 +243,39 @@ class LaneManager private constructor(private val context: Context) {
             return
         }
         
-        // Determine status based on error code
-        val status = if (errorCode == 0x03.toByte()) "empty" else "disabled"
+        // Determine status and error details based on error code
+        val (status, errorCodeStr, errorMessage) = when (errorCode) {
+            0x03.toByte() -> Triple(
+                "sensor_error",
+                "0x03",
+                "Optical sensor failure - water not detected"
+            )
+            0x04.toByte() -> Triple(
+                "mechanical_error",
+                "0x04",
+                "Motor failure or mechanical jam"
+            )
+            0x05.toByte() -> Triple(
+                "mechanical_error",
+                "0x05",
+                "Timeout - operation took too long"
+            )
+            else -> Triple(
+                "mechanical_error",
+                errorCode?.let { "0x${it.toString(16).uppercase()}" } ?: "unknown",
+                "Unknown hardware failure"
+            )
+        }
         
         // Use coroutine to update backend asynchronously
         CoroutineScope(Dispatchers.IO).launch {
-            backendSlotService.updateSlotStatus(machineId, lane, status).fold(
+            backendSlotService.updateSlotStatus(
+                machineId = machineId,
+                slot = lane,
+                status = status,
+                errorCode = errorCodeStr,
+                errorMessage = errorMessage
+            ).fold(
                 onSuccess = {
                     AppLog.i(TAG, "Backend slot $lane status updated to $status")
                 },

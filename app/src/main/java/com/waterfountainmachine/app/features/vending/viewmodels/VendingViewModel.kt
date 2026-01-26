@@ -138,7 +138,7 @@ class VendingViewModel @Inject constructor(
                 // Show user-friendly error
                 _uiState.value = VendingUiState.DispensingError(
                     message = UserErrorMessages.DISPENSING_FAILED,
-                    slot = 1, // Default slot on exception
+                    slot = -1, // No slot determined (exception occurred)
                     errorCode = null
                 )
             } finally {
@@ -174,7 +174,7 @@ class VendingViewModel @Inject constructor(
     fun forceContinue() {
         AppLog.w(TAG, "Forcing continue despite hardware error")
         _uiState.value = VendingUiState.DispensingComplete(
-            slot = 1, // Default slot when forcing continue
+            slot = -1, // No slot determined (forced continue after error)
             dispensingTimeMs = 0L
         )
     }

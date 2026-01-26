@@ -82,12 +82,21 @@ object SecurityModule {
      * @param payload Request payload as JSONObject
      * @return JSONObject with authentication fields added
      * @throws IllegalStateException if not enrolled or certificate invalid
-     * @throws SecurityException if signing fails
+     * @throws SecurityException if signing fails or certificate expired
      */
     fun createAuthenticatedRequest(endpoint: String, payload: JSONObject): JSONObject {
         // Verify enrollment
         if (!isEnrolled()) {
             throw IllegalStateException("Machine not enrolled. Certificate required.")
+        }
+        
+        // CRITICAL: Block all authenticated requests if certificate is expired
+        // This prevents rate limiting from failed auth attempts
+        if (isCertificateExpired()) {
+            throw SecurityException(
+                "Certificate has EXPIRED. Machine is locked out. " +
+                "Cannot make authenticated requests. Manual re-enrollment required."
+            )
         }
 
         // Get certificate and private key
@@ -101,7 +110,7 @@ object SecurityModule {
         val timestamp = System.currentTimeMillis()
         val nonce = nonceGenerator.generate()
 
-        // Create payload string (sorted keys for consistency)
+        // Create payload string for signing
         val payloadStr = payload.toString()
 
         // Sign request
@@ -118,12 +127,25 @@ object SecurityModule {
             throw SecurityException("Request signing failed: ${e.message}", e)
         }
 
-        // Create authenticated request with auth fields
-        val authenticatedRequest = JSONObject(payloadStr)
+        // Create authenticated request by copying payload and adding auth fields
+        val authenticatedRequest = JSONObject()
+        
+        // Copy all keys from original payload
+        payload.keys().forEach { key ->
+            authenticatedRequest.put(key, payload.get(key))
+        }
+        
+        // Add auth fields
         authenticatedRequest.put("_cert", certificatePem)
         authenticatedRequest.put("_timestamp", timestamp.toString())
         authenticatedRequest.put("_nonce", nonce)
         authenticatedRequest.put("_signature", signature)
+        authenticatedRequest.put("_payloadStr", payloadStr)
+        
+        // Add sessionId for journey tracking (if available)
+        com.waterfountainmachine.app.WaterFountainApplication.sessionId?.let {
+            authenticatedRequest.put("sessionId", it)
+        }
 
         Log.d(TAG, "Created authenticated request for endpoint: $endpoint")
 
@@ -152,6 +174,36 @@ object SecurityModule {
     fun isCertificateExpiringSoon(): Boolean {
         val daysRemaining = getDaysUntilExpiry() ?: return false
         return daysRemaining <= 30
+    }
+    
+    /**
+     * Check if certificate has expired.
+     *
+     * @return true if certificate is expired
+     */
+    fun isCertificateExpired(): Boolean {
+        val daysRemaining = getDaysUntilExpiry() ?: return false
+        return daysRemaining < 0
+    }
+
+    /**
+     * Get certificate expiry timestamp in milliseconds.
+     *
+     * @return Expiry timestamp or null if not enrolled
+     */
+    fun getCertificateExpiresAt(): Long? {
+        val certData = certificateManager.getCertificate() ?: return null
+        return certData.expiryDate
+    }
+
+    /**
+     * Check if certificate should be renewed (less than 7 days remaining).
+     *
+     * @return true if certificate should be renewed
+     */
+    fun shouldRenewCertificate(): Boolean {
+        val daysRemaining = getDaysUntilExpiry() ?: return false
+        return daysRemaining < 7 && daysRemaining >= 0 // Don't renew if already expired
     }
 
     /**

@@ -54,6 +54,11 @@ class SMSVerifyViewModel @Inject constructor(
     // Critical state for inactivity timer
     private val _isInCriticalState = MutableStateFlow(false)
     val isInCriticalState: StateFlow<Boolean> = _isInCriticalState.asStateFlow()
+    
+    /**
+     * Get current attempt number (for analytics)
+     */
+    fun getAttemptNumber(): Int = _failedAttempts.value + 1
 
     // Timer job
     private var timerJob: Job? = null
@@ -77,6 +82,11 @@ class SMSVerifyViewModel @Inject constructor(
         if (_otpCode.value.length < MAX_OTP_LENGTH) {
             _otpCode.value += digit
             AppLog.d(TAG, "Added digit, OTP length: ${_otpCode.value.length}")
+            
+            // Track OTP completion when 6 digits entered
+            if (_otpCode.value.length == MAX_OTP_LENGTH) {
+                _uiState.value = SMSVerifyUiState.OtpCompleted(getAttemptNumber())
+            }
         }
     }
 
@@ -285,6 +295,7 @@ class SMSVerifyViewModel @Inject constructor(
 sealed class SMSVerifyUiState {
     data object EnteringOtp : SMSVerifyUiState()
     data object IncompleteOtp : SMSVerifyUiState()
+    data class OtpCompleted(val attemptNumber: Int) : SMSVerifyUiState()
     data object Verifying : SMSVerifyUiState()
     data object VerificationSuccess : SMSVerifyUiState()
     data class IncorrectOtp(val attemptsRemaining: Int) : SMSVerifyUiState()

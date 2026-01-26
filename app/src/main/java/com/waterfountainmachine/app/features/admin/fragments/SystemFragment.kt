@@ -89,6 +89,11 @@ class SystemFragment : Fragment() {
         binding.changeAdminPinButton.setOnClickListener {
             showChangePinDialog()
         }
+        
+        // Send Logs Now button
+        binding.sendLogsNowButton.setOnClickListener {
+            sendLogsNow()
+        }
     }
     
     private fun setupKioskSettings() {
@@ -114,8 +119,11 @@ class SystemFragment : Fragment() {
         val useMockHealthMonitor = com.waterfountainmachine.app.di.HealthMonitorModule.loadHealthMonitorModePreference(requireContext())
         binding.healthMonitorModeToggle.isChecked = !useMockHealthMonitor // Toggle shows "Send Health Heartbeats"
         
-        binding.demoModeToggle.isChecked = prefs.getBoolean("demo_mode", false)
-        binding.debugModeToggle.isChecked = prefs.getBoolean("debug_mode", false)
+        // Load Remote Logging mode (check if remote logging is enabled)
+        val remoteLoggingEnabled = com.yishengkj.logging.RemoteLoggingManager.getInstance(requireContext()).isEnabled()
+        binding.remoteLoggingToggle.isChecked = remoteLoggingEnabled
+        binding.sendLogsNowButton.isEnabled = remoteLoggingEnabled
+        
         binding.adminLoggingToggle.isChecked = com.waterfountainmachine.app.utils.AdminDebugConfig.isAdminLoggingEnabled(requireContext())
         binding.analyticsDebugToggle.isChecked = prefs.getBoolean("analytics_debug_mode", false)
         binding.maintenanceModeToggle.isChecked = prefs.getBoolean("maintenance_mode", false)
@@ -146,16 +154,7 @@ class SystemFragment : Fragment() {
             updateSlotServiceMode(isChecked)
         }
         
-        // Demo mode toggle
-        binding.demoModeToggle.setOnCheckedChangeListener { _, isChecked ->
-            updateDemoMode(isChecked)
-        }
-        
-        // Debug mode toggle
-        binding.debugModeToggle.setOnCheckedChangeListener { _, isChecked ->
-            updateDebugMode(isChecked)
-        }
-        
+
         // Admin logging toggle
         binding.adminLoggingToggle.setOnCheckedChangeListener { _, isChecked ->
             updateAdminLogging(isChecked)
@@ -164,6 +163,21 @@ class SystemFragment : Fragment() {
         // Analytics debug mode toggle
         binding.analyticsDebugToggle.setOnCheckedChangeListener { _, isChecked ->
             updateAnalyticsDebugMode(isChecked)
+        }
+        
+        // Remote logging toggle
+        binding.remoteLoggingToggle.setOnCheckedChangeListener { _, isChecked ->
+            updateRemoteLogging(isChecked)
+        }
+        
+        // Maintenance mode toggle
+        binding.maintenanceModeToggle.setOnCheckedChangeListener { _, isChecked ->
+            toggleMaintenanceMode(isChecked)
+        }
+        
+        // Hardware mode toggle
+        binding.hardwareModeToggle.setOnCheckedChangeListener { _, isChecked ->
+            updateHardwareMode(isChecked)
         }
         
         // Hide navigation bar toggle
@@ -291,24 +305,6 @@ class SystemFragment : Fragment() {
             .show()
     }
     
-    private fun updateDemoMode(enabled: Boolean) {
-        lifecycleScope.launch {
-            try {
-                com.waterfountainmachine.app.utils.SecurePreferences.getSystemSettings(requireContext())
-                    .edit()
-                    .putBoolean("demo_mode", enabled)
-                    .apply()
-                
-                binding.systemStatusText.text = "Demo mode ${if (enabled) "enabled" else "disabled"}"
-                AdminDebugConfig.logAdminInfo(requireContext(), TAG, "Demo mode ${if (enabled) "enabled" else "disabled"}")
-                
-            } catch (e: Exception) {
-                AppLog.e(TAG, "Error updating demo mode", e)
-                binding.systemStatusText.text = "Error updating demo mode: ${e.message}"
-            }
-        }
-    }
-    
     private fun updateHideNavigationBar(enabled: Boolean) {
         lifecycleScope.launch {
             try {
@@ -334,20 +330,35 @@ class SystemFragment : Fragment() {
         }
     }
     
-    private fun updateDebugMode(enabled: Boolean) {
+    private fun updateRemoteLogging(enabled: Boolean) {
         lifecycleScope.launch {
             try {
+                val loggingManager = com.yishengkj.logging.RemoteLoggingManager.getInstance(requireContext())
+                
+                if (enabled) {
+                    loggingManager.enable()
+                    binding.systemStatusText.text = "Remote logging enabled - logs will upload every 2 hours"
+                    AdminDebugConfig.logAdminInfo(requireContext(), TAG, "Remote logging enabled")
+                    binding.sendLogsNowButton.isEnabled = true
+                } else {
+                    loggingManager.disable()
+                    binding.systemStatusText.text = "Remote logging disabled - logs stored locally only"
+                    AdminDebugConfig.logAdminInfo(requireContext(), TAG, "Remote logging disabled")
+                    binding.sendLogsNowButton.isEnabled = false
+                }
+                
+                // Save preference for next app startup
                 com.waterfountainmachine.app.utils.SecurePreferences.getSystemSettings(requireContext())
                     .edit()
-                    .putBoolean("debug_mode", enabled)
+                    .putBoolean("remote_logging_enabled", enabled)
                     .apply()
                 
-                binding.systemStatusText.text = "Debug mode ${if (enabled) "enabled" else "disabled"}"
-                AdminDebugConfig.logAdminInfo(requireContext(), TAG, "Debug mode ${if (enabled) "enabled" else "disabled"}")
-                
             } catch (e: Exception) {
-                AppLog.e(TAG, "Error updating debug mode", e)
-                binding.systemStatusText.text = "Error updating debug mode: ${e.message}"
+                AppLog.e(TAG, "Error updating remote logging", e)
+                binding.systemStatusText.text = "Error updating remote logging: ${e.message}"
+                
+                // Revert toggle on error
+                binding.remoteLoggingToggle.isChecked = !enabled
             }
         }
     }
@@ -463,20 +474,68 @@ class SystemFragment : Fragment() {
     private fun toggleMaintenanceMode(enabled: Boolean) {
         lifecycleScope.launch {
             try {
-                com.waterfountainmachine.app.utils.SecurePreferences.getSystemSettings(requireContext())
+                val success = com.waterfountainmachine.app.utils.SecurePreferences.getSystemSettings(requireContext())
                     .edit()
                     .putBoolean("maintenance_mode", enabled)
                     .putLong("maintenance_mode_timestamp", System.currentTimeMillis())
-                    .apply()
+                    .commit()  // Use commit() for immediate synchronous save
                 
-                binding.systemStatusText.text = "Maintenance mode ${if (enabled) "enabled" else "disabled"}"
-                AdminDebugConfig.logAdminWarning(requireContext(), TAG, "Maintenance mode ${if (enabled) "enabled" else "disabled"}")
+                if (success) {
+                    binding.systemStatusText.text = "Maintenance mode ${if (enabled) "enabled" else "disabled"} (restart recommended)"
+                    AdminDebugConfig.logAdminWarning(requireContext(), TAG, "Maintenance mode ${if (enabled) "enabled" else "disabled"}")
+                    AppLog.i(TAG, "✅ Maintenance mode saved: $enabled")
+                    
+                    // Show restart suggestion dialog
+                    showMaintenanceModeRestartDialog(enabled)
+                } else {
+                    binding.systemStatusText.text = "Failed to save maintenance mode"
+                    AppLog.e(TAG, "Failed to save maintenance mode preference")
+                }
                 
             } catch (e: Exception) {
                 AppLog.e(TAG, "Error updating maintenance mode", e)
                 binding.systemStatusText.text = "Error updating maintenance mode: ${e.message}"
             }
         }
+    }
+    
+    private fun showMaintenanceModeRestartDialog(enabled: Boolean) {
+        val message = if (enabled) {
+            """
+            ⚠️ MAINTENANCE MODE ENABLED
+            
+            The vending machine is now in maintenance mode.
+            
+            • Machine will show error screen
+            • No vending operations allowed
+            • Admin panel still accessible (triple-tap/enter)
+            • Remote logging continues
+            
+            Restart now to apply the maintenance screen immediately.
+            """.trimIndent()
+        } else {
+            """
+            ✅ MAINTENANCE MODE DISABLED
+            
+            The vending machine is now back to normal operation.
+            
+            • Machine will show normal tap-to-start screen
+            • Vending operations allowed
+            • All features active
+            
+            Restart now to return to normal operation immediately.
+            """.trimIndent()
+        }
+        
+        androidx.appcompat.app.AlertDialog.Builder(requireContext())
+            .setTitle("Restart Recommended")
+            .setMessage(message)
+            .setPositiveButton("Restart Now") { _, _ ->
+                executeRestart()
+            }
+            .setNegativeButton("Restart Later", null)
+            .setCancelable(true)
+            .show()
     }
     
     private fun restartSystem() {
@@ -775,6 +834,46 @@ class SystemFragment : Fragment() {
                 .setMessage("Failed to open Android Settings: ${e.message}")
                 .setPositiveButton("OK", null)
                 .show()
+        }
+    }
+    
+    private fun sendLogsNow() {
+        lifecycleScope.launch {
+            try {
+                // Check if machine is enrolled first
+                if (!com.waterfountainmachine.app.security.SecurityModule.isEnrolled()) {
+                    androidx.appcompat.app.AlertDialog.Builder(requireContext())
+                        .setTitle("Cannot Send Logs")
+                        .setMessage("Machine must be enrolled to upload logs. Certificate authentication is required.")
+                        .setPositiveButton("OK", null)
+                        .show()
+                    return@launch
+                }
+                
+                binding.sendLogsNowButton.isEnabled = false
+                binding.systemStatusText.text = "Sending logs..."
+                AdminDebugConfig.logAdminInfo(requireContext(), TAG, "Manual log upload triggered")
+                
+                val loggingManager = com.yishengkj.logging.RemoteLoggingManager.getInstance(requireContext())
+                loggingManager.triggerImmediateUpload()
+                
+                binding.systemStatusText.text = "✅ Logs queued for upload. Check WorkManager status for progress."
+                
+                // Re-enable button after 5 seconds
+                kotlinx.coroutines.delay(5000)
+                binding.sendLogsNowButton.isEnabled = true
+                
+            } catch (e: Exception) {
+                AppLog.e(TAG, "Error triggering log upload", e)
+                binding.systemStatusText.text = "❌ Error sending logs: ${e.message}"
+                binding.sendLogsNowButton.isEnabled = true
+                
+                androidx.appcompat.app.AlertDialog.Builder(requireContext())
+                    .setTitle("Upload Error")
+                    .setMessage("Failed to trigger log upload:\n${e.message}")
+                    .setPositiveButton("OK", null)
+                    .show()
+            }
         }
     }
 

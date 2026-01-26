@@ -33,6 +33,7 @@ class SlotInventoryManager private constructor(private val context: Context) {
         private const val SUFFIX_CAPACITY = "_capacity"
         private const val SUFFIX_CAMPAIGN = "_campaign"
         private const val SUFFIX_DESIGN = "_design"
+        private const val SUFFIX_DESIGN_NAME = "_design_name"
         private const val SUFFIX_STATUS = "_status"
         private const val SUFFIX_LAST_UPDATED = "_last_updated"
         
@@ -61,6 +62,7 @@ class SlotInventoryManager private constructor(private val context: Context) {
         val capacity: Int,
         val campaignId: String?,
         val canDesignId: String?,
+        val canDesignName: String?,
         val status: SlotStatus,
         val lastUpdated: Long
     )
@@ -97,9 +99,10 @@ class SlotInventoryManager private constructor(private val context: Context) {
         }
         
         val bottles = prefs.getInt(getBottlesKey(slot), 0)
-        val capacity = prefs.getInt(getCapacityKey(slot), 7) // Default capacity 7 (max)
+        val capacity = prefs.getInt(getCapacityKey(slot), 4) // Default capacity 4 (max)
         val campaignId = prefs.getString(getCampaignKey(slot), null)
         val canDesignId = prefs.getString(getDesignKey(slot), null)
+        val canDesignName = prefs.getString(getDesignNameKey(slot), null)
         val statusStr = prefs.getString(getStatusKey(slot), "ACTIVE") ?: "ACTIVE"
         val lastUpdated = prefs.getLong(getLastUpdatedKey(slot), 0L)
         
@@ -109,6 +112,7 @@ class SlotInventoryManager private constructor(private val context: Context) {
             capacity = capacity,
             campaignId = campaignId,
             canDesignId = canDesignId,
+            canDesignName = canDesignName,
             status = SlotStatus.fromString(statusStr),
             lastUpdated = lastUpdated
         )
@@ -129,9 +133,10 @@ class SlotInventoryManager private constructor(private val context: Context) {
     fun updateSlotInventory(
         slot: Int,
         remainingBottles: Int,
-        capacity: Int = 7,
+        capacity: Int = 4,
         campaignId: String? = null,
         canDesignId: String? = null,
+        canDesignName: String? = null,
         status: SlotStatus = SlotStatus.ACTIVE
     ) {
         if (!SlotValidator.isValidSlot(slot)) {
@@ -150,6 +155,9 @@ class SlotInventoryManager private constructor(private val context: Context) {
         }
         if (canDesignId != null) {
             editor.putString(getDesignKey(slot), canDesignId)
+        }
+        if (canDesignName != null) {
+            editor.putString(getDesignNameKey(slot), canDesignName)
         }
         
         editor.apply()
@@ -182,6 +190,7 @@ class SlotInventoryManager private constructor(private val context: Context) {
             capacity = currentInventory.capacity,
             campaignId = currentInventory.campaignId,
             canDesignId = currentInventory.canDesignId,
+            canDesignName = currentInventory.canDesignName,
             status = if (newBottles == 0) SlotStatus.EMPTY else currentInventory.status
         )
         
@@ -284,6 +293,7 @@ class SlotInventoryManager private constructor(private val context: Context) {
     private fun getCapacityKey(slot: Int) = "$PREFIX_BOTTLES${slot}$SUFFIX_CAPACITY"
     private fun getCampaignKey(slot: Int) = "$PREFIX_BOTTLES${slot}$SUFFIX_CAMPAIGN"
     private fun getDesignKey(slot: Int) = "$PREFIX_BOTTLES${slot}$SUFFIX_DESIGN"
+    private fun getDesignNameKey(slot: Int) = "$PREFIX_BOTTLES${slot}$SUFFIX_DESIGN_NAME"
     private fun getStatusKey(slot: Int) = "$PREFIX_BOTTLES${slot}$SUFFIX_STATUS"
     private fun getLastUpdatedKey(slot: Int) = "$PREFIX_BOTTLES${slot}$SUFFIX_LAST_UPDATED"
     

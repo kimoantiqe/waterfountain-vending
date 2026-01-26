@@ -161,7 +161,7 @@ class WaterFountainManager private constructor(
             AppLog.e(TAG, "Water Fountain Manager not ready. Call initialize() first.")
             return WaterDispenseResult(
                 success = false,
-                slot = 1,
+                slot = -1, // No slot determined (error before slot selection)
                 errorMessage = "Water fountain not ready. Please try again."
             )
         }
@@ -187,7 +187,7 @@ class WaterFountainManager private constructor(
             AppLog.e(TAG, "Exception during water dispensing", e)
             return WaterDispenseResult(
                 success = false,
-                slot = 1,
+                slot = -1, // No slot determined (exception occurred)
                 errorMessage = "Unexpected error: ${e.message}"
             )
         }

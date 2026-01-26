@@ -3,12 +3,14 @@ package com.waterfountainmachine.app.activities
 import android.animation.ObjectAnimator
 import android.content.Intent
 import android.os.Bundle
+import android.view.KeyEvent
 import android.view.View
 import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityOptionsCompat
 import androidx.lifecycle.lifecycleScope
 import com.waterfountainmachine.app.R
+import com.waterfountainmachine.app.admin.AdminGestureDetector
 import com.waterfountainmachine.app.config.WaterFountainConfig
 import com.waterfountainmachine.app.databinding.ActivityErrorBinding
 import com.waterfountainmachine.app.utils.AppLog
@@ -49,6 +51,7 @@ class ErrorActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityErrorBinding
     private lateinit var soundManager: SoundManager
+    private lateinit var adminGestureDetector: AdminGestureDetector
     
     companion object {
         private const val TAG = "ErrorActivity"
@@ -81,6 +84,9 @@ class ErrorActivity : AppCompatActivity() {
         volumeControlStream = android.media.AudioManager.STREAM_MUSIC
         
         FullScreenUtils.setupFullScreen(window, binding.root)
+        
+        // Set up admin gesture detector for triple-tap/triple-enter access
+        setupAdminGesture()
         
         // Initialize sound manager and play error page sound
         soundManager = SoundManager(this)
@@ -126,6 +132,25 @@ class ErrorActivity : AppCompatActivity() {
             delay(displayDuration)
             returnToMainScreen()
         }
+    }
+    
+    private fun setupAdminGesture() {
+        adminGestureDetector = AdminGestureDetector(this, binding.root)
+        AppLog.d(TAG, "Admin gesture detector initialized for error screen")
+    }
+    
+    // Handle keyboard events for admin access (USB keyboard Enter key)
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        // Only process on ACTION_DOWN to avoid double-counting
+        if (event.action == KeyEvent.ACTION_DOWN) {
+            // Let admin gesture detector handle keyboard input
+            if (adminGestureDetector.onKeyEvent(event.keyCode, event)) {
+                AppLog.d(TAG, "Admin keyboard trigger processed on error screen")
+                return true
+            }
+        }
+        
+        return super.dispatchKeyEvent(event)
     }
     
     private fun returnToMainScreen() {

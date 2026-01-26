@@ -158,6 +158,18 @@ dependencies {
     // Security - for EncryptedSharedPreferences
     implementation("androidx.security:security-crypto:1.1.0") // Updated from alpha06 to stable
     
+    // SQLCipher - for encrypted Room database
+    implementation("net.zetetic:android-database-sqlcipher:4.5.4")
+    implementation("androidx.sqlite:sqlite-ktx:2.4.0")
+    
+    // Room - for log queue persistence
+    implementation("androidx.room:room-runtime:2.6.1")
+    implementation("androidx.room:room-ktx:2.6.1")
+    kapt("androidx.room:room-compiler:2.6.1")
+    
+    // WorkManager - for scheduled log uploads
+    implementation("androidx.work:work-runtime-ktx:2.9.0")
+    
     // Firebase - for backend integration
     implementation(platform("com.google.firebase:firebase-bom:32.7.0")) // Keeping stable version for compatibility
     implementation("com.google.firebase:firebase-functions-ktx")

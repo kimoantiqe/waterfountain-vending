@@ -233,50 +233,6 @@
 
                 </LinearLayout>
 
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:layout_marginBottom="12dp">
-
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="Demo Mode"
-                        android:textColor="@color/white_70"
-                        android:textSize="14sp" />
-
-                    <androidx.appcompat.widget.SwitchCompat
-                        android:id="@+id/demoModeToggle"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content" />
-
-                </LinearLayout>
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:layout_marginBottom="12dp">
-
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="Debug Mode"
-                        android:textColor="@color/white_70"
-                        android:textSize="14sp" />
-
-                    <androidx.appcompat.widget.SwitchCompat
-                        android:id="@+id/debugModeToggle"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content" />
-
-                </LinearLayout>
-
                 <!-- Admin Logging Toggle -->
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -418,6 +374,57 @@
                         android:layout_height="wrap_content" />
 
                 </LinearLayout>
+
+                <!-- Remote Logging Toggle -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="12dp">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Send Remote Logs"
+                            android:textColor="@color/white_70"
+                            android:textSize="14sp" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="When OFF: Logs stored locally only\nWhen ON: Upload encrypted logs every 2 hours"
+                            android:textColor="@color/white_50"
+                            android:textSize="11sp"
+                            android:layout_marginTop="2dp" />
+
+                    </LinearLayout>
+
+                    <androidx.appcompat.widget.SwitchCompat
+                        android:id="@+id/remoteLoggingToggle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" />
+
+                </LinearLayout>
+                
+                <!-- Send Logs Now Button -->
+                <Button
+                    android:id="@+id/sendLogsNowButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="📤 Send Logs Now"
+                    android:textColor="@color/white"
+                    android:backgroundTint="@color/admin_accent"
+                    android:layout_marginTop="8dp"
+                    android:layout_marginBottom="8dp"
+                    android:textAllCaps="false"
+                    android:enabled="false" />
                 
                 <!-- Change Admin PIN Button -->
                 <Button

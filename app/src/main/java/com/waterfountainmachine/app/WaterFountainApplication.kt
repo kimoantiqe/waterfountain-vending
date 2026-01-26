@@ -34,12 +34,33 @@ class WaterFountainApplication : Application() {
     companion object {
         private const val TAG = "WaterFountainApp"
         
+        // Session tracking for analytics correlation
+        var sessionId: String? = null
+            private set
+        
         // Journey tracking
         var journeyStartTime: Long = 0
             private set
         
-        fun startJourney() {
+        /**
+         * Start a new session and journey
+         * Called when user taps "Tap to Start" on MainActivity
+         * Generates UUID v4 for session correlation across analytics and backend
+         */
+        fun startSession() {
+            sessionId = java.util.UUID.randomUUID().toString()
             journeyStartTime = System.currentTimeMillis()
+            AppLog.i(TAG, "Session started: $sessionId")
+        }
+        
+        /**
+         * Clear session tracking
+         * Called when user returns to MainActivity (any path: completion, timeout, back button)
+         */
+        fun clearSession() {
+            AppLog.i(TAG, "Session cleared: $sessionId")
+            sessionId = null
+            journeyStartTime = 0
         }
         
         fun getJourneyDuration(): Long {
@@ -139,6 +160,9 @@ class WaterFountainApplication : Application() {
                 healthMonitor.start(machineId)
                 AppLog.i(TAG, "Health monitor started for machine: ****${machineId.takeLast(4)}")
                 
+                // Initialize remote logging manager
+                initializeRemoteLogging(machineId)
+                
                 // Sync slot inventory with backend on startup
                 applicationScope.launch(Dispatchers.IO) {
                     AppLog.d(TAG, "Syncing slot inventory with backend...")
@@ -150,7 +174,16 @@ class WaterFountainApplication : Application() {
                             AppLog.i(TAG, "Current inventory: $totalBottles bottles (${String.format("%.1f", fillRate)}% capacity)")
                         },
                         onFailure = { error: Throwable ->
-                            AppLog.e(TAG, "⚠️ Failed to sync slot inventory: ${error.message}")
+                            val errorMessage = error.message ?: ""
+                            if (errorMessage.contains("Machine not active", ignoreCase = true)) {
+                                AppLog.w(TAG, "⚠️ Machine not active in backend")
+                                AppLog.i(TAG, "MachineHealthMonitor will detect disabled status on next heartbeat (15 min)")
+                                // Don't directly manipulate SharedPreferences - let health monitor's
+                                // checkMachineStatus() detect this via regular heartbeat mechanism
+                                // MainActivity has a listener that will show disabled screen when detected
+                            } else {
+                                AppLog.e(TAG, "⚠️ Failed to sync slot inventory: ${error.message}")
+                            }
                             AppLog.i(TAG, "Using local cache until next sync")
                         }
                     )
@@ -269,6 +302,34 @@ class WaterFountainApplication : Application() {
         } catch (e: Exception) {
             AppLog.e(TAG, "Error initializing AuthModule, falling back to mock mode", e)
             AuthModule.initialize(this, useMockMode = true)
+        }
+    }
+    
+    /**
+     * Initialize remote logging for encrypted log uploads
+     */
+    private fun initializeRemoteLogging(machineId: String) {
+        try {
+            AppLog.i(TAG, "Initializing remote logging...")
+            
+            val loggingManager = com.yishengkj.logging.RemoteLoggingManager.getInstance(this)
+            
+            // Initialize with machine ID
+            loggingManager.initialize(machineId)
+            
+            // Check if remote logging is enabled in settings
+            val prefs = com.waterfountainmachine.app.utils.SecurePreferences.getSystemSettings(this)
+            val remoteLoggingEnabled = prefs.getBoolean("remote_logging_enabled", false)
+            
+            if (remoteLoggingEnabled) {
+                loggingManager.enable()
+                AppLog.i(TAG, "Remote logging enabled - logs will upload every 2 hours")
+            } else {
+                AppLog.i(TAG, "Remote logging disabled - logs stored locally only")
+            }
+            
+        } catch (e: Exception) {
+            AppLog.e(TAG, "Error initializing remote logging", e)
         }
     }
     

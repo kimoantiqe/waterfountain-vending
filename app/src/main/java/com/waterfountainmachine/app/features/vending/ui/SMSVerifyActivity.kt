@@ -21,6 +21,9 @@ import com.waterfountainmachine.app.utils.SoundManager
 import com.waterfountainmachine.app.utils.UserErrorMessages
 import com.waterfountainmachine.app.features.vending.viewmodels.SMSVerifyViewModel
 import com.waterfountainmachine.app.features.vending.viewmodels.SMSVerifyUiState
+import com.waterfountainmachine.app.analytics.MachineHealthMonitor
+import com.waterfountainmachine.app.utils.ErrorScreenUtil
+import com.waterfountainmachine.app.WaterFountainApplication
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
@@ -30,6 +33,8 @@ class SMSVerifyActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivitySmsVerifyBinding
     private val viewModel: SMSVerifyViewModel by viewModels()
+    private lateinit var analyticsManager: com.waterfountainmachine.app.analytics.AnalyticsManager
+    private var screenStartTime: Long = 0
 
     // Helper properties to access ViewModel state (for backward compatibility with existing code)
     private val otpCode: String
@@ -60,6 +65,7 @@ class SMSVerifyActivity : AppCompatActivity() {
     
     companion object {
         private const val TAG = "SMSVerifyActivity"
+        private const val SCREEN_NAME = "SMSVerifyActivity"
         private const val MAX_OTP_LENGTH = 6
         private const val INACTIVITY_TIMEOUT_MS = 300_000L // 5 minutes
         private const val ANIMATION_DURATION_MS = 300L
@@ -70,6 +76,25 @@ class SMSVerifyActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // Initialize analytics
+        analyticsManager = com.waterfountainmachine.app.analytics.AnalyticsManager.getInstance(this)
+        screenStartTime = System.currentTimeMillis()
+        analyticsManager.logScreenView(SCREEN_NAME, SCREEN_NAME)
+        analyticsManager.logScreenEntered(SCREEN_NAME)
+        
+        // Check if machine is remotely disabled before proceeding
+        val machineHealthMonitor = MachineHealthMonitor.getInstance(this)
+        if (machineHealthMonitor.isMachineDisabled()) {
+            AppLog.w(TAG, "Machine is DISABLED - blocking OTP verification")
+            ErrorScreenUtil.showError(
+                context = this,
+                message = UserErrorMessages.MACHINE_DISABLED,
+                displayDuration = 24 * 60 * 60 * 1000L
+            )
+            finish()
+            return
+        }
         
         // Set window background to black to prevent white flash during transitions
         window.setBackgroundDrawableResource(android.R.color.black)
@@ -104,7 +129,11 @@ class SMSVerifyActivity : AppCompatActivity() {
         
         // Initialize inactivity timer BEFORE setting up ViewModel observers
         // (observers may immediately try to pause/resume the timer)
-        inactivityTimer = InactivityTimer(INACTIVITY_TIMEOUT_MS) { returnToMainScreen() }
+        inactivityTimer = InactivityTimer(INACTIVITY_TIMEOUT_MS) {
+            val screenDurationMs = System.currentTimeMillis() - screenStartTime
+            analyticsManager.logTimeoutOccurred(SCREEN_NAME, screenDurationMs)
+            returnToMainScreen()
+        }
         inactivityTimer.start()
         
         // Setup ViewModel observers after timer is initialized
@@ -170,17 +199,22 @@ class SMSVerifyActivity : AppCompatActivity() {
                 setLoadingState(false)
                 showIncompleteOtpError()
             }
+            is SMSVerifyUiState.OtpCompleted -> {
+                analyticsManager.logOtpCompleted(state.attemptNumber)
+            }
             is SMSVerifyUiState.Verifying -> {
                 // Don't change isVerifying here - already set in verifyAndProceed()
                 setLoadingState(true)
             }
             is SMSVerifyUiState.VerificationSuccess -> {
                 isVerifying = false
+                analyticsManager.logOtpVerifiedSuccess(viewModel.getAttemptNumber())
                 navigateToVendingAnimation()
             }
             is SMSVerifyUiState.IncorrectOtp -> {
                 isVerifying = false
                 setLoadingState(false)
+                analyticsManager.logOtpVerifiedFailure(viewModel.getAttemptNumber(), "Invalid OTP")
                 showIncorrectOtpError(state.attemptsRemaining)
             }
             is SMSVerifyUiState.Error -> {
@@ -190,6 +224,7 @@ class SMSVerifyActivity : AppCompatActivity() {
             }
             is SMSVerifyUiState.ResendingOtp -> {
                 AppLog.d(TAG, "Resending OTP...")
+                analyticsManager.logOtpResendClicked()
             }
             is SMSVerifyUiState.OtpResent -> {
                 showOtpResentMessage()
@@ -220,6 +255,13 @@ class SMSVerifyActivity : AppCompatActivity() {
     }
 
     private fun returnToMainScreen() {
+        val screenDurationMs = System.currentTimeMillis() - screenStartTime
+        analyticsManager.logUserAbandoned(SCREEN_NAME, screenDurationMs, "back_button")
+        analyticsManager.logScreenExited(SCREEN_NAME, screenDurationMs)
+        
+        // Clear session tracking (user abandoned)
+        WaterFountainApplication.clearSession()
+        
         val intent = Intent(this, MainActivity::class.java)
         // Use SINGLE_TOP to reuse existing MainActivity instance for smooth transition
         intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP

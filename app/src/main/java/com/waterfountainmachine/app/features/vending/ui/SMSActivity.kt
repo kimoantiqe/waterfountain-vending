@@ -21,7 +21,10 @@ import com.waterfountainmachine.app.config.WaterFountainConfig
 import com.waterfountainmachine.app.features.vending.viewmodels.SMSViewModel
 import com.waterfountainmachine.app.features.vending.viewmodels.SMSUiState
 import com.waterfountainmachine.app.analytics.AnalyticsManager
+import com.waterfountainmachine.app.analytics.MachineHealthMonitor
+import com.waterfountainmachine.app.utils.ErrorScreenUtil
 import com.waterfountainmachine.app.security.SecurityModule
+import com.waterfountainmachine.app.WaterFountainApplication
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import androidx.activity.viewModels
@@ -62,6 +65,19 @@ class SMSActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
+        // Check if machine is remotely disabled before proceeding
+        val machineHealthMonitor = MachineHealthMonitor.getInstance(this)
+        if (machineHealthMonitor.isMachineDisabled()) {
+            AppLog.w(TAG, "Machine is DISABLED - blocking SMS entry")
+            ErrorScreenUtil.showError(
+                context = this,
+                message = UserErrorMessages.MACHINE_DISABLED,
+                displayDuration = 24 * 60 * 60 * 1000L
+            )
+            finish()
+            return
+        }
+        
         // Set window background to black to prevent white flash during transitions
         window.setBackgroundDrawableResource(android.R.color.black)
         
@@ -94,6 +110,7 @@ class SMSActivity : AppCompatActivity() {
         // Initialize inactivity timer FIRST (needed by observers)
         inactivityTimer = InactivityTimer(WaterFountainConfig.INACTIVITY_TIMEOUT_MS) { 
             val screenDurationMs = System.currentTimeMillis() - screenEnterTime
+            analyticsManager.logUserAbandoned(SCREEN_NAME, screenDurationMs, "timeout")
             analyticsManager.logTimeoutOccurred(SCREEN_NAME, screenDurationMs) // machine_id auto-attached
             returnToMainScreen()
         }
@@ -205,8 +222,13 @@ class SMSActivity : AppCompatActivity() {
 
     private fun returnToMainScreen() {
         val screenDurationMs = System.currentTimeMillis() - screenEnterTime
+        analyticsManager.logUserAbandoned(SCREEN_NAME, screenDurationMs, "back_button")
         analyticsManager.logReturnToMain(SCREEN_NAME, screenDurationMs)
         analyticsManager.logScreenExited(SCREEN_NAME, screenDurationMs)
+        
+        // Clear session tracking (user abandoned)
+        WaterFountainApplication.clearSession()
+        
         val intent = Intent(this, MainActivity::class.java)
         // Use SINGLE_TOP to reuse existing MainActivity instance for smooth transition
         intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
@@ -523,6 +545,8 @@ class SMSActivity : AppCompatActivity() {
         
         btnCancel.setOnClickListener {
             soundManager.playSound(R.raw.click, 0.5f)
+            // Track consent rejected
+            analyticsManager.logConsentRejected()
             dialog.dismiss()
             // User stays on phone entry screen
         }
@@ -699,11 +723,8 @@ class SMSActivity : AppCompatActivity() {
         viewModel.addDigit(digit)
         updatePhoneDisplayWithAnimation()
         
-        // Track digit entry
-        val currentLength = viewModel.phoneNumber.value.length
-        analyticsManager.logPhoneDigitEntered(digit, currentLength)
-        
         // Track when phone number is completed
+        val currentLength = viewModel.phoneNumber.value.length
         if (currentLength == WaterFountainConfig.MAX_PHONE_LENGTH) {
             val timeToComplete = System.currentTimeMillis() - phoneNumberStartTime
             analyticsManager.logPhoneNumberCompleted(viewModel.phoneNumber.value, timeToComplete) // machine_id auto-attached

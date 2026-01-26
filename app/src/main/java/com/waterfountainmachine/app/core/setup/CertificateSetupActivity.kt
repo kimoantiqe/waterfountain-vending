@@ -10,6 +10,7 @@ import com.google.firebase.functions.FirebaseFunctions
 import com.waterfountainmachine.app.databinding.ActivityCertificateSetupBinding
 import com.waterfountainmachine.app.security.SecurityModule
 import com.waterfountainmachine.app.utils.AppLog
+import com.waterfountainmachine.app.workers.CertificateRenewalWorker
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
@@ -23,6 +24,7 @@ import kotlinx.coroutines.tasks.await
  * 3. Call backend enrollMachineKey API with machineId, token, and public key
  * 4. Backend returns certificate immediately (synchronous response)
  * 5. Install certificate and complete enrollment
+ * 6. Schedule automatic certificate renewal worker
  * 
  * IMPORTANT: This is a direct API call, NOT a QR code workflow.
  * The backend's enrollMachineKey endpoint returns the certificate synchronously.
@@ -170,7 +172,17 @@ class CertificateSetupActivity : AppCompatActivity() {
             throw Exception("Failed to install certificate: ${e.message}", e)
         }
         
-        // Step 4: Complete
+        // Step 4: Schedule automatic certificate renewal
+        AppLog.d(TAG, "Step 4/4: Scheduling certificate renewal")
+        try {
+            CertificateRenewalWorker.schedule(this)
+            AppLog.d(TAG, "✓ Certificate renewal worker scheduled")
+        } catch (e: Exception) {
+            // Don't fail enrollment if worker scheduling fails
+            AppLog.w(TAG, "Failed to schedule renewal worker (non-critical)", e)
+        }
+        
+        // Step 5: Complete
         setState(EnrollmentState.COMPLETE)
         showSuccess()
         
@@ -178,6 +190,7 @@ class CertificateSetupActivity : AppCompatActivity() {
         AppLog.d(TAG, "✓✓✓ ENROLLMENT COMPLETED SUCCESSFULLY ✓✓✓")
         AppLog.d(TAG, "Machine ID: $machineId")
         AppLog.d(TAG, "Status: Enrolled and Active")
+        AppLog.d(TAG, "Auto-renewal: Scheduled (daily check)")
         AppLog.d(TAG, "========================================")
     }
     

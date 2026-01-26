@@ -99,6 +99,7 @@ class BackendSlotService private constructor(private val context: Context) : IBa
                 val capacity = (slotMap["capacity"] as? Number)?.toInt() ?: 7
                 val campaignId = slotMap["campaignId"] as? String
                 val canDesignId = slotMap["canDesignId"] as? String
+                val canDesignName = slotMap["canDesignName"] as? String
                 val statusStr = slotMap["status"] as? String ?: "active"
                 
                 // Backend sends lowercase status, convert to enum
@@ -111,6 +112,7 @@ class BackendSlotService private constructor(private val context: Context) : IBa
                     capacity = capacity,
                     campaignId = campaignId,
                     canDesignId = canDesignId,
+                    canDesignName = canDesignName,
                     status = status
                 )
                 
@@ -120,6 +122,7 @@ class BackendSlotService private constructor(private val context: Context) : IBa
                     capacity = capacity,
                     campaignId = campaignId,
                     canDesignId = canDesignId,
+                    canDesignName = canDesignName,
                     status = status,
                     lastUpdated = System.currentTimeMillis()
                 ))
@@ -145,7 +148,8 @@ class BackendSlotService private constructor(private val context: Context) : IBa
         success: Boolean,
         errorCode: String?,
         totalJourneyDurationMs: Long?,
-        dispenseDurationMs: Long?
+        dispenseDurationMs: Long?,
+        isMock: Boolean
     ): Result<IBackendSlotService.VendEventResult> {
         return try {
             AppLog.i(TAG, "🟢 Recording vend: machine=$machineId, slot=$slot, success=$success")
@@ -160,6 +164,7 @@ class BackendSlotService private constructor(private val context: Context) : IBa
                         if (errorCode != null) put("errorCode", errorCode)
                         if (totalJourneyDurationMs != null) put("totalJourneyDurationMs", totalJourneyDurationMs)
                         if (dispenseDurationMs != null) put("dispenseDurationMs", dispenseDurationMs)
+                        put("isMock", isMock)
                     }
                     
                     val authenticatedRequest = SecurityModule.createAuthenticatedRequest(
@@ -175,12 +180,14 @@ class BackendSlotService private constructor(private val context: Context) : IBa
             )
             
             val resultData = result.data as? Map<*, *>
-            Result.success(IBackendSlotService.VendEventResult(
+            val vendResult = IBackendSlotService.VendEventResult(
                 eventId = resultData?.get("eventId") as? String ?: "",
                 campaignId = resultData?.get("campaignId") as? String,
                 canDesignId = resultData?.get("canDesignId") as? String,
                 advertiserId = resultData?.get("advertiserId") as? String
-            ))
+            )
+            AppLog.d(TAG, "📊 Vend result: eventId=${vendResult.eventId}, campaign=${vendResult.campaignId}, design=${vendResult.canDesignId}, advertiser=${vendResult.advertiserId}")
+            Result.success(vendResult)
         } catch (e: com.google.firebase.functions.FirebaseFunctionsException) {
             when (e.code) {
                 com.google.firebase.functions.FirebaseFunctionsException.Code.RESOURCE_EXHAUSTED -> {
@@ -230,14 +237,15 @@ class BackendSlotService private constructor(private val context: Context) : IBa
             Result.failure(e)
         }
     }
-    
     /**
-     * Update slot status in backend (e.g., mark as DISABLED after failures)
+     * Update slot status in backend (e.g., mark as error after failures)
      */
     override suspend fun updateSlotStatus(
         machineId: String,
         slot: Int,
-        status: String
+        status: String,
+        errorCode: String?,
+        errorMessage: String?
     ): Result<Unit> {
         return try {
             AppLog.d(TAG, "Updating slot $slot status to $status for machine $machineId")
@@ -246,6 +254,8 @@ class BackendSlotService private constructor(private val context: Context) : IBa
                 put("machineId", machineId)
                 put("slot", slot)
                 put("status", status)
+                errorCode?.let { put("errorCode", it) }
+                errorMessage?.let { put("errorMessage", it) }
             }
             
             val authenticatedRequest = SecurityModule.createAuthenticatedRequest(

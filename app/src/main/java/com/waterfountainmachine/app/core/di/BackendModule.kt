@@ -64,6 +64,15 @@ object BackendModule {
     }
     
     /**
+     * Check if currently using live backend (not mock)
+     * @param context Application context
+     * @return true if using live backend, false if mock
+     */
+    fun isUsingLiveBackend(context: Context): Boolean {
+        return !loadSlotServiceModePreference(context)
+    }
+    
+    /**
      * Provide Backend Slot Service
      * 
      * Injects the correct service (Mock or Real) based on SharedPreferences

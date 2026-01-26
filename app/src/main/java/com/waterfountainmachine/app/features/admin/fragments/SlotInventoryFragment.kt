@@ -164,6 +164,7 @@ class SlotInventoryFragment : Fragment() {
                 remainingBottles = slotData.remainingBottles,
                 capacity = slotData.capacity,
                 canDesignId = slotData.canDesignId,
+                canDesignName = slotData.canDesignName,
                 status = slotData.status
             )
         }
@@ -289,14 +290,16 @@ class SlotInventoryFragment : Fragment() {
         
         private val slotNumberText: TextView
         private val bottlesText: TextView
-        private val canDesignText: TextView
-        private val statusBadge: TextView
+        private val canNameText: TextView
+        private val invStatusText: TextView
+        private val hwStatusText: TextView
+        private val resetButton: Button
         
         init {
             // Set card properties
             radius = 12f
             cardElevation = 4f
-            setContentPadding(12, 12, 12, 12)
+            setContentPadding(8, 8, 8, 8)
             
             // Create layout
             val container = LinearLayout(context).apply {
@@ -309,8 +312,8 @@ class SlotInventoryFragment : Fragment() {
             
             // Slot number
             slotNumberText = TextView(context).apply {
-                text = slotNumber.toString()
-                textSize = 14f
+                text = "Slot: $slotNumber"
+                textSize = 12f
                 setTypeface(null, android.graphics.Typeface.BOLD)
                 layoutParams = LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT,
@@ -321,22 +324,21 @@ class SlotInventoryFragment : Fragment() {
             
             // Bottles count
             bottlesText = TextView(context).apply {
-                text = "?"
-                textSize = 16f
-                setTypeface(null, android.graphics.Typeface.BOLD)
+                text = "Cans: ?"
+                textSize = 11f
                 layoutParams = LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT,
                     LinearLayout.LayoutParams.WRAP_CONTENT
                 ).apply {
-                    setMargins(0, 8, 0, 0)
+                    setMargins(0, 4, 0, 0)
                 }
             }
             container.addView(bottlesText)
             
-            // Can design
-            canDesignText = TextView(context).apply {
-                text = ""
-                textSize = 10f
+            // Can name
+            canNameText = TextView(context).apply {
+                text = "Can: -"
+                textSize = 9f
                 maxLines = 1
                 layoutParams = LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT,
@@ -345,23 +347,50 @@ class SlotInventoryFragment : Fragment() {
                     setMargins(0, 4, 0, 0)
                 }
             }
-            container.addView(canDesignText)
+            container.addView(canNameText)
             
-            // Status badge
-            statusBadge = TextView(context).apply {
-                text = ""
+            // Inventory status (from backend)
+            invStatusText = TextView(context).apply {
+                text = "Inv: -"
                 textSize = 9f
-                visibility = View.GONE
                 layoutParams = LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    LinearLayout.LayoutParams.MATCH_PARENT,
                     LinearLayout.LayoutParams.WRAP_CONTENT
                 ).apply {
                     setMargins(0, 4, 0, 0)
                 }
-                setPadding(8, 4, 8, 4)
-                setBackgroundResource(R.drawable.status_badge_background)
             }
-            container.addView(statusBadge)
+            container.addView(invStatusText)
+            
+            // Hardware status (from LaneManager)
+            hwStatusText = TextView(context).apply {
+                text = "HW: -"
+                textSize = 9f
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply {
+                    setMargins(0, 2, 0, 0)
+                }
+            }
+            container.addView(hwStatusText)
+            
+            // Reset button
+            resetButton = Button(context).apply {
+                text = "Reset"
+                textSize = 9f
+                setPadding(4, 2, 4, 2)
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply {
+                    setMargins(0, 4, 0, 0)
+                }
+                setOnClickListener {
+                    resetLaneStatus()
+                }
+            }
+            container.addView(resetButton)
             
             addView(container)
             
@@ -369,52 +398,78 @@ class SlotInventoryFragment : Fragment() {
             setCardBackgroundColor(ContextCompat.getColor(context, android.R.color.darker_gray))
         }
         
+        private fun resetLaneStatus() {
+            android.app.AlertDialog.Builder(context)
+                .setTitle("Reset Slot $slotNumber?")
+                .setMessage("This will clear hardware failure markers for this slot.")
+                .setPositiveButton("Reset") { _, _ ->
+                    laneManager.resetLane(slotNumber)
+                    // Reload to show updated status
+                    loadSlotInventory()
+                    android.widget.Toast.makeText(context, "Slot $slotNumber reset", android.widget.Toast.LENGTH_SHORT).show()
+                }
+                .setNegativeButton("Cancel", null)
+                .show()
+        }
+        
         fun updateData(
             remainingBottles: Int,
             capacity: Int,
             canDesignId: String?,
+            canDesignName: String?,
             status: SlotInventoryManager.SlotStatus
         ) {
             // Update bottles
-            bottlesText.text = "🍶 $remainingBottles"
+            bottlesText.text = "Cans: $remainingBottles/$capacity"
             
-            // Update can design
-            if (!canDesignId.isNullOrEmpty()) {
-                canDesignText.text = "🏷️ ${canDesignId.take(15)}"
-                canDesignText.visibility = View.VISIBLE
+            // Use can design name if available, otherwise parse ID
+            val canName = canDesignName ?: if (!canDesignId.isNullOrEmpty()) {
+                extractCanName(canDesignId)
             } else {
-                canDesignText.visibility = View.GONE
+                "-"
             }
+            canNameText.text = "Can: $canName"
             
-            // Update status badge and colors
-            when (status) {
-                SlotInventoryManager.SlotStatus.ACTIVE -> {
-                    if (remainingBottles == 0) {
-                        setCardBackgroundColor(ContextCompat.getColor(context, android.R.color.holo_orange_light))
-                        statusBadge.text = "EMPTY"
-                        statusBadge.visibility = View.VISIBLE
-                    } else if (remainingBottles <= (capacity * 0.2).toInt()) {
-                        setCardBackgroundColor(ContextCompat.getColor(context, android.R.color.holo_orange_light))
-                        statusBadge.visibility = View.GONE
-                    } else {
-                        setCardBackgroundColor(ContextCompat.getColor(context, android.R.color.holo_green_light))
-                        statusBadge.visibility = View.GONE
-                    }
+            // Update inventory status
+            invStatusText.text = "Inv: ${status.name.lowercase().replaceFirstChar { it.uppercase() }}"
+            
+            // Update hardware status from LaneManager
+            val laneStatus = laneManager.getLaneStatusReport().lanes
+                .find { it.lane == slotNumber }?.status ?: 0
+            val laneStatusText = when (laneStatus) {
+                LaneManager.LANE_STATUS_ACTIVE -> "Active"
+                LaneManager.LANE_STATUS_EMPTY -> "Empty"
+                LaneManager.LANE_STATUS_FAILED -> "Failed"
+                LaneManager.LANE_STATUS_DISABLED -> "Disabled"
+                else -> "Unknown"
+            }
+            hwStatusText.text = "HW: $laneStatusText"
+            
+            // Update card colors based on both statuses
+            val isHwDisabled = laneStatus != LaneManager.LANE_STATUS_ACTIVE
+            val isEmpty = remainingBottles == 0
+            val isInactive = status != SlotInventoryManager.SlotStatus.ACTIVE
+            
+            when {
+                isHwDisabled -> {
+                    // Hardware disabled/failed - purple
+                    setCardBackgroundColor(ContextCompat.getColor(context, android.R.color.holo_purple))
                 }
-                SlotInventoryManager.SlotStatus.EMPTY -> {
+                isEmpty -> {
+                    // Empty inventory - red
+                    setCardBackgroundColor(ContextCompat.getColor(context, android.R.color.holo_red_light))
+                }
+                isInactive -> {
+                    // Inactive status - gray
                     setCardBackgroundColor(ContextCompat.getColor(context, android.R.color.darker_gray))
-                    statusBadge.text = "EMPTY"
-                    statusBadge.visibility = View.VISIBLE
                 }
-                SlotInventoryManager.SlotStatus.DISABLED -> {
-                    setCardBackgroundColor(ContextCompat.getColor(context, android.R.color.darker_gray))
-                    statusBadge.text = "DISABLED"
-                    statusBadge.visibility = View.VISIBLE
+                remainingBottles <= (capacity * 0.2).toInt() -> {
+                    // Low inventory - orange
+                    setCardBackgroundColor(ContextCompat.getColor(context, android.R.color.holo_orange_light))
                 }
-                SlotInventoryManager.SlotStatus.MAINTENANCE -> {
-                    setCardBackgroundColor(ContextCompat.getColor(context, android.R.color.holo_blue_light))
-                    statusBadge.text = "MAINTENANCE"
-                    statusBadge.visibility = View.VISIBLE
+                else -> {
+                    // Good - green
+                    setCardBackgroundColor(ContextCompat.getColor(context, android.R.color.holo_green_light))
                 }
             }
         }
@@ -517,7 +572,7 @@ class SlotInventoryFragment : Fragment() {
     }
     
     /**
-     * Build full dispense queue from current lane
+     * Build dispense queue from current lane (first 10 slots)
      */
     private fun buildFullDispenseQueue(startLane: Int): List<QueueItem> {
         val queue = mutableListOf<QueueItem>()
@@ -536,7 +591,8 @@ class SlotInventoryFragment : Fragment() {
         if (startIndex == -1) return queue
         
         // Build queue starting from current lane, wrapping around
-        for (i in 0 until enabledLanes.size) {
+        // Only show first 10 slots to keep table compact
+        for (i in 0 until minOf(10, enabledLanes.size)) {
             val index = (startIndex + i) % enabledLanes.size
             val lane = enabledLanes[index]
             val inventory = slotInventoryManager.getSlotInventory(lane)
@@ -638,6 +694,20 @@ class SlotInventoryFragment : Fragment() {
             diff < 86400_000 -> "${diff / 3600_000} hours ago"
             else -> SimpleDateFormat("MMM dd, HH:mm", Locale.getDefault()).format(Date(timestamp))
         }
+    }
+    
+    /**
+     * Extract human-readable can name from design ID
+     */
+    private fun extractCanName(canDesignId: String): String {
+        // Try to extract meaningful name from ID
+        // Examples: "mock_design" -> "Mock", "coke_classic_12oz" -> "Coke Classic"
+        return canDesignId
+            .replace("_", " ")
+            .split(" ")
+            .take(2) // First 2 words
+            .joinToString(" ") { it.replaceFirstChar { c -> c.uppercase() } }
+            .take(15) // Limit length
     }
     
     /**

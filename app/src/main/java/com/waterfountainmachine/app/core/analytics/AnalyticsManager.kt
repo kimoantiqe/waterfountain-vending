@@ -26,7 +26,7 @@ import java.util.Locale
  * - Session duration tracking
  * - Error tracking
  */
-class AnalyticsManager private constructor() {
+class AnalyticsManager private constructor(private val context: Context) {
     
     private val firebaseAnalytics: FirebaseAnalytics = Firebase.analytics
     
@@ -44,26 +44,24 @@ class AnalyticsManager private constructor() {
         @Volatile
         private var instance: AnalyticsManager? = null
         
-        fun getInstance(@Suppress("UNUSED_PARAMETER") context: Context): AnalyticsManager {
+        fun getInstance(context: Context): AnalyticsManager {
             return instance ?: synchronized(this) {
-                instance ?: AnalyticsManager().also { instance = it }
+                instance ?: AnalyticsManager(context.applicationContext).also { instance = it }
             }
         }
         
         // Event Names (following Firebase naming conventions: lowercase with underscores)
         private const val EVENT_APP_OPENED = "app_opened"
         private const val EVENT_TAP_TO_START = "tap_to_start_clicked"
-        private const val EVENT_PHONE_NUMBER_DIGIT_ENTERED = "phone_digit_entered"
         private const val EVENT_PHONE_NUMBER_COMPLETED = "phone_number_completed"
         private const val EVENT_PHONE_NUMBER_CLEARED = "phone_number_cleared"
         private const val EVENT_BACKSPACE_PRESSED = "backspace_pressed"
         private const val EVENT_CONSENT_VIEWED = "consent_viewed"
         private const val EVENT_CONSENT_ACCEPTED = "consent_accepted"
-        private const val EVENT_PRIVACY_POLICY_CLICKED = "privacy_policy_clicked"
+        private const val EVENT_CONSENT_REJECTED = "consent_rejected"
         private const val EVENT_SMS_SEND_REQUESTED = "sms_send_requested"
         private const val EVENT_SMS_SENT_SUCCESS = "sms_sent_success"
         private const val EVENT_SMS_SENT_FAILURE = "sms_sent_failure"
-        private const val EVENT_OTP_DIGIT_ENTERED = "otp_digit_entered"
         private const val EVENT_OTP_COMPLETED = "otp_completed"
         private const val EVENT_OTP_VERIFIED_SUCCESS = "otp_verified_success"
         private const val EVENT_OTP_VERIFIED_FAILURE = "otp_verified_failure"
@@ -73,7 +71,6 @@ class AnalyticsManager private constructor() {
         private const val EVENT_SCREEN_ENTERED = "screen_entered"
         private const val EVENT_SCREEN_EXITED = "screen_exited"
         private const val EVENT_JOURNEY_COMPLETED = "journey_completed"
-        private const val EVENT_DISPENSING_STARTED = "dispensing_started"
         private const val EVENT_VENDING_STARTED = "vending_started"
         private const val EVENT_VENDING_COMPLETED = "vending_completed"
         private const val EVENT_VENDING_FAILED = "vending_failed"
@@ -134,10 +131,15 @@ class AnalyticsManager private constructor() {
     
     /**
      * Validate slot number to prevent sending invalid slot data.
+     * System supports 48 slots in 6×8 grid layout:
+     * Row 1: 1-8, Row 2: 11-18, Row 3: 21-28, Row 4: 31-38, Row 5: 41-48, Row 6: 51-58
      */
     private fun validateSlotNumber(slotNumber: Int): Int? {
-        if (slotNumber < 1 || slotNumber > 18) {
-            AppLog.e(TAG, "❌ Invalid slot number: $slotNumber (valid range: 1-18)")
+        val row = slotNumber / 10  // 0-5 for rows 1-6
+        val col = slotNumber % 10  // 1-8 for columns
+        
+        if (row < 0 || row > 5 || col < 1 || col > 8) {
+            AppLog.e(TAG, "❌ Invalid slot number: $slotNumber (valid: 1-8, 11-18, 21-28, 31-38, 41-48, 51-58)")
             return null
         }
         return slotNumber
@@ -218,6 +220,12 @@ class AnalyticsManager private constructor() {
     /**
      * Get common parameters to add to every event for segmentation
      * These will be available as custom dimensions in GA4
+     * 
+     * Important: is_mock indicates whether this event is from a test/mock environment
+     * Analytics is considered "live" (not mock) when:
+     * - Live SMS is enabled (not mock SMS)
+     * - Live backend slot service is enabled (not mock backend)
+     * - Real hardware is enabled (not simulated hardware)
      */
     private fun getCommonParameters(): Bundle {
         return Bundle().apply {
@@ -226,6 +234,24 @@ class AnalyticsManager private constructor() {
             putString("day_of_week", getDayOfWeek())
             putString("app_version", BuildConfig.VERSION_NAME)
             putLong("timestamp", System.currentTimeMillis())
+            
+            // Determine if this is mock/test environment
+            // Analytics is "live" only when ALL three conditions are true:
+            // 1. Using live SMS (not mock)
+            // 2. Using live backend (not mock)
+            // 3. Using real hardware (not mock)
+            val isLiveSMS = com.waterfountainmachine.app.di.AuthModule.isUsingLiveSMS(context)
+            val isLiveBackend = com.waterfountainmachine.app.di.BackendModule.isUsingLiveBackend(context)
+            val isRealHardware = com.waterfountainmachine.app.utils.SecurePreferences.getSystemSettings(context)
+                .getBoolean("use_real_serial", false)
+            
+            val isMock = !(isLiveSMS && isLiveBackend && isRealHardware)
+            putBoolean("is_mock", isMock)
+            
+            // Always attach sessionId if available (critical for journey correlation)
+            com.waterfountainmachine.app.WaterFountainApplication.sessionId?.let { 
+                putString("session_id", it) 
+            }
             
             // Always attach machine_id if available (critical for multi-machine analytics)
             currentMachineId?.let { putString(PARAM_MACHINE_ID, it) }
@@ -268,6 +294,22 @@ class AnalyticsManager private constructor() {
         currentAdvertiserId = null
         currentCanDesignId = null
         AppLog.d(TAG, "Campaign context cleared")
+    }
+    
+    /**
+     * Get whether this is a mock/test environment
+     * Returns true if ANY of the three components are mocked:
+     * - Mock SMS authentication
+     * - Mock backend service
+     * - Mock hardware (simulated serial)
+     */
+    fun getIsMock(): Boolean {
+        val isLiveSMS = com.waterfountainmachine.app.di.AuthModule.isUsingLiveSMS(context)
+        val isLiveBackend = com.waterfountainmachine.app.di.BackendModule.isUsingLiveBackend(context)
+        val isRealHardware = com.waterfountainmachine.app.utils.SecurePreferences.getSystemSettings(context)
+            .getBoolean("use_real_serial", false)
+        
+        return !(isLiveSMS && isLiveBackend && isRealHardware)
     }
     
     /**
@@ -316,16 +358,17 @@ class AnalyticsManager private constructor() {
     // ==================== PHONE NUMBER ENTRY ====================
     
     /**
-     * Track phone number digit entry
+     * REMOVED: Track individual phone digit entry - Too noisy, not actionable
+     * Kept phone_number_completed and backspace_pressed which provide better insights
      */
-    fun logPhoneDigitEntered(digit: String, currentLength: Int) {
-        val params = getCommonParameters().apply {
-            putString(PARAM_DIGIT, digit)
-            putLong(PARAM_PHONE_LENGTH, currentLength.toLong())
-        }
-        firebaseAnalytics.logEvent(EVENT_PHONE_NUMBER_DIGIT_ENTERED, params)
-        AppLog.d(TAG, "Event: phone_digit_entered (digit=$digit, length=$currentLength)")
-    }
+    // fun logPhoneDigitEntered(digit: String, currentLength: Int) {
+    //     val params = getCommonParameters().apply {
+    //         putString(PARAM_DIGIT, digit)
+    //         putLong(PARAM_PHONE_LENGTH, currentLength.toLong())
+    //     }
+    //     firebaseAnalytics.logEvent(EVENT_PHONE_NUMBER_DIGIT_ENTERED, params)
+    //     AppLog.d(TAG, \"Event: phone_digit_entered (digit=$digit, length=$currentLength)\")
+    // }
     
     /**
      * Track phone number completion
@@ -378,11 +421,11 @@ class AnalyticsManager private constructor() {
     }
     
     /**
-     * Track privacy policy link clicked
+     * Track consent rejected
      */
-    fun logPrivacyPolicyClicked() {
-        firebaseAnalytics.logEvent(EVENT_PRIVACY_POLICY_CLICKED, null)
-        AppLog.d(TAG, "Event: privacy_policy_clicked")
+    fun logConsentRejected() {
+        firebaseAnalytics.logEvent(EVENT_CONSENT_REJECTED, null)
+        AppLog.d(TAG, "Event: consent_rejected")
     }
     
     // ==================== SMS & OTP ====================
@@ -417,16 +460,6 @@ class AnalyticsManager private constructor() {
             errorCode?.let { param(PARAM_ERROR_CODE, it) }
         }
         AppLog.d(TAG, "Event: sms_sent_failure (error=$errorMessage)")
-    }
-    
-    /**
-     * Track OTP digit entered
-     */
-    fun logOtpDigitEntered(currentLength: Int) {
-        firebaseAnalytics.logEvent(EVENT_OTP_DIGIT_ENTERED) {
-            param(PARAM_OTP_LENGTH, currentLength.toLong())
-        }
-        AppLog.d(TAG, "Event: otp_digit_entered (length=$currentLength)")
     }
     
     /**
@@ -529,36 +562,22 @@ class AnalyticsManager private constructor() {
     /**
      * Track complete user journey with timing metrics
      * Now includes campaign context for per-campaign journey time analysis
+     * @param success true if vending succeeded, false if failed
      */
     fun logJourneyCompleted(
         totalJourneyDurationMs: Long,
         dispenseDurationMs: Long,
-        journeyStartTime: Long
+        journeyStartTime: Long,
+        success: Boolean = true
     ) {
         val params = getCommonParameters()
         params.putLong(PARAM_TOTAL_JOURNEY_DURATION_MS, totalJourneyDurationMs)
         params.putLong(PARAM_DISPENSE_DURATION_MS, dispenseDurationMs)
         params.putLong(PARAM_JOURNEY_START_TIME, journeyStartTime)
+        params.putBoolean("success", success)
         
         firebaseAnalytics.logEvent(EVENT_JOURNEY_COMPLETED, params)
-        AppLog.d(TAG, "Event: journey_completed (machine=$currentMachineId, campaign=$currentCampaignId, total=${totalJourneyDurationMs}ms, dispense=${dispenseDurationMs}ms)")
-    }
-    
-    /**
-     * Track dispensing started (water pickup)
-     * Note: machine_id is now auto-attached via getCommonParameters()
-     */
-    fun logDispensingStarted(slotNumber: Int, journeyStartTime: Long) {
-        val validSlot = validateSlotNumber(slotNumber) ?: return
-        
-        val journeyDurationMs = System.currentTimeMillis() - journeyStartTime
-        val params = getCommonParameters()
-        params.putLong(PARAM_SLOT_NUMBER, validSlot.toLong())
-        params.putLong(PARAM_JOURNEY_START_TIME, journeyStartTime)
-        params.putLong(PARAM_TOTAL_JOURNEY_DURATION_MS, journeyDurationMs)
-        
-        firebaseAnalytics.logEvent(EVENT_DISPENSING_STARTED, params)
-        AppLog.d(TAG, "Event: dispensing_started (machine=$currentMachineId, campaign=$currentCampaignId, slot=$validSlot, journey=${journeyDurationMs}ms)")
+        AppLog.d(TAG, "Event: journey_completed (machine=$currentMachineId, campaign=$currentCampaignId, advertiser=$currentAdvertiserId, design=$currentCanDesignId, success=$success, total=${totalJourneyDurationMs}ms, dispense=${dispenseDurationMs}ms)")
     }
     
     // ==================== VENDING ====================
@@ -567,15 +586,13 @@ class AnalyticsManager private constructor() {
      * Track vending animation started
      * Now includes campaign context for campaign conversion rate tracking
      * Note: machine_id is auto-attached via getCommonParameters()
+     * Note: slot_number is not included here as it's not yet determined by hardware
      */
-    fun logVendingStarted(slotNumber: Int) {
-        val validSlot = validateSlotNumber(slotNumber) ?: return
-        
+    fun logVendingStarted() {
         val params = getCommonParameters()
-        params.putLong(PARAM_SLOT_NUMBER, validSlot.toLong())
         
         firebaseAnalytics.logEvent(EVENT_VENDING_STARTED, params)
-        AppLog.d(TAG, "Event: vending_started (machine=$currentMachineId, campaign=$currentCampaignId, slot=$validSlot)")
+        AppLog.d(TAG, "Event: vending_started (machine=$currentMachineId, campaign=$currentCampaignId, advertiser=$currentAdvertiserId, design=$currentCanDesignId)")
     }
     
     /**
@@ -591,7 +608,7 @@ class AnalyticsManager private constructor() {
         params.putString(PARAM_SUCCESS, "true")
         
         firebaseAnalytics.logEvent(EVENT_VENDING_COMPLETED, params)
-        AppLog.d(TAG, "Event: vending_completed (machine=$currentMachineId, slot=$validSlot, duration=${durationMs}ms, campaign=$currentCampaignId)")
+        AppLog.d(TAG, "Event: vending_completed (machine=$currentMachineId, slot=$validSlot, duration=${durationMs}ms, campaign=$currentCampaignId, advertiser=$currentAdvertiserId, design=$currentCanDesignId)")
     }
     
     /**
@@ -607,7 +624,7 @@ class AnalyticsManager private constructor() {
         params.putString(PARAM_SUCCESS, "false")
         
         firebaseAnalytics.logEvent(EVENT_VENDING_FAILED, params)
-        AppLog.d(TAG, "Event: vending_failed (machine=$currentMachineId, slot=$validSlot, campaign=$currentCampaignId, error=$errorMessage)")
+        AppLog.d(TAG, "Event: vending_failed (machine=$currentMachineId, slot=$validSlot, campaign=$currentCampaignId, advertiser=$currentAdvertiserId, design=$currentCanDesignId, error=$errorMessage)")
     }
     
     /**
@@ -637,21 +654,6 @@ class AnalyticsManager private constructor() {
         
         firebaseAnalytics.logEvent("slot_inventory_low", params)
         AppLog.d(TAG, "Event: slot_inventory_low (machine=$currentMachineId, slot=$validSlot, bottles=$remainingBottles)")
-    }
-    
-    /**
-     * Track campaign-attributed vend for ROI tracking
-     * Campaign context is already attached via getCommonParameters()
-     * This event is for additional campaign-specific analytics
-     */
-    fun logCampaignVend(slotNumber: Int? = null) {
-        val validSlot = slotNumber?.let { validateSlotNumber(it) }
-        
-        val params = getCommonParameters()
-        validSlot?.let { params.putLong(PARAM_SLOT_NUMBER, it.toLong()) }
-        
-        firebaseAnalytics.logEvent("campaign_vend", params)
-        AppLog.d(TAG, "Event: campaign_vend (machine=$currentMachineId, campaign=$currentCampaignId, slot=$validSlot, design=$currentCanDesignId, advertiser=$currentAdvertiserId)")
     }
     
     // ==================== USER FLOW & ABANDONMENT ====================

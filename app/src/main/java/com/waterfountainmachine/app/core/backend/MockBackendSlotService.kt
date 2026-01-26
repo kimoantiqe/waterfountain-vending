@@ -69,7 +69,8 @@ class MockBackendSlotService(private val context: Context) : IBackendSlotService
         success: Boolean,
         errorCode: String?,
         totalJourneyDurationMs: Long?,
-        dispenseDurationMs: Long?
+        dispenseDurationMs: Long?,
+        isMock: Boolean
     ): Result<IBackendSlotService.VendEventResult> {
         return try {
             AppLog.d(TAG, "[MOCK] Recording vend event: machine=$machineId, slot=$slot, success=$success")
@@ -137,10 +138,12 @@ class MockBackendSlotService(private val context: Context) : IBackendSlotService
     override suspend fun updateSlotStatus(
         machineId: String,
         slot: Int,
-        status: String
+        status: String,
+        errorCode: String?,
+        errorMessage: String?
     ): Result<Unit> {
         return try {
-            AppLog.d(TAG, "[MOCK] Updating slot $slot status to $status for machine $machineId")
+            AppLog.d(TAG, "[MOCK] Updating slot $slot status to $status for machine $machineId (error: ${errorCode ?: "none"})")
             
             // Simulate network delay
             delay(SIMULATED_NETWORK_DELAY_MS)

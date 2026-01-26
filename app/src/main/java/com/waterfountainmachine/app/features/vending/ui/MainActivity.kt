@@ -6,6 +6,7 @@ import android.animation.ObjectAnimator
 import android.animation.ValueAnimator
 import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
 import android.graphics.Color
 import android.os.Bundle
 import android.view.KeyEvent
@@ -28,7 +29,10 @@ import com.waterfountainmachine.app.utils.FullScreenUtils
 import com.waterfountainmachine.app.utils.AnimationUtils
 import com.waterfountainmachine.app.utils.HardwareKeyHandler
 import com.waterfountainmachine.app.utils.SoundManager
+import com.waterfountainmachine.app.utils.ErrorScreenUtil
+import com.waterfountainmachine.app.utils.UserErrorMessages
 import com.waterfountainmachine.app.analytics.AnalyticsManager
+import com.waterfountainmachine.app.analytics.MachineHealthMonitor
 import com.waterfountainmachine.app.security.SecurityModule
 
 class MainActivity : AppCompatActivity() {
@@ -37,12 +41,30 @@ class MainActivity : AppCompatActivity() {
     private lateinit var adminGestureDetector: AdminGestureDetector
     private lateinit var soundManager: SoundManager
     private lateinit var analyticsManager: AnalyticsManager
+    private lateinit var machineHealthMonitor: MachineHealthMonitor
     
     private var isNavigating = false
     private val navigationResetRunnable = Runnable { isNavigating = false }
     
     // Screen duration tracking
     private var screenEnterTime: Long = 0
+    
+    // Machine status monitoring
+    private val prefs by lazy { com.waterfountainmachine.app.utils.SecurePreferences.getSystemSettings(this) }
+    private val machineStatusPrefs by lazy { getSharedPreferences("machine_health", MODE_PRIVATE) }
+    private val statusChangeListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+        if (key == "is_disabled") {
+            if (machineHealthMonitor.isMachineDisabled()) {
+                AppLog.w(TAG, "⚠️ Machine became DISABLED during runtime - showing maintenance screen")
+                showDisabledScreen()
+            }
+        } else if (key == "maintenance_mode") {
+            if (prefs.getBoolean("maintenance_mode", false)) {
+                AppLog.w(TAG, "⚠️ Maintenance mode ENABLED during runtime - showing maintenance screen")
+                showMaintenanceScreen()
+            }
+        }
+    }
 
     companion object {
         private const val TAG = "MainActivity"
@@ -70,6 +92,10 @@ class MainActivity : AppCompatActivity() {
         setupSoundManager()
         setupAnalytics()  // Must be called before any analytics tracking
         setupBackButtonHandler()
+        
+        // Check if machine is remotely disabled
+        checkMachineDisabled()
+        
         setupClickListener()
         setupPressAnimation()
         setupAdminGesture()
@@ -104,6 +130,72 @@ class MainActivity : AppCompatActivity() {
                 AppLog.d(TAG, "Back button disabled in kiosk mode")
             }
         })
+    }
+    
+    /**
+     * Check if machine has been remotely disabled OR in local maintenance mode
+     * Shows maintenance error screen if disabled/maintenance
+     * Also registers listener to detect runtime status changes
+     */
+    private fun checkMachineDisabled() {
+        machineHealthMonitor = MachineHealthMonitor.getInstance(this)
+        
+        // Register listener for runtime status changes (both machine health and secure preferences)
+        machineStatusPrefs.registerOnSharedPreferenceChangeListener(statusChangeListener)
+        prefs.registerOnSharedPreferenceChangeListener(statusChangeListener)
+        
+        // Check for local maintenance mode first
+        val maintenanceMode = prefs.getBoolean("maintenance_mode", false)
+        
+        AppLog.i(TAG, "🔧 Maintenance mode check: $maintenanceMode")
+        AppLog.i(TAG, "🔧 Machine disabled check: ${machineHealthMonitor.isMachineDisabled()}")
+        
+        if (maintenanceMode) {
+            AppLog.w(TAG, "Machine is in local MAINTENANCE MODE - showing maintenance screen")
+            showMaintenanceScreen()
+            return  // Important: return early to prevent continuing with normal flow
+        } else if (machineHealthMonitor.isMachineDisabled()) {
+            AppLog.w(TAG, "Machine is remotely DISABLED - showing maintenance screen")
+            showDisabledScreen()
+            return  // Important: return early to prevent continuing with normal flow
+        } else {
+            AppLog.d(TAG, "Machine status check: ACTIVE")
+        }
+    }
+    
+    /**
+     * Show maintenance mode screen (local setting)
+     * Similar to disabled screen but indicates local maintenance
+     */
+    private fun showMaintenanceScreen() {
+        // Show error screen with maintenance message
+        // Use very long duration (24 hours) - machine won't work until maintenance mode disabled
+        // Admin can still access admin panel via triple-tap
+        ErrorScreenUtil.showError(
+            context = this,
+            message = "Machine is temporarily under maintenance.\nSorry for the inconvenience.",
+            displayDuration = 24 * 60 * 60 * 1000L // 24 hours
+        )
+        
+        // Finish this activity after showing error screen
+        finish()
+    }
+    
+    /**
+     * Show disabled screen and finish activity
+     */
+    private fun showDisabledScreen() {
+        // Show error screen with maintenance message
+        // Use very long duration (24 hours) - machine won't work until re-enabled
+        // Health monitor will continue checking every 15 mins to detect re-enable
+        ErrorScreenUtil.showError(
+            context = this,
+            message = UserErrorMessages.MACHINE_DISABLED,
+            displayDuration = 24 * 60 * 60 * 1000L // 24 hours
+        )
+        
+        // Finish this activity after showing error screen
+        finish()
     }
     
     private fun setupKioskMode() {
@@ -144,8 +236,8 @@ class MainActivity : AppCompatActivity() {
             if (!isNavigating) {
                 AppLog.d(TAG, "Screen tapped, launching SMSActivity")
                 
-                // Start journey tracking
-                WaterFountainApplication.startJourney()
+                // Start session and journey tracking
+                WaterFountainApplication.startSession()
                 
                 analyticsManager.logTapToStart()
                 soundManager.playSound(R.raw.start, volume = 1.0f)
@@ -445,6 +537,10 @@ class MainActivity : AppCompatActivity() {
     
     override fun onDestroy() {
         super.onDestroy()
+        
+        // Unregister status change listeners
+        machineStatusPrefs.unregisterOnSharedPreferenceChangeListener(statusChangeListener)
+        prefs.unregisterOnSharedPreferenceChangeListener(statusChangeListener)
         
         // Clean up animations
         canBobbingAnimator?.apply {

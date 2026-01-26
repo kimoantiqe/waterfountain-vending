@@ -26,7 +26,8 @@ interface IBackendSlotService {
         success: Boolean,
         errorCode: String? = null,
         totalJourneyDurationMs: Long? = null,
-        dispenseDurationMs: Long? = null
+        dispenseDurationMs: Long? = null,
+        isMock: Boolean = false
     ): Result<VendEventResult>
     
     /**
@@ -35,12 +36,14 @@ interface IBackendSlotService {
     suspend fun getSlotInventory(machineId: String, slot: Int? = null): Result<Any>
     
     /**
-     * Update slot status in backend (e.g., mark as DISABLED after failures)
+     * Update slot status in backend (e.g., mark as error after hardware failures)
      */
     suspend fun updateSlotStatus(
         machineId: String,
         slot: Int,
-        status: String
+        status: String,
+        errorCode: String? = null,
+        errorMessage: String? = null
     ): Result<Unit>
     
     /**
