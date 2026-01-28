@@ -178,10 +178,8 @@ dependencies {
     implementation("com.google.firebase:firebase-analytics-ktx")
     implementation("com.google.firebase:firebase-firestore-ktx")
     
-    // Firebase App Check - Include both providers (conditional use at runtime)
-    implementation("com.google.firebase:firebase-appcheck-ktx")
-    implementation("com.google.firebase:firebase-appcheck-debug:17.1.1")
-    implementation("com.google.firebase:firebase-appcheck-playintegrity:17.1.1")
+    // App Check removed - machines use certificate-based authentication instead
+    // Certificate auth provides sufficient security without requiring Play Integrity API
     
     // Kotlin Coroutines for Firebase async operations
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")

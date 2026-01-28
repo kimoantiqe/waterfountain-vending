@@ -261,8 +261,8 @@ class VendingAnimationActivity : AppCompatActivity() {
         // Load random messages from resources
         val completionMessages = resources.getStringArray(R.array.completion_messages)
         
-        // Set fixed status text (will show "Your water is on the way!") and random completion message
-        binding.statusText.text = "Your water is on the way!"
+        // statusText shows QR reminder (set in XML), progressText shows "Your water is on the way!"
+        binding.progressText.text = "Your water is on the way!"
         binding.completionText.text = completionMessages.random()
     }
 
@@ -331,7 +331,7 @@ class VendingAnimationActivity : AppCompatActivity() {
     }
 
     private fun fadeInElements() {
-        // Fade in status text with elegant rise - slower and smoother
+        // Fade in QR reminder text with elegant rise - slower and smoother
         binding.statusText.alpha = 0f
         binding.statusText.translationY = 40f
         binding.statusText.animate()
@@ -339,6 +339,31 @@ class VendingAnimationActivity : AppCompatActivity() {
             .translationY(0f)
             .setDuration(1500)  // Slower fade
             .setInterpolator(DecelerateInterpolator(3f))  // Much smoother
+            .start()
+
+        // Fade in reminder icon with elegant rise
+        binding.reminderIcon.alpha = 0f
+        binding.reminderIcon.translationY = 40f
+        binding.reminderIcon.scaleX = 0.8f
+        binding.reminderIcon.scaleY = 0.8f
+        binding.reminderIcon.animate()
+            .alpha(1f)
+            .translationY(0f)
+            .scaleX(1f)
+            .scaleY(1f)
+            .setDuration(1500)
+            .setInterpolator(DecelerateInterpolator(3f))
+            .start()
+
+        // Fade in progress text with elegant rise
+        binding.progressText.alpha = 0f
+        binding.progressText.translationY = 40f
+        binding.progressText.animate()
+            .alpha(1f)
+            .translationY(0f)
+            .setDuration(1500)
+            .setStartDelay(200)  // Slight delay after status text
+            .setInterpolator(DecelerateInterpolator(3f))
             .start()
 
         // Fade in ring container with slight scale - slower and more subtle
@@ -372,10 +397,27 @@ class VendingAnimationActivity : AppCompatActivity() {
     }
 
     private fun morphToLogo() {
-        // Fade out status text with elegant fall
-        binding.statusText.animate()
+        // Fade out progress text with elegant fall
+        binding.progressText.animate()
             .alpha(0f)
             .translationY(-30f)
+            .setDuration(600)
+            .setInterpolator(DecelerateInterpolator(2f))
+            .start()
+
+        // Fade out QR reminder text at the same time
+        binding.statusText.animate()
+            .alpha(0f)
+            .translationY(30f)
+            .setDuration(600)
+            .setInterpolator(DecelerateInterpolator(2f))
+            .start()
+
+        // Fade out reminder icon
+        binding.reminderIcon.animate()
+            .alpha(0f)
+            .scaleX(0.7f)
+            .scaleY(0.7f)
             .setDuration(600)
             .setInterpolator(DecelerateInterpolator(2f))
             .start()

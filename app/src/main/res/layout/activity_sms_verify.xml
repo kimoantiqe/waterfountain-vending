@@ -762,7 +762,7 @@
                             android:id="@+id/faq4Answer"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="You can get 2 free waters per day.\n(Resets at midnight)"
+                            android:text="You can get 1 free water per day.\n(Resets at midnight)"
                             android:textSize="20sp"
                             android:textColor="#2f2f2f"
                             android:fontFamily="@font/gilroy"

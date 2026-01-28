@@ -2,9 +2,6 @@ package com.waterfountainmachine.app
 
 import android.app.Application
 import com.google.firebase.Firebase
-import com.google.firebase.appcheck.appCheck
-import com.google.firebase.appcheck.debug.DebugAppCheckProviderFactory
-import com.google.firebase.appcheck.playintegrity.PlayIntegrityAppCheckProviderFactory
 import com.google.firebase.initialize
 import com.google.firebase.crashlytics.FirebaseCrashlytics
 import com.google.firebase.analytics.FirebaseAnalytics
@@ -124,16 +121,8 @@ class WaterFountainApplication : Application() {
         analyticsManager.setMachineContext(machineId)
         AppLog.i(TAG, "Analytics machine context set: ${machineId?.let { "****${it.takeLast(4)}" } ?: "null"}")
         
-        val appCheckProviderFactory = if (BuildConfig.DEBUG) {
-            AppLog.i(TAG, "Firebase App Check: DEBUG Provider")
-            AppLog.i(TAG, "Check logcat for debug token and register in Firebase Console")
-            DebugAppCheckProviderFactory.getInstance()
-        } else {
-            AppLog.i(TAG, "Firebase App Check: PLAY INTEGRITY Provider")
-            PlayIntegrityAppCheckProviderFactory.getInstance()
-        }
-        
-        Firebase.appCheck.installAppCheckProviderFactory(appCheckProviderFactory)
+        // App Check disabled - machines use certificate-based authentication instead
+        // Certificate auth provides sufficient security without requiring Play Integrity API
         
         if (BuildConfig.IS_PRODUCTION) {
             AppLog.i(TAG, "Running in PRODUCTION environment")
