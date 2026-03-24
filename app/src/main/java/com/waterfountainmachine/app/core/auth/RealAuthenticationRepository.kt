@@ -43,9 +43,9 @@ class RealAuthenticationRepository(
     
     private val functions: FirebaseFunctions = Firebase.functions
     
-    override suspend fun requestOtp(phone: String): Result<OtpRequestResponse> {
+    override suspend fun requestOtp(phone: String, consentAcknowledged: Boolean): Result<OtpRequestResponse> {
         return try {
-            AppLog.d(TAG, "Requesting OTP for phone: ${maskPhone(phone)}")
+            AppLog.d(TAG, "Requesting OTP for phone: ${maskPhone(phone)}, consent: $consentAcknowledged")
             
             // Validate certificate
             if (!certificateManager.hasCertificate()) {
@@ -62,10 +62,15 @@ class RealAuthenticationRepository(
                 )
             }
             
-            // Prepare authenticated request
+            // Prepare authenticated request with consent flag
+            val requestData = mutableMapOf<String, Any>("phone" to phone)
+            if (consentAcknowledged) {
+                requestData["consentAcknowledged"] = true
+            }
+            
             val authenticatedData = buildAuthenticatedRequest(
                 endpoint = REQUEST_OTP_ENDPOINT,
-                data = mapOf("phone" to phone)
+                data = requestData
             )
             
             // Call Firebase Function with 30-second timeout
@@ -78,7 +83,21 @@ class RealAuthenticationRepository(
             // Extract response data
             val responseData = result.data as? Map<*, *>
             val success = responseData?.get("success") as? Boolean ?: false
+            val consentRequired = responseData?.get("consentRequired") as? Boolean ?: false
+            val consentVersion = (responseData?.get("consentVersion") as? Number)?.toInt()
             val message = responseData?.get("message") as? String ?: "OTP sent"
+            
+            // Handle consent required response
+            if (consentRequired) {
+                AppLog.i(TAG, "Consent required (version: $consentVersion)")
+                return Result.success(
+                    OtpRequestResponse(
+                        success = false,
+                        consentRequired = true,
+                        consentVersion = consentVersion
+                    )
+                )
+            }
             
             if (!success) {
                 AppLog.w(TAG, "OTP request returned success=false: $message")
@@ -209,11 +228,14 @@ class RealAuthenticationRepository(
         )
         
         // Return map with data + authentication fields
+        // Include _payloadStr so backend uses the exact signed string
+        // (avoids JSON serialization mismatches for non-string types)
         return data + mapOf(
             "_cert" to certificate,
             "_timestamp" to timestamp.toString(),
             "_nonce" to nonce,
-            "_signature" to signature
+            "_signature" to signature,
+            "_payloadStr" to payloadJson
         )
     }
     

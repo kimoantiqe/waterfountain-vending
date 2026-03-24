@@ -32,11 +32,16 @@ class AnalyticsManager private constructor(private val context: Context) {
     
     // Store machine context to attach to all events
     private var currentMachineId: String? = null
+    private var currentMachineName: String? = null
     
     // Store campaign context for the current vending session
     private var currentCampaignId: String? = null
     private var currentAdvertiserId: String? = null
     private var currentCanDesignId: String? = null
+    // Names for analytics (no lookup tables needed in BigQuery)
+    private var currentCampaignName: String? = null
+    private var currentAdvertiserName: String? = null
+    private var currentCanDesignName: String? = null
     
     companion object {
         private const val TAG = "AnalyticsManager"
@@ -100,6 +105,11 @@ class AnalyticsManager private constructor(private val context: Context) {
         private const val PARAM_CAMPAIGN_ID = "campaign_id"
         private const val PARAM_ADVERTISER_ID = "advertiser_id"
         private const val PARAM_CAN_DESIGN_ID = "can_design_id"
+        // Human-readable names for analytics (no lookup tables needed in BigQuery)
+        private const val PARAM_MACHINE_NAME = "machine_name"
+        private const val PARAM_CAMPAIGN_NAME = "campaign_name"
+        private const val PARAM_ADVERTISER_NAME = "advertiser_name"
+        private const val PARAM_CAN_DESIGN_NAME = "can_design_name"
     }
     
     init {
@@ -255,11 +265,16 @@ class AnalyticsManager private constructor(private val context: Context) {
             
             // Always attach machine_id if available (critical for multi-machine analytics)
             currentMachineId?.let { putString(PARAM_MACHINE_ID, it) }
+            currentMachineName?.let { putString(PARAM_MACHINE_NAME, it) }
             
             // Attach campaign context if in an active vending session
             currentCampaignId?.let { putString(PARAM_CAMPAIGN_ID, it) }
             currentAdvertiserId?.let { putString(PARAM_ADVERTISER_ID, it) }
             currentCanDesignId?.let { putString(PARAM_CAN_DESIGN_ID, it) }
+            // Names for analytics (no lookup tables needed in BigQuery)
+            currentCampaignName?.let { putString(PARAM_CAMPAIGN_NAME, it) }
+            currentAdvertiserName?.let { putString(PARAM_ADVERTISER_NAME, it) }
+            currentCanDesignName?.let { putString(PARAM_CAN_DESIGN_NAME, it) }
         }
     }
     
@@ -269,21 +284,36 @@ class AnalyticsManager private constructor(private val context: Context) {
      * Set machine context - call this once at app start
      * This ensures machine_id is attached to ALL events
      */
-    fun setMachineContext(machineId: String?) {
+    fun setMachineContext(machineId: String?, machineName: String? = null) {
         val validMachineId = validateMachineId(machineId)
         currentMachineId = validMachineId
-        AppLog.i(TAG, "Machine context set: ${validMachineId?.let { "****${it.takeLast(4)}" } ?: "null"}")
+        currentMachineName = machineName
+        AppLog.i(TAG, "Machine context set: ${validMachineId?.let { "****${it.takeLast(4)}" } ?: "null"} (${machineName ?: "no name"})")
     }
     
     /**
      * Set campaign context for current vending session
      * Call this when vending starts with campaign data
+     * Now includes names for analytics (no lookup tables needed in BigQuery)
      */
-    fun setCampaignContext(campaignId: String?, advertiserId: String?, canDesignId: String?) {
+    fun setCampaignContext(
+        campaignId: String?, 
+        advertiserId: String?, 
+        canDesignId: String?,
+        machineName: String? = null,
+        campaignName: String? = null,
+        advertiserName: String? = null,
+        canDesignName: String? = null
+    ) {
         currentCampaignId = validateCampaignId(campaignId)
         currentAdvertiserId = validateCampaignId(advertiserId)
         currentCanDesignId = validateCampaignId(canDesignId)
-        AppLog.d(TAG, "Campaign context set: campaign=$currentCampaignId, advertiser=$currentAdvertiserId, design=$currentCanDesignId")
+        // Store names (null is fine if not provided)
+        if (machineName != null) currentMachineName = machineName
+        currentCampaignName = campaignName
+        currentAdvertiserName = advertiserName
+        currentCanDesignName = canDesignName
+        AppLog.d(TAG, "Campaign context set: campaign=${campaignName ?: currentCampaignId}, advertiser=${advertiserName ?: currentAdvertiserId}, design=${canDesignName ?: currentCanDesignId}")
     }
     
     /**
@@ -293,6 +323,9 @@ class AnalyticsManager private constructor(private val context: Context) {
         currentCampaignId = null
         currentAdvertiserId = null
         currentCanDesignId = null
+        currentCampaignName = null
+        currentAdvertiserName = null
+        currentCanDesignName = null
         AppLog.d(TAG, "Campaign context cleared")
     }
     

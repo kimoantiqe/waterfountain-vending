@@ -184,9 +184,14 @@ class BackendSlotService private constructor(private val context: Context) : IBa
                 eventId = resultData?.get("eventId") as? String ?: "",
                 campaignId = resultData?.get("campaignId") as? String,
                 canDesignId = resultData?.get("canDesignId") as? String,
-                advertiserId = resultData?.get("advertiserId") as? String
+                advertiserId = resultData?.get("advertiserId") as? String,
+                // Names for analytics (no lookup tables needed in BigQuery)
+                machineName = resultData?.get("machineName") as? String,
+                campaignName = resultData?.get("campaignName") as? String,
+                canDesignName = resultData?.get("canDesignName") as? String,
+                advertiserName = resultData?.get("advertiserName") as? String
             )
-            AppLog.d(TAG, "📊 Vend result: eventId=${vendResult.eventId}, campaign=${vendResult.campaignId}, design=${vendResult.canDesignId}, advertiser=${vendResult.advertiserId}")
+            AppLog.d(TAG, "📊 Vend result: eventId=${vendResult.eventId}, campaign=${vendResult.campaignName ?: vendResult.campaignId}, design=${vendResult.canDesignName ?: vendResult.canDesignId}, advertiser=${vendResult.advertiserName ?: vendResult.advertiserId}")
             Result.success(vendResult)
         } catch (e: com.google.firebase.functions.FirebaseFunctionsException) {
             when (e.code) {

@@ -53,6 +53,9 @@ class SMSViewModel @Inject constructor(
 
     // Request tracking for debouncing
     private var lastRequestTime = 0L
+    
+    // Consent tracking
+    private var consentAcknowledged = false
 
     companion object {
         private const val TAG = "SMSViewModel"
@@ -167,9 +170,21 @@ class SMSViewModel @Inject constructor(
                 val formattedPhone = PhoneNumberUtils.normalizePhoneNumber(phone)
 
                 // Request OTP from repository
-                val result = authRepository.requestOtp(formattedPhone)
+                val result = authRepository.requestOtp(formattedPhone, consentAcknowledged)
 
                 if (result.isSuccess) {
+                    val response = result.getOrThrow()
+                    
+                    // Check if consent is required
+                    if (response.consentRequired) {
+                        AppLog.i(TAG, "Consent required (version: ${response.consentVersion})")
+                        _uiState.value = SMSUiState.ConsentRequired(
+                            phoneNumber = phone,
+                            consentVersion = response.consentVersion ?: 1
+                        )
+                        return@launch
+                    }
+                    
                     lastRequestTime = System.currentTimeMillis()
                     AppLog.i(TAG, "OTP requested successfully")
                     _uiState.value = SMSUiState.OtpRequestSuccess(
@@ -214,6 +229,16 @@ class SMSViewModel @Inject constructor(
         _uiState.value = SMSUiState.PhoneEntry
         AppLog.d(TAG, "Reset to phone entry state")
     }
+
+    /**
+     * Acknowledge consent and re-request OTP
+     * Called after user accepts the consent dialog
+     */
+    fun acknowledgeConsentAndRequestOtp() {
+        consentAcknowledged = true
+        AppLog.i(TAG, "Consent acknowledged, re-requesting OTP")
+        requestOtp()
+    }
 }
 
 /**
@@ -226,6 +251,10 @@ sealed class SMSUiState {
     data class OtpRequestSuccess(
         val phoneNumber: String,
         val isPhoneVisible: Boolean
+    ) : SMSUiState()
+    data class ConsentRequired(
+        val phoneNumber: String,
+        val consentVersion: Int
     ) : SMSUiState()
     data object DailyLimitReached : SMSUiState()
     data class Error(val message: String) : SMSUiState()

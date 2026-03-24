@@ -88,7 +88,11 @@ class MockBackendSlotService(private val context: Context) : IBackendSlotService
                     eventId = eventId,
                     campaignId = "mock_campaign",
                     canDesignId = "mock_design",
-                    advertiserId = "mock_advertiser"
+                    advertiserId = "mock_advertiser",
+                    machineName = "Mock Machine",
+                    campaignName = "Mock Campaign",
+                    canDesignName = "Mock Design",
+                    advertiserName = "Mock Advertiser"
                 )
             )
         } catch (e: Exception) {

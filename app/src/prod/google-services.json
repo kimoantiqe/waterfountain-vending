@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "365953856168",
-    "project_id": "waterfountain-dev",
-    "storage_bucket": "waterfountain-dev.firebasestorage.app"
+    "project_number": "655822684062",
+    "project_id": "waterfountain-25886",
+    "storage_bucket": "waterfountain-25886.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:365953856168:android:2882ed8b6465201ce5c89d",
+        "mobilesdk_app_id": "1:655822684062:android:63f1821ee786c3c347608f",
         "android_client_info": {
           "package_name": "com.waterfountainmachine.app"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyDGUpvSoo34dX6ezk2cDg0Q_0YeX8RYQh8"
+          "current_key": "AIzaSyCXqAeJpgdixVi_6ThFGggWgghA1x4awLQ"
         }
       ],
       "services": {

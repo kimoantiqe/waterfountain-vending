@@ -91,6 +91,7 @@ android {
             
             // Apply signing config if keystore.properties exists
             val keystorePropertiesFile = rootProject.file("keystore.properties")
+            signingConfig = signingConfigs.getByName("debug")
             if (keystorePropertiesFile.exists()) {
                 signingConfig = signingConfigs.getByName("release")
             }

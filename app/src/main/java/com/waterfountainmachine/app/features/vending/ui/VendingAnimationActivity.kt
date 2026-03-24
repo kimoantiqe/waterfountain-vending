@@ -790,7 +790,12 @@ class VendingAnimationActivity : AppCompatActivity() {
                                 analyticsManager.setCampaignContext(
                                     campaignId = vendResult.campaignId,
                                     advertiserId = vendResult.advertiserId,
-                                    canDesignId = vendResult.canDesignId
+                                    canDesignId = vendResult.canDesignId,
+                                    // Names for analytics (no lookup tables needed in BigQuery)
+                                    machineName = vendResult.machineName,
+                                    campaignName = vendResult.campaignName,
+                                    advertiserName = vendResult.advertiserName,
+                                    canDesignName = vendResult.canDesignName
                                 )
                                 // campaign_vend removed - vending_completed already includes campaign context
                             }

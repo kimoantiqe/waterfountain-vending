@@ -16,9 +16,10 @@ interface IAuthenticationRepository {
      * Request an OTP code to be sent to the specified phone number.
      * 
      * @param phone Phone number in E.164 format (e.g., "+12345678900")
+     * @param consentAcknowledged Whether the user has acknowledged the consent terms
      * @return Result.success(OtpRequestResponse) on success, Result.failure(Exception) on error
      */
-    suspend fun requestOtp(phone: String): Result<OtpRequestResponse>
+    suspend fun requestOtp(phone: String, consentAcknowledged: Boolean = false): Result<OtpRequestResponse>
     
     /**
      * Verify an OTP code for the specified phone number.
@@ -35,7 +36,9 @@ interface IAuthenticationRepository {
  */
 data class OtpRequestResponse(
     val success: Boolean,
-    val message: String? = null
+    val message: String? = null,
+    val consentRequired: Boolean = false,
+    val consentVersion: Int? = null
 )
 
 /**
@@ -61,4 +64,8 @@ sealed class AuthenticationException(message: String) : Exception(message) {
     class ExpiredOtpError(message: String = "OTP code has expired") : AuthenticationException(message)
     class CertificateError(message: String = "Certificate authentication failed") : AuthenticationException(message)
     class ServerError(message: String = "Server error occurred") : AuthenticationException(message)
+    class ConsentRequiredError(
+        message: String = "User consent is required",
+        val consentVersion: Int = 1
+    ) : AuthenticationException(message)
 }

@@ -193,6 +193,11 @@ class SMSActivity : AppCompatActivity() {
                 analyticsManager.logSmsSentSuccess()
                 navigateToVerification(state.phoneNumber, state.isPhoneVisible)
             }
+            is SMSUiState.ConsentRequired -> {
+                // Backend requires consent before sending OTP
+                hideLoading()
+                showConsentDialog()
+            }
             is SMSUiState.DailyLimitReached -> {
                 // Navigate to error screen with daily limit message
                 hideLoading()
@@ -521,9 +526,10 @@ class SMSActivity : AppCompatActivity() {
     }
 
     /**
-     * Show beautiful custom consent dialog before sending verification code
+     * Show consent dialog when backend requires consent before sending OTP.
+     * Triggered by SMSUiState.ConsentRequired response from backend.
      */
-    private fun showConsentDialogAndSendCode() {
+    private fun showConsentDialog() {
         // Track consent viewed
         analyticsManager.logConsentViewed()
         
@@ -556,9 +562,8 @@ class SMSActivity : AppCompatActivity() {
             analyticsManager.logConsentAccepted()
             
             dialog.dismiss()
-            performButtonAnimation(binding.verifyButton) {
-                sendCodeAndNavigate()
-            }
+            // Acknowledge consent and re-request OTP with consentAcknowledged=true
+            viewModel.acknowledgeConsentAndRequestOtp()
         }
         
         // Show dialog with fade-in animation
@@ -860,13 +865,15 @@ class SMSActivity : AppCompatActivity() {
     }
 
     private fun setupKeypadListeners() {
-        // Set up send code button listener - show consent popup if complete
+        // Set up send code button listener - request OTP directly, consent is backend-gated
         binding.verifyButton.setOnClickListener {
             inactivityTimer.reset()
             
             if (viewModel.phoneNumber.value.length == WaterFountainConfig.MAX_PHONE_LENGTH) {
-                // Show consent dialog BEFORE sending code
-                showConsentDialogAndSendCode()
+                // Request OTP - backend will return consentRequired if consent needed
+                performButtonAnimation(binding.verifyButton) {
+                    sendCodeAndNavigate()
+                }
             } else {
                 // Show hint that number is incomplete
                 showIncompleteNumberHint()

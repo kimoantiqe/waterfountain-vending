@@ -53,6 +53,11 @@ interface IBackendSlotService {
         val eventId: String,
         val campaignId: String?,
         val canDesignId: String?,
-        val advertiserId: String?
+        val advertiserId: String?,
+        // Names for analytics (no lookup tables needed in BigQuery)
+        val machineName: String?,
+        val campaignName: String?,
+        val canDesignName: String?,
+        val advertiserName: String?
     )
 }

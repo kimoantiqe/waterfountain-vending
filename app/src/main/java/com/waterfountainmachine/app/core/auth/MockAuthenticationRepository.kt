@@ -39,8 +39,8 @@ class MockAuthenticationRepository(
     // Track phone numbers that have requested OTPs
     private val requestedPhones = mutableSetOf<String>()
     
-    override suspend fun requestOtp(phone: String): Result<OtpRequestResponse> {
-        AppLog.d(TAG, "Mock: Requesting OTP for phone: ${maskPhone(phone)}")
+    override suspend fun requestOtp(phone: String, consentAcknowledged: Boolean): Result<OtpRequestResponse> {
+        AppLog.d(TAG, "Mock: Requesting OTP for phone: ${maskPhone(phone)}, consent: $consentAcknowledged")
         
         // Simulate network latency
         if (simulateNetworkDelay) {
