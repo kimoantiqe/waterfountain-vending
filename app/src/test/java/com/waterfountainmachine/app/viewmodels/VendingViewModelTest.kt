@@ -5,6 +5,7 @@ import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
 import com.waterfountainmachine.app.core.hardware.WaterFountainManager
 import com.waterfountainmachine.app.core.hardware.sdk.WaterDispenseResult
+import com.waterfountainmachine.app.core.utils.UserErrorMessages
 import com.waterfountainmachine.app.features.vending.viewmodels.VendingViewModel
 import com.waterfountainmachine.app.features.vending.viewmodels.VendingUiState
 import io.mockk.*
@@ -70,9 +71,10 @@ class VendingViewModelTest {
         viewModel = VendingViewModel(mockWaterFountainManager, testDispatcher)
         advanceUntilIdle()
         
-        // Should be in HardwareError state after failed initialization
+        // Should be in HardwareError state with user-friendly message
+        // (technical details are logged via AppLog, not surfaced to UI)
         val errorState = viewModel.uiState.value as VendingUiState.HardwareError
-        assertThat(errorState.message).contains("not connected")
+        assertThat(errorState.message).isEqualTo(UserErrorMessages.HARDWARE_NOT_READY)
     }
 
     @Test
@@ -82,9 +84,10 @@ class VendingViewModelTest {
         viewModel = VendingViewModel(mockWaterFountainManager, testDispatcher)
         advanceUntilIdle()
         
-        // Should be in HardwareError state after exception
+        // Should be in HardwareError state with user-friendly message
+        // (the raw "Connection timeout" is logged via AppLog, not shown to user)
         val errorState = viewModel.uiState.value as VendingUiState.HardwareError
-        assertThat(errorState.message).contains("Connection error")
+        assertThat(errorState.message).isEqualTo(UserErrorMessages.HARDWARE_NOT_READY)
     }
 
     // ========== Water Dispensing Tests ==========
@@ -152,7 +155,10 @@ class VendingViewModelTest {
             
             assertThat(awaitItem()).isEqualTo(VendingUiState.Dispensing)
             val errorState = awaitItem() as VendingUiState.DispensingError
-            assertThat(errorState.message).contains("Motor failure")
+            // Technical error ("Motor failure") is logged via AppLog;
+            // users see a friendly message instead.
+            assertThat(errorState.message).isEqualTo(UserErrorMessages.DISPENSING_FAILED)
+            assertThat(errorState.slot).isEqualTo(1)
         }
     }
 
@@ -172,7 +178,10 @@ class VendingViewModelTest {
             
             assertThat(awaitItem()).isEqualTo(VendingUiState.Dispensing)
             val errorState = awaitItem() as VendingUiState.DispensingError
-            assertThat(errorState.message).contains("Hardware malfunction")
+            // The thrown "Hardware malfunction" is logged via AppLog;
+            // users see a friendly message instead.
+            assertThat(errorState.message).isEqualTo(UserErrorMessages.DISPENSING_FAILED)
+            assertThat(errorState.slot).isEqualTo(-1)
         }
     }
 

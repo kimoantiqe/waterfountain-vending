@@ -3,7 +3,9 @@ package com.waterfountainmachine.app.viewmodels
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
+import com.waterfountainmachine.app.core.auth.AuthenticationException
 import com.waterfountainmachine.app.core.auth.IAuthenticationRepository
+import com.waterfountainmachine.app.core.utils.UserErrorMessages
 import com.waterfountainmachine.app.features.vending.viewmodels.SMSUiState
 import com.waterfountainmachine.app.features.vending.viewmodels.SMSViewModel
 import io.mockk.*
@@ -243,54 +245,58 @@ class SMSViewModelTest {
 
     @Test
     fun `requestOtp should handle network error`() = runTest {
-        coEvery { mockAuthRepository.requestOtp(any()) } returns 
-            Result.failure(Exception("Network error occurred"))
-        
+        coEvery { mockAuthRepository.requestOtp(any()) } returns
+            Result.failure(AuthenticationException.NetworkError())
+
         viewModel.uiState.test {
             assertThat(awaitItem()).isEqualTo(SMSUiState.PhoneEntry)
-            
+
             // Add valid 10-digit phone
             repeat(10) { viewModel.addDigit(it.toString()) }
             viewModel.requestOtp()
-            
+
             advanceUntilIdle()
             assertThat(awaitItem()).isEqualTo(SMSUiState.RequestingOtp)
             val errorState = awaitItem() as SMSUiState.Error
-            assertThat(errorState.message).contains("Network error")
+            // Typed NetworkError is mapped to a friendly user-facing message.
+            assertThat(errorState.message).isEqualTo(UserErrorMessages.NETWORK_ERROR)
         }
     }
 
     @Test
-    fun `requestOtp should handle timeout error`() = runTest {
-        coEvery { mockAuthRepository.requestOtp(any()) } returns 
+    fun `requestOtp should fall back to generic error for untyped failures`() = runTest {
+        // A failure that isn't an AuthenticationException subtype (e.g. an
+        // unexpected timeout or unknown error) should surface the generic
+        // user-friendly message rather than the raw exception text.
+        coEvery { mockAuthRepository.requestOtp(any()) } returns
             Result.failure(Exception("Request timeout"))
-        
+
         viewModel.uiState.test {
             assertThat(awaitItem()).isEqualTo(SMSUiState.PhoneEntry)
-            
+
             // Add valid 10-digit phone
             repeat(10) { viewModel.addDigit(it.toString()) }
             viewModel.requestOtp()
-            
+
             advanceUntilIdle()
             assertThat(awaitItem()).isEqualTo(SMSUiState.RequestingOtp)
             val errorState = awaitItem() as SMSUiState.Error
-            assertThat(errorState.message).contains("timed out")
+            assertThat(errorState.message).isEqualTo(UserErrorMessages.GENERIC_ERROR)
         }
     }
 
     @Test
     fun `requestOtp should handle daily limit error`() = runTest {
-        coEvery { mockAuthRepository.requestOtp(any()) } returns 
-            Result.failure(Exception("Daily limit reached"))
-        
+        coEvery { mockAuthRepository.requestOtp(any()) } returns
+            Result.failure(AuthenticationException.DailyLimitError())
+
         viewModel.uiState.test {
             assertThat(awaitItem()).isEqualTo(SMSUiState.PhoneEntry)
-            
+
             // Add valid 10-digit phone
             repeat(10) { viewModel.addDigit(it.toString()) }
             viewModel.requestOtp()
-            
+
             advanceUntilIdle()
             assertThat(awaitItem()).isEqualTo(SMSUiState.RequestingOtp)
             assertThat(awaitItem()).isEqualTo(SMSUiState.DailyLimitReached)
