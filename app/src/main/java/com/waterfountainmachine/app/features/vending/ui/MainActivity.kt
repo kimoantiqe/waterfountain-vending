@@ -101,7 +101,15 @@ class MainActivity : KioskActivity() {
         
         // Check if machine is remotely disabled
         checkMachineDisabled()
-        
+
+        // When checkMachineDisabled() decides to finish() this Activity,
+        // there is no value in continuing with hardware init, gesture
+        // setup, or further analytics. Bail before we kick off work we
+        // are about to tear down -- this also keeps the disabled-machine
+        // path testable under Robolectric where the cast inside
+        // initializeHardware() would otherwise fail.
+        if (isFinishing) return
+
         setupClickListener()
         setupPressAnimation()
         setupAdminGesture()
