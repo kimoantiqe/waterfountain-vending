@@ -13,7 +13,10 @@ import com.waterfountainmachine.app.core.utils.AppLog
 import com.waterfountainmachine.app.core.slot.SlotInventoryManager
 import com.waterfountainmachine.app.core.backend.IBackendSlotService
 import com.waterfountainmachine.app.core.di.BackendModule
+import androidx.hilt.work.HiltWorkerFactory
+import androidx.work.Configuration
 import dagger.hilt.android.HiltAndroidApp
+import javax.inject.Inject
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -26,7 +29,19 @@ import kotlinx.coroutines.flow.asStateFlow
  * Application class - manages hardware state and Firebase initialization
  */
 @HiltAndroidApp
-class WaterFountainApplication : Application() {
+class WaterFountainApplication : Application(), Configuration.Provider {
+
+    /**
+     * Injected by Hilt's hilt-work artifact. Used by [workManagerConfiguration]
+     * to register the factory that constructs @HiltWorker classes
+     * (e.g. CertificateRenewalWorker) with their assisted-injected deps.
+     */
+    @Inject lateinit var workerFactory: HiltWorkerFactory
+
+    override val workManagerConfiguration: Configuration
+        get() = Configuration.Builder()
+            .setWorkerFactory(workerFactory)
+            .build()
     
     companion object {
         private const val TAG = "WaterFountainApp"

@@ -2,11 +2,11 @@ package com.waterfountainmachine.app.workers
 
 import android.content.Context
 import android.os.Bundle
+import androidx.hilt.work.HiltWorker
 import androidx.work.*
-import com.google.firebase.analytics.FirebaseAnalytics
-import com.waterfountainmachine.app.core.backend.BackendMachineService
-import com.waterfountainmachine.app.core.security.SecurityModule
 import com.waterfountainmachine.app.core.utils.AppLog
+import dagger.assisted.Assisted
+import dagger.assisted.AssistedInject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.util.concurrent.TimeUnit
@@ -37,9 +37,13 @@ internal enum class RenewalAction { EXPIRED_FAIL, NOT_NEEDED, RENEW }
  * - Logs failures for monitoring
  * - Does not renew expired certificates (requires re-enrollment)
  */
-class CertificateRenewalWorker(
-    appContext: Context,
-    workerParams: WorkerParameters
+@HiltWorker
+class CertificateRenewalWorker @AssistedInject constructor(
+    @Assisted appContext: Context,
+    @Assisted workerParams: WorkerParameters,
+    private val security: CertificateSecurity,
+    private val backend: CertificateBackend,
+    private val analytics: RenewalAnalytics,
 ) : CoroutineWorker(appContext, workerParams) {
 
     companion object {
@@ -146,62 +150,59 @@ class CertificateRenewalWorker(
     }
 
     override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
-        val analytics = FirebaseAnalytics.getInstance(applicationContext)
-        
         try {
             AppLog.d(TAG, "Starting certificate renewal check")
 
             // Check if machine is enrolled
-            if (!SecurityModule.isEnrolled()) {
+            if (!security.isEnrolled()) {
                 AppLog.w(TAG, "Machine not enrolled, skipping renewal check")
                 return@withContext Result.success()
             }
 
             // Get machine ID
-            val machineId = SecurityModule.getMachineId()
+            val machineId = security.getMachineId()
             if (machineId == null) {
                 AppLog.w(TAG, "No machine ID found, skipping renewal check")
                 return@withContext Result.success()
             }
 
             // Check if renewal is needed
-            val daysRemaining = SecurityModule.getDaysUntilExpiry()
-            
+            val daysRemaining = security.getDaysUntilExpiry()
+
             // Log certificate status to Analytics
             val statusParams = Bundle().apply {
                 putString("machine_id", machineId)
                 putInt("days_remaining", daysRemaining ?: -999)
             }
-            
-            // CRITICAL: If certificate is expired, log error and fail
-            if (daysRemaining != null && daysRemaining < 0) {
-                AppLog.e(
-                    TAG,
-                    "CRITICAL: Certificate has EXPIRED. Machine locked out. " +
-                    "Days overdue: ${-daysRemaining}. Manual re-enrollment required."
-                )
-                
-                // Log critical analytics event
-                statusParams.putString("status", "expired")
-                statusParams.putInt("days_overdue", -daysRemaining)
-                analytics.logEvent("certificate_expired", statusParams)
-                
-                // Return failure to trigger alerts/monitoring
-                return@withContext Result.failure()
-            }
-            
-            if (!SecurityModule.shouldRenewCertificate()) {
-                AppLog.d(TAG, "Certificate renewal not needed. Days remaining: $daysRemaining")
-                
-                // Log valid status
-                statusParams.putString("status", "valid")
-                analytics.logEvent("certificate_status_check", statusParams)
-                
-                return@withContext Result.success()
+
+            // Decide action via pure policy helper — keeps the worker free of
+            // inline branching and makes the policy unit-testable.
+            when (decideRenewalAction(daysRemaining, security.shouldRenewCertificate())) {
+                RenewalAction.EXPIRED_FAIL -> {
+                    val daysOverdue = -(daysRemaining ?: 0)
+                    AppLog.e(
+                        TAG,
+                        "CRITICAL: Certificate has EXPIRED. Machine locked out. " +
+                            "Days overdue: $daysOverdue. Manual re-enrollment required."
+                    )
+                    statusParams.putString("status", "expired")
+                    statusParams.putInt("days_overdue", daysOverdue)
+                    analytics.logEvent("certificate_expired", statusParams)
+                    return@withContext Result.failure()
+                }
+                RenewalAction.NOT_NEEDED -> {
+                    AppLog.d(TAG, "Certificate renewal not needed. Days remaining: $daysRemaining")
+                    statusParams.putString("status", "valid")
+                    analytics.logEvent("certificate_status_check", statusParams)
+                    return@withContext Result.success()
+                }
+                RenewalAction.RENEW -> {
+                    // fall through to renewal call below
+                }
             }
 
             AppLog.i(TAG, "Certificate needs renewal (< 7 days remaining)")
-            
+
             // Log renewal attempt
             val renewalParams = Bundle().apply {
                 putString("machine_id", machineId)
@@ -210,13 +211,12 @@ class CertificateRenewalWorker(
             analytics.logEvent("certificate_renewal_attempt", renewalParams)
 
             // Call backend to renew certificate
-            val backendService = BackendMachineService.getInstance(applicationContext)
-            val result = backendService.renewCertificate(machineId)
+            val result = backend.renewCertificate(machineId)
 
             result.fold(
                 onSuccess = { certData ->
                     // Install new certificate
-                    SecurityModule.installCertificate(certData.certificatePem)
+                    security.installCertificate(certData.certificatePem)
                     
                     AppLog.i(
                         TAG,

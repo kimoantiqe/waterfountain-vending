@@ -194,6 +194,12 @@ dependencies {
     // Hilt Dependency Injection
     implementation("com.google.dagger:hilt-android:2.50")
     kapt("com.google.dagger:hilt-android-compiler:2.50")
+
+    // Hilt + WorkManager integration — lets @HiltWorker classes be
+    // assisted-injected via HiltWorkerFactory (registered in
+    // WaterFountainApplication's Configuration.Provider override).
+    implementation("androidx.hilt:hilt-work:1.2.0")
+    kapt("androidx.hilt:hilt-compiler:1.2.0")
     
     // Lifecycle & ViewModel
     implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.7.0")
@@ -226,6 +232,7 @@ dependencies {
     testImplementation("app.cash.turbine:turbine:1.0.0")
     testImplementation("com.google.truth:truth:1.1.5")
     testImplementation("androidx.arch.core:core-testing:2.2.0")
+    testImplementation("androidx.work:work-testing:2.9.0")
 }
 
 // ---------------------------------------------------------------------------
