@@ -349,6 +349,55 @@ class SMSVerifyViewModelTest {
         assertThat(viewModel.uiState.value).isEqualTo(SMSVerifyUiState.OtpExpired)
     }
 
+    /**
+     * Regression for the OTP timer race: a verify that completes shortly
+     * before the 120s deadline must NOT be overwritten by the timer's
+     * `OtpExpired` write. The timer must be cancelled on terminal success.
+     */
+    @Test
+    fun `OTP timer does not overwrite VerificationSuccess once verify succeeds`() = runTest {
+        viewModel.initialize(phone)
+        repeat(6) { viewModel.addDigit("2") }
+        coEvery { mockAuthRepository.verifyOtp(normalizedPhone, "222222") } returns
+            Result.success(OtpVerifyResponse(success = true, vendsRemainingToday = 1))
+
+        viewModel.verifyOtp()
+        drainVerify()
+        assertThat(viewModel.uiState.value).isEqualTo(SMSVerifyUiState.VerificationSuccess)
+
+        // Advance well past the original 120s deadline. With the bug, the
+        // timer body would have fired OtpExpired on top of VerificationSuccess.
+        advanceTimeBy(180_000)
+        runCurrent()
+
+        assertThat(viewModel.uiState.value).isEqualTo(SMSVerifyUiState.VerificationSuccess)
+    }
+
+    /** Same regression but for the DailyLimitReached terminal state. */
+    @Test
+    fun `OTP timer does not overwrite DailyLimitReached`() = runTest {
+        viewModel.initialize(phone)
+        repeat(6) { viewModel.addDigit("3") }
+        coEvery { mockAuthRepository.verifyOtp(any(), any()) } returns
+            Result.success(
+                OtpVerifyResponse(
+                    success = true,
+                    dailyVendLimit = 2,
+                    vendsUsedToday = 2,
+                    vendsRemainingToday = 0
+                )
+            )
+
+        viewModel.verifyOtp()
+        drainVerify()
+        assertThat(viewModel.uiState.value).isEqualTo(SMSVerifyUiState.DailyLimitReached)
+
+        advanceTimeBy(180_000)
+        runCurrent()
+
+        assertThat(viewModel.uiState.value).isEqualTo(SMSVerifyUiState.DailyLimitReached)
+    }
+
     // ========== Misc ==========
 
     @Test

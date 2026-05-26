@@ -152,14 +152,20 @@ class SMSVerifyViewModel @Inject constructor(
                 result.onSuccess { response ->
                     AppLog.i(TAG, "✅ OTP verification successful: ${response.message}")
                     _failedAttempts.value = 0
-                    
+
+                    // Stop the expiry countdown — we've reached a terminal state
+                    // either way (success or daily-limit-reached). Without this, a
+                    // verify that completes within ~1s of the 120s deadline could
+                    // be overwritten by the timer's OtpExpired write.
+                    timerJob?.cancel()
+
                     // Check if user has reached daily vend limit
                     if (response.vendsRemainingToday <= 0) {
                         AppLog.w(TAG, "Daily vend limit reached (${response.vendsUsedToday}/${response.dailyVendLimit})")
                         _uiState.value = SMSVerifyUiState.DailyLimitReached
                         return@onSuccess
                     }
-                    
+
                     _uiState.value = SMSVerifyUiState.VerificationSuccess
                 }.onFailure { error ->
                     // Log technical error details for admin review
@@ -272,8 +278,31 @@ class SMSVerifyViewModel @Inject constructor(
                 _otpTimeRemaining.value--
             }
             AppLog.i(TAG, "OTP timer expired")
-            _uiState.value = SMSVerifyUiState.OtpExpired
+            // Guard: do not clobber a terminal state that may have been set
+            // by a verifyOtp() in-flight when the timer expired. We only
+            // transition to OtpExpired from a non-terminal state.
+            if (isNonTerminalState(_uiState.value)) {
+                _uiState.value = SMSVerifyUiState.OtpExpired
+            } else {
+                AppLog.d(TAG, "OTP timer expired but UI already in terminal state " +
+                    "${_uiState.value::class.simpleName}; skipping OtpExpired transition")
+            }
         }
+    }
+
+    private fun isNonTerminalState(state: SMSVerifyUiState): Boolean = when (state) {
+        is SMSVerifyUiState.EnteringOtp,
+        is SMSVerifyUiState.IncompleteOtp,
+        is SMSVerifyUiState.OtpCompleted,
+        is SMSVerifyUiState.Verifying,
+        is SMSVerifyUiState.IncorrectOtp,
+        is SMSVerifyUiState.ResendingOtp,
+        is SMSVerifyUiState.OtpResent -> true
+        is SMSVerifyUiState.VerificationSuccess,
+        is SMSVerifyUiState.DailyLimitReached,
+        is SMSVerifyUiState.Error,
+        is SMSVerifyUiState.ResendError,
+        is SMSVerifyUiState.OtpExpired -> false
     }
 
     /**
