@@ -249,22 +249,23 @@ class AdminAuthActivity : KioskActivity() {
         if (AdminPinManager.verifyPin(this, pinCode)) {
             // Successful authentication
             AppLog.i(TAG, "Admin authentication successful")
-            
-            // Check if user is still using default PIN
-            if (AdminPinManager.isDefaultPin(this, com.waterfountainmachine.app.BuildConfig.ADMIN_INITIAL_PIN)) {
-                AppLog.w(TAG, "⚠️ Admin is using build-config initial PIN - should be rotated!")
-                // TODO: Show warning to change PIN in admin panel
-            }
-            
+
             // Reset failed attempts on success
             failedAttempts = 0
             lockoutUntil = 0
             saveRateLimitState()
-            
-            // Navigate to admin panel
-            val intent = Intent(this, AdminPanelActivity::class.java)
-            startActivity(intent)
-            finish()
+
+            // If the operator just authenticated with the bootstrap default
+            // PIN, force them through a rotation flow BEFORE we let them
+            // reach the admin panel. This is the entire mitigation for the
+            // hardcoded-default-PIN risk: the value is in source, but it
+            // can only be used once.
+            if (AdminPinManager.isDefaultPin(this)) {
+                AppLog.w(TAG, "Admin logged in with default PIN \u2014 forcing rotation")
+                showMandatoryPinRotationDialog()
+            } else {
+                navigateToAdminPanel()
+            }
         } else {
             // Failed authentication
             failedAttempts++
@@ -350,5 +351,98 @@ class AdminAuthActivity : KioskActivity() {
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
         return HardwareKeyHandler.handleKeyDown(keyCode) { finish() }
             || super.onKeyDown(keyCode, event)
+    }
+
+    private fun navigateToAdminPanel() {
+        startActivity(Intent(this, AdminPanelActivity::class.java))
+        finish()
+    }
+
+    /**
+     * Forces the operator to rotate the bootstrap [AdminPinManager.DEFAULT_PIN]
+     * before the admin panel becomes reachable.
+     *
+     * Dialog is non-cancelable. On back-press / outside-touch the activity
+     * itself finishes (kicks the operator back to the kiosk), so the only
+     * happy exit is "set a new PIN".
+     */
+    private fun showMandatoryPinRotationDialog() {
+        // Pause the inactivity timer while the operator is mid-rotation
+        // (typing a new PIN twice can legitimately take >60s).
+        inactivityTimer.pause()
+
+        val padPx = (24 * resources.displayMetrics.density).toInt()
+        val container = android.widget.LinearLayout(this).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            setPadding(padPx, padPx / 2, padPx, 0)
+        }
+
+        fun pinField(hintText: String) = android.widget.EditText(this).apply {
+            hint = hintText
+            inputType = android.text.InputType.TYPE_CLASS_NUMBER or
+                android.text.InputType.TYPE_NUMBER_VARIATION_PASSWORD
+            filters = arrayOf(android.text.InputFilter.LengthFilter(8))
+        }
+
+        val newPinEt = pinField("New 8-digit PIN")
+        val confirmEt = pinField("Confirm new PIN")
+        container.addView(newPinEt)
+        container.addView(confirmEt)
+
+        val dialog = androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle("Set a new admin PIN")
+            .setMessage(
+                "You logged in with the default admin PIN. " +
+                "For security, you must set a new PIN before continuing."
+            )
+            .setView(container)
+            .setCancelable(false)
+            // Positive button wired in OnShowListener so we can prevent
+            // dismissal on validation errors.
+            .setPositiveButton("Save", null)
+            .setNegativeButton("Cancel") { _, _ ->
+                AppLog.w(TAG, "Operator canceled mandatory PIN rotation")
+                finish()
+            }
+            .create()
+
+        dialog.setOnShowListener {
+            val saveBtn = dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_POSITIVE)
+            saveBtn.setOnClickListener {
+                val newPin = newPinEt.text?.toString().orEmpty()
+                val confirm = confirmEt.text?.toString().orEmpty()
+                val err = validateNewPin(newPin, confirm)
+                if (err != null) {
+                    android.widget.Toast.makeText(this, err, android.widget.Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
+                if (AdminPinManager.setPin(this, newPin)) {
+                    AppLog.i(TAG, "\u2705 Default admin PIN rotated by operator")
+                    android.widget.Toast.makeText(
+                        this, "Admin PIN updated", android.widget.Toast.LENGTH_SHORT
+                    ).show()
+                    dialog.dismiss()
+                    navigateToAdminPanel()
+                } else {
+                    AppLog.e(TAG, "Failed to persist rotated admin PIN")
+                    android.widget.Toast.makeText(
+                        this, "Could not save PIN, please try again",
+                        android.widget.Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
+        }
+        dialog.show()
+    }
+
+    /** Returns a user-facing error string, or null if the candidate is valid. */
+    private fun validateNewPin(newPin: String, confirm: String): String? = when {
+        newPin.length != 8 || !newPin.all { it.isDigit() } ->
+            "New PIN must be exactly 8 digits"
+        newPin != confirm ->
+            "PINs do not match"
+        AdminPinManager.isDefaultPinValue(newPin) ->
+            "New PIN must differ from the default"
+        else -> null
     }
 }
