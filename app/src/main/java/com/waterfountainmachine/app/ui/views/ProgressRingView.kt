@@ -172,18 +172,8 @@ class ProgressRingView @JvmOverloads constructor(
             val progressRatio = progress / 100f
             
             // Adjust gradient positions to map only to the drawn portion
-            // The last color should appear at the end of the sweep, not wrap around
-            @Suppress("UNUSED_VARIABLE")
-            val colors = intArrayOf(
-                Color.parseColor("#D8CFFF"),  // Light lavender at start (top of circle)
-                Color.parseColor("#C4B5F2"),  // Medium-light lavender
-                Color.parseColor("#AFA0EE"),  // Medium lavender (matches buttons)
-                Color.parseColor("#9B8AC4"),  // Darker lavender-gray
-                Color.parseColor("#8B7BB8")   // Darkest lavender at end
-            )
-            
-            // Map gradient positions to the actual sweep angle
-            // Fill the rest of the circle with the start color to avoid tail
+            // The last color should appear at the end of the sweep, not wrap around.
+            // Fill the rest of the circle with the start color to avoid a "tail" effect.
             val adjustedColors = intArrayOf(
                 Color.parseColor("#D8CFFF"),  // Start color at 0
                 Color.parseColor("#C4B5F2"),  // 25% of progress

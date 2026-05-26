@@ -92,9 +92,8 @@ class SMSVerifyActivity : KioskActivity() {
         binding = ActivitySmsVerifyBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // Get phone number and visibility state from intent
+        // Get phone number from intent
         val phoneNumber = intent.getStringExtra(EXTRA_PHONE_NUMBER) ?: ""
-        val isPhoneNumberVisible = intent.getBooleanExtra(EXTRA_PHONE_VISIBILITY, true)
 
         // Initialize ViewModel with phone number
         viewModel.initialize(phoneNumber)
@@ -129,7 +128,7 @@ class SMSVerifyActivity : KioskActivity() {
         setupHardware()
         
         // Setup initial UI
-        setupVerificationUI(isPhoneNumberVisible)
+        setupVerificationUI()
     }
 
     /**
@@ -508,7 +507,7 @@ class SMSVerifyActivity : KioskActivity() {
         return bitmap
     }
 
-    private fun setupVerificationUI(@Suppress("UNUSED_PARAMETER") isPhoneNumberVisible: Boolean) {
+    private fun setupVerificationUI() {
         // Note: Phone number display logic removed since subtitle text view doesn't exist in layout
         // The layout uses titleText for "Enter verification code" and an info message above
         
