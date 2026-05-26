@@ -22,6 +22,25 @@ android {
         versionName = "1.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // Initial admin PIN for first-boot bootstrap.
+        // Sourced (in order): local.properties[adminInitialPin] -> env ADMIN_INITIAL_PIN -> "".
+        // If blank, the app ships with NO default admin PIN — operators must
+        // set one via the enrollment / admin debug flow before admin access works.
+        // Never commit a non-blank value; both sources are gitignored.
+        val adminInitialPin: String = run {
+            val localProps = rootProject.file("local.properties")
+            val fromProps = if (localProps.exists()) {
+                val p = Properties()
+                FileInputStream(localProps).use { p.load(it) }
+                p.getProperty("adminInitialPin", "")
+            } else ""
+            fromProps.ifBlank { System.getenv("ADMIN_INITIAL_PIN") ?: "" }
+        }
+        if (adminInitialPin.isNotBlank() && !adminInitialPin.matches(Regex("\\d{8}"))) {
+            throw GradleException("adminInitialPin must be exactly 8 digits (or blank)")
+        }
+        buildConfigField("String", "ADMIN_INITIAL_PIN", "\"$adminInitialPin\"")
     }
 
     // SIGNING CONFIGURATION

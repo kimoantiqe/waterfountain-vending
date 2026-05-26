@@ -31,22 +31,38 @@ object AdminPinManager {
     private const val PREF_PIN_SALT = "admin_pin_salt"
     private const val PREF_FAILED_ATTEMPTS = "admin_failed_attempts"
     private const val PREF_LOCKOUT_UNTIL = "admin_lockout_until"
-    private const val DEFAULT_PIN = "01121999" // Default PIN for initial setup
-    
+
     /**
-     * Initialize PIN system with default PIN if no PIN is set
-     * Call this during app initialization
+     * Initialize PIN system. If no PIN is stored yet AND a non-blank
+     * `initialPin` is supplied (typically from `BuildConfig.ADMIN_INITIAL_PIN`,
+     * which is sourced at build time from gitignored config), the initial PIN
+     * is installed. Otherwise the admin PIN remains unset and admin
+     * authentication will fail until `setPin()` is called explicitly.
+     *
+     * IMPORTANT: do NOT pass a hardcoded PIN here. Production builds must
+     * receive a per-deployment PIN via the build pipeline (env var) or via
+     * enrollment.
      */
-    fun initialize(context: Context) {
+    fun initialize(context: Context, initialPin: String) {
         val prefs = SecurePreferences.getSystemSettings(context)
-        
-        // Check if PIN already configured
-        if (!prefs.contains(PREF_PIN_HASH)) {
-            AdminDebugConfig.logAdminInfo(context, TAG, "No admin PIN configured, setting default PIN")
-            setPin(context, DEFAULT_PIN)
-        } else {
+
+        if (prefs.contains(PREF_PIN_HASH)) {
             AdminDebugConfig.logAdmin(context, TAG, "Admin PIN already configured")
+            return
         }
+
+        if (initialPin.isBlank()) {
+            AppLog.w(TAG, "No admin PIN configured and no initial PIN supplied; admin access disabled until setPin() is called")
+            return
+        }
+
+        if (!initialPin.matches(Regex("\\d{8}"))) {
+            AppLog.e(TAG, "Initial admin PIN has invalid format (must be 8 digits); ignoring")
+            return
+        }
+
+        AdminDebugConfig.logAdminInfo(context, TAG, "Installing initial admin PIN from build configuration")
+        setPin(context, initialPin)
     }
     
     /**
@@ -174,10 +190,15 @@ object AdminPinManager {
     }
     
     /**
-     * Check if PIN has been changed from default
+     * Check whether the currently stored PIN matches the build-time initial PIN.
+     * Used by the admin UI to nag operators to rotate the bootstrap PIN.
+     *
+     * @param defaultPin the initial PIN from `BuildConfig.ADMIN_INITIAL_PIN`.
+     *                   If blank, this always returns `false` (no default to match).
      */
-    fun isDefaultPin(context: Context): Boolean {
-        return verifyPin(context, DEFAULT_PIN)
+    fun isDefaultPin(context: Context, defaultPin: String): Boolean {
+        if (defaultPin.isBlank()) return false
+        return verifyPin(context, defaultPin)
     }
     
     /**

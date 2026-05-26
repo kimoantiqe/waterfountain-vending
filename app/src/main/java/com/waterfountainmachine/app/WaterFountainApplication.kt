@@ -108,7 +108,10 @@ class WaterFountainApplication : Application() {
         AppLog.i(TAG, "Build Type: ${if (BuildConfig.DEBUG) "DEBUG" else "RELEASE"}")
         
         com.waterfountainmachine.app.core.utils.SecurePreferences.migrateSystemSettings(this)
-        com.waterfountainmachine.app.features.admin.utils.AdminPinManager.initialize(this)
+        com.waterfountainmachine.app.features.admin.utils.AdminPinManager.initialize(
+            this,
+            BuildConfig.ADMIN_INITIAL_PIN
+        )
         
         Firebase.initialize(context = this)
         

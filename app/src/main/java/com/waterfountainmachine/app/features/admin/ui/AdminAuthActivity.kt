@@ -251,8 +251,8 @@ class AdminAuthActivity : KioskActivity() {
             AppLog.i(TAG, "Admin authentication successful")
             
             // Check if user is still using default PIN
-            if (AdminPinManager.isDefaultPin(this)) {
-                AppLog.w(TAG, "⚠️ Admin is using default PIN - should be changed!")
+            if (AdminPinManager.isDefaultPin(this, com.waterfountainmachine.app.BuildConfig.ADMIN_INITIAL_PIN)) {
+                AppLog.w(TAG, "⚠️ Admin is using build-config initial PIN - should be rotated!")
                 // TODO: Show warning to change PIN in admin panel
             }
             
