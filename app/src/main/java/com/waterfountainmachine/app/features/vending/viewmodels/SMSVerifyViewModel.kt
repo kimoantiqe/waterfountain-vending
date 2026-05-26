@@ -25,6 +25,14 @@ class SMSVerifyViewModel @Inject constructor(
     private val authRepository: IAuthenticationRepository
 ) : ViewModel() {
 
+    /**
+     * Injectable wall-clock source for the verify-debounce window. Production
+     * uses [System.currentTimeMillis]; tests can substitute a stepped clock
+     * to keep the suite deterministic (no `Thread.sleep` flake on CI).
+     */
+    @Suppress("MemberVisibilityCanBePrivate")
+    var clock: () -> Long = { System.currentTimeMillis() }
+
     companion object {
         private const val TAG = "SMSVerifyViewModel"
         private const val MAX_OTP_LENGTH = 6
@@ -120,7 +128,7 @@ class SMSVerifyViewModel @Inject constructor(
         }
 
         // Check debounce - prevent rapid repeated verifications
-        val now = System.currentTimeMillis()
+        val now = clock()
         if (now - lastVerifyTime < 1000) {
             AppLog.d(TAG, "Verify request debounced")
             return

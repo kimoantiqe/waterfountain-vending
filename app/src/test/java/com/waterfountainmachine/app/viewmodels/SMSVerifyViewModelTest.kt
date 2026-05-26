@@ -1,6 +1,7 @@
 package com.waterfountainmachine.app.viewmodels
 
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
+import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
 import com.waterfountainmachine.app.core.auth.AuthenticationException
 import com.waterfountainmachine.app.core.auth.IAuthenticationRepository
@@ -211,20 +212,24 @@ class SMSVerifyViewModelTest {
 
     @Test
     fun `verifyOtp invalid otp on third attempt shows TOO_MANY_OTP_ATTEMPTS`() = runTest {
+        // Inject a manual clock so the 1s debounce window is fully deterministic
+        // — no Thread.sleep, no wall-clock flake under CI load. Start well above
+        // 0 so the very first verifyOtp() is not auto-debounced (lastVerifyTime
+        // starts at 0 inside the VM).
+        var fakeNow = 10_000L
+        viewModel = SMSVerifyViewModel(mockAuthRepository).also { it.clock = { fakeNow } }
         viewModel.initialize(phone)
+
         coEvery { mockAuthRepository.verifyOtp(any(), any()) } returns
             Result.failure(AuthenticationException.InvalidOtpError("invalid"))
 
-        // Three failures. The debounce uses System.currentTimeMillis() (wall
-        // clock), so we must actually sleep between calls -- advancing the
-        // dispatcher's virtual clock alone is not enough.
         repeat(3) { attempt ->
             viewModel.clearOtp()
             repeat(6) { viewModel.addDigit((attempt + 1).toString()) }
             viewModel.verifyOtp()
             advanceTimeBy(1_000) // drain the 800ms loading delay
             runCurrent()
-            Thread.sleep(1_050) // clear the 1s wall-clock debounce window
+            fakeNow += 1_001     // step past the 1s debounce window
         }
 
         val state = viewModel.uiState.value
@@ -420,5 +425,59 @@ class SMSVerifyViewModelTest {
         drainVerify()
 
         assertThat(viewModel.getAttemptNumber()).isEqualTo(2)
+    }
+
+    // ========== Turbine state-flow transition tests ==========
+    //
+    // These pin the *sequence* of state emissions, not just the terminal
+    // value, so regressions that re-order or drop intermediate states
+    // (e.g. skipping the Loading hop) are caught.
+
+    @Test
+    fun `verifyOtp success emits EnteringOtp -- OtpCompleted -- Verifying -- VerificationSuccess`() =
+        runTest {
+            coEvery { mockAuthRepository.verifyOtp(any(), any()) } returns
+                Result.success(OtpVerifyResponse(success = true, sessionToken = "tok"))
+
+            viewModel.initialize(phone)
+            runCurrent()
+
+            viewModel.uiState.test {
+                assertThat(awaitItem()).isEqualTo(SMSVerifyUiState.EnteringOtp)
+
+                repeat(6) { viewModel.addDigit("1") }
+                assertThat(awaitItem()).isInstanceOf(SMSVerifyUiState.OtpCompleted::class.java)
+
+                viewModel.verifyOtp()
+                assertThat(awaitItem()).isInstanceOf(SMSVerifyUiState.Verifying::class.java)
+                drainVerify()
+                assertThat(awaitItem()).isInstanceOf(SMSVerifyUiState.VerificationSuccess::class.java)
+
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `verifyOtp invalid otp emits Verifying then IncorrectOtp`() = runTest {
+        coEvery { mockAuthRepository.verifyOtp(any(), any()) } returns
+            Result.failure(AuthenticationException.InvalidOtpError("nope"))
+
+        viewModel.initialize(phone)
+        runCurrent()
+        repeat(6) { viewModel.addDigit("1") }
+
+        viewModel.uiState.test {
+            // We subscribed after the OtpCompleted emission; first item is
+            // whatever the current value is.
+            val first = awaitItem()
+            assertThat(first).isInstanceOf(SMSVerifyUiState.OtpCompleted::class.java)
+
+            viewModel.verifyOtp()
+            assertThat(awaitItem()).isInstanceOf(SMSVerifyUiState.Verifying::class.java)
+            drainVerify()
+            assertThat(awaitItem()).isInstanceOf(SMSVerifyUiState.IncorrectOtp::class.java)
+
+            cancelAndIgnoreRemainingEvents()
+        }
     }
 }
