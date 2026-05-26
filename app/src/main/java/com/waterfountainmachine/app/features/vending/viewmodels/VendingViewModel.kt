@@ -6,12 +6,14 @@ import com.waterfountainmachine.app.core.hardware.WaterFountainManager
 import com.waterfountainmachine.app.core.utils.AppLog
 import com.waterfountainmachine.app.core.utils.UserErrorMessages
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import javax.inject.Inject
 
 /**
@@ -51,6 +53,14 @@ class VendingViewModel @Inject constructor(
 
     companion object {
         private const val TAG = "VendingViewModel"
+
+        /**
+         * Hard wall-clock cap for a single [WaterFountainManager.dispenseWater]
+         * call. If the hardware does not return inside this window we report a
+         * timeout error rather than hanging the dispense screen indefinitely.
+         */
+        const val DISPENSE_TIMEOUT_MS: Long = 60_000L
+        const val TIMEOUT_ERROR_CODE: String = "TIMEOUT"
     }
 
     init {
@@ -102,35 +112,46 @@ class VendingViewModel @Inject constructor(
                 _progress.value = 0
                 AppLog.i(TAG, "Starting water dispensing...")
 
-                // Dispense water through hardware manager
-                val result = waterFountainManager.dispenseWater()
-                
-                // Simulate progress updates during dispensing
-                for (i in 0..100 step 10) {
-                    _progress.value = i
-                    AppLog.d(TAG, "Dispensing progress: $i%")
-                    kotlinx.coroutines.delay(100) // Small delay for progress animation
+                // Hard cap on the hardware call. If the motor/serial bus
+                // hangs, we will NOT wait forever — the user will see a
+                // DispensingError("TIMEOUT") instead of a frozen UI.
+                val result = withTimeoutOrNull(DISPENSE_TIMEOUT_MS) {
+                    waterFountainManager.dispenseWater()
                 }
 
-                if (result.success) {
-                    AppLog.i(TAG, "✅ Water dispensing completed successfully from slot ${result.slot}")
-                    _progress.value = 100
-                    _uiState.value = VendingUiState.DispensingComplete(
-                        slot = result.slot,
-                        dispensingTimeMs = result.dispensingTimeMs
-                    )
-                } else {
-                    // Log technical error details for admin review
-                    AppLog.e(TAG, "❌ Water dispensing failed: ${result.errorMessage} (slot: ${result.slot})")
-                    // Show user-friendly error
-                    val errorCode = result.errorCode?.toString(16)
-                    _uiState.value = VendingUiState.DispensingError(
-                        message = UserErrorMessages.DISPENSING_FAILED,
-                        slot = result.slot,
-                        errorCode = errorCode
-                    )
+                when {
+                    result == null -> {
+                        AppLog.e(TAG, "dispenseWater() timed out after ${DISPENSE_TIMEOUT_MS}ms")
+                        _uiState.value = VendingUiState.DispensingError(
+                            message = UserErrorMessages.DISPENSING_FAILED,
+                            slot = -1,
+                            errorCode = TIMEOUT_ERROR_CODE
+                        )
+                    }
+                    result.success -> {
+                        AppLog.i(TAG, "✅ Water dispensing completed successfully from slot ${result.slot}")
+                        _progress.value = 100
+                        _uiState.value = VendingUiState.DispensingComplete(
+                            slot = result.slot,
+                            dispensingTimeMs = result.dispensingTimeMs
+                        )
+                    }
+                    else -> {
+                        // Log technical error details for admin review
+                        AppLog.e(TAG, "❌ Water dispensing failed: ${result.errorMessage} (slot: ${result.slot})")
+                        // Show user-friendly error
+                        val errorCode = result.errorCode?.toString(16)
+                        _uiState.value = VendingUiState.DispensingError(
+                            message = UserErrorMessages.DISPENSING_FAILED,
+                            slot = result.slot,
+                            errorCode = errorCode
+                        )
+                    }
                 }
-
+            } catch (e: CancellationException) {
+                // ViewModel cancellation (e.g. screen closed mid-dispense)
+                // must propagate so the coroutine actually unwinds.
+                throw e
             } catch (e: Exception) {
                 // Log technical error details for admin review
                 AppLog.e(TAG, "Exception during water dispensing: ${e.javaClass.simpleName} - ${e.message}", e)

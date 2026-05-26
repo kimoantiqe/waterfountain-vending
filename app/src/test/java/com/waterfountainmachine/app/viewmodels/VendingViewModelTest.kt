@@ -187,37 +187,33 @@ class VendingViewModelTest {
 
     @Test
     fun `progress should update during dispensing`() = runTest {
+        // After the timeout refactor the fake intermediate-progress loop is gone.
+        // We now only emit 0 (start) and 100 (success). This test pins that
+        // contract so we notice if it ever changes again.
         coEvery { mockWaterFountainManager.isConnected() } returns true
         coEvery { mockWaterFountainManager.dispenseWater() } returns WaterDispenseResult(
             success = true,
             slot = 1
         )
-        
+
         viewModel = VendingViewModel(mockWaterFountainManager, testDispatcher)
         advanceUntilIdle()
-        
+
         viewModel.progress.test {
             assertThat(awaitItem()).isEqualTo(0)
-            
+
             viewModel.startDispensing()
             advanceUntilIdle()
-            
-            // Progress should update multiple times during dispensing
-            var lastProgress = 0
-            var progressUpdates = 0
-            
-            while (true) {
-                val progress = awaitItem()
-                if (progress > lastProgress) {
-                    progressUpdates++
-                    lastProgress = progress
-                }
-                if (progress == 100) break
+
+            // After success, progress jumps to 100.
+            // (Between 0 and 100 there may be a 0 re-emission from the
+            // `_progress.value = 0` reset; we drain anything that's not 100.)
+            var p = awaitItem()
+            while (p != 100) {
+                p = awaitItem()
             }
-            
-            // Should have at least a few progress updates
-            assertThat(progressUpdates).isAtLeast(5)
-            assertThat(lastProgress).isEqualTo(100)
+            assertThat(p).isEqualTo(100)
+            cancelAndIgnoreRemainingEvents()
         }
     }
 
@@ -350,5 +346,114 @@ class VendingViewModelTest {
         
         // Progress should end at 100
         assertThat(viewModel.progress.value).isEqualTo(100)
+    }
+
+    // ========== Timeout Tests ==========
+
+    /**
+     * Regression for the "dispenseWater hangs forever" bug. The ViewModel now
+     * caps the hardware call at [VendingViewModel.DISPENSE_TIMEOUT_MS]. If the
+     * hardware never returns, we must surface a DispensingError with the
+     * sentinel TIMEOUT code instead of leaving the UI stuck on Dispensing.
+     */
+    @Test
+    fun `dispenseWater that exceeds the timeout transitions to DispensingError TIMEOUT`() = runTest {
+        coEvery { mockWaterFountainManager.isConnected() } returns true
+        // Suspend "forever" — well past the 60s cap.
+        coEvery { mockWaterFountainManager.dispenseWater() } coAnswers {
+            kotlinx.coroutines.delay(VendingViewModel.DISPENSE_TIMEOUT_MS * 10)
+            WaterDispenseResult(success = true, slot = 1)
+        }
+
+        viewModel = VendingViewModel(mockWaterFountainManager, testDispatcher)
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value).isEqualTo(VendingUiState.Ready)
+
+        viewModel.startDispensing()
+        // Advance just past the cap.
+        advanceTimeBy(VendingViewModel.DISPENSE_TIMEOUT_MS + 100)
+        runCurrent()
+
+        val state = viewModel.uiState.value
+        assertThat(state).isInstanceOf(VendingUiState.DispensingError::class.java)
+        val err = state as VendingUiState.DispensingError
+        assertThat(err.errorCode).isEqualTo(VendingViewModel.TIMEOUT_ERROR_CODE)
+        assertThat(err.slot).isEqualTo(-1)
+        assertThat(err.message).isEqualTo(UserErrorMessages.DISPENSING_FAILED)
+        // Critical state must be released even on timeout.
+        assertThat(viewModel.isInCriticalState.value).isFalse()
+    }
+
+    @Test
+    fun `dispenseWater that finishes just under the timeout still succeeds`() = runTest {
+        coEvery { mockWaterFountainManager.isConnected() } returns true
+        coEvery { mockWaterFountainManager.dispenseWater() } coAnswers {
+            kotlinx.coroutines.delay(VendingViewModel.DISPENSE_TIMEOUT_MS - 1_000)
+            WaterDispenseResult(success = true, slot = 3, dispensingTimeMs = 59_000L)
+        }
+
+        viewModel = VendingViewModel(mockWaterFountainManager, testDispatcher)
+        advanceUntilIdle()
+
+        viewModel.startDispensing()
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertThat(state).isInstanceOf(VendingUiState.DispensingComplete::class.java)
+        assertThat((state as VendingUiState.DispensingComplete).slot).isEqualTo(3)
+    }
+
+    // ========== Turbine state-flow transition tests ==========
+
+    @Test
+    fun `successful dispense emits Ready -- Dispensing -- DispensingComplete`() = runTest {
+        coEvery { mockWaterFountainManager.isConnected() } returns true
+        coEvery { mockWaterFountainManager.dispenseWater() } returns WaterDispenseResult(
+            success = true,
+            slot = 1
+        )
+
+        viewModel = VendingViewModel(mockWaterFountainManager, testDispatcher)
+        advanceUntilIdle()
+
+        viewModel.uiState.test {
+            assertThat(awaitItem()).isEqualTo(VendingUiState.Ready)
+
+            viewModel.startDispensing()
+            assertThat(awaitItem()).isInstanceOf(VendingUiState.Dispensing::class.java)
+
+            advanceUntilIdle()
+            assertThat(awaitItem()).isInstanceOf(VendingUiState.DispensingComplete::class.java)
+
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `timeout emits Ready -- Dispensing -- DispensingError`() = runTest {
+        coEvery { mockWaterFountainManager.isConnected() } returns true
+        coEvery { mockWaterFountainManager.dispenseWater() } coAnswers {
+            kotlinx.coroutines.delay(VendingViewModel.DISPENSE_TIMEOUT_MS * 10)
+            WaterDispenseResult(success = true, slot = 1)
+        }
+
+        viewModel = VendingViewModel(mockWaterFountainManager, testDispatcher)
+        advanceUntilIdle()
+
+        viewModel.uiState.test {
+            assertThat(awaitItem()).isEqualTo(VendingUiState.Ready)
+
+            viewModel.startDispensing()
+            assertThat(awaitItem()).isInstanceOf(VendingUiState.Dispensing::class.java)
+
+            advanceTimeBy(VendingViewModel.DISPENSE_TIMEOUT_MS + 100)
+            runCurrent()
+            val err = awaitItem()
+            assertThat(err).isInstanceOf(VendingUiState.DispensingError::class.java)
+            assertThat((err as VendingUiState.DispensingError).errorCode)
+                .isEqualTo(VendingViewModel.TIMEOUT_ERROR_CODE)
+
+            cancelAndIgnoreRemainingEvents()
+        }
     }
 }
