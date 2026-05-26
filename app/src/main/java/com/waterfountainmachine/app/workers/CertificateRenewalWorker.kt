@@ -12,6 +12,13 @@ import kotlinx.coroutines.withContext
 import java.util.concurrent.TimeUnit
 
 /**
+ * Decision output for [CertificateRenewalWorker.decideRenewalAction].
+ * Top-level (not nested in the companion) so tests can reference it
+ * directly.
+ */
+internal enum class RenewalAction { EXPIRED_FAIL, NOT_NEEDED, RENEW }
+
+/**
  * Worker to automatically renew machine certificate before expiration.
  * 
  * Renewal Strategy:
@@ -40,6 +47,47 @@ class CertificateRenewalWorker(
         const val WORK_NAME = "certificate_renewal"
         private const val REPEAT_INTERVAL_HOURS = 24L
         private const val FLEX_TIME_MINUTES = 15L
+
+        /**
+         * Pure decision: given [daysRemaining] (null when no certificate yet)
+         * and a [shouldRenew] flag (from [SecurityModule.shouldRenewCertificate]),
+         * what should the worker do?
+         *
+         * Extracted so the policy is testable in isolation — the rest of the
+         * worker is coupled to the WorkManager runtime and the SecurityModule
+         * singleton, which both resist pure-JVM testing without an .aar /
+         * HiltWorker refactor (see [androidx.hilt:hilt-work]).
+         */
+        internal fun decideRenewalAction(daysRemaining: Int?, shouldRenew: Boolean): RenewalAction {
+            // Negative days = certificate has already expired. We cannot
+            // self-renew an expired cert (the renewal call itself requires
+            // a valid client cert), so we fail loudly so monitoring fires.
+            if (daysRemaining != null && daysRemaining < 0) return RenewalAction.EXPIRED_FAIL
+            if (!shouldRenew) return RenewalAction.NOT_NEEDED
+            return RenewalAction.RENEW
+        }
+
+        /**
+         * Pure retryability check for backend renewal failures. Network /
+         * transient errors should retry; auth / validation errors are
+         * permanent and should fail the work without exponential backoff
+         * burning battery.
+         */
+        internal fun isRetryableError(error: Throwable): Boolean {
+            val message = error.message?.lowercase() ?: ""
+            return when {
+                message.contains("network") -> true
+                message.contains("timeout") -> true
+                message.contains("connection") -> true
+                message.contains("unavailable") -> true
+                message.contains("permission") -> false
+                message.contains("unauthorized") -> false
+                message.contains("invalid") -> false
+                message.contains("expired") -> false
+                message.contains("revoked") -> false
+                else -> false // Default to non-retryable for unknown errors
+            }
+        }
 
         /**
          * Schedule periodic certificate renewal checks.
@@ -220,20 +268,7 @@ class CertificateRenewalWorker(
 
     /**
      * Determine if an error is retryable (network/temporary) vs permanent (auth/validation).
+     * Delegates to the pure companion helper so the policy is unit-testable.
      */
-    private fun isRetryableError(error: Throwable): Boolean {
-        val message = error.message?.lowercase() ?: ""
-        return when {
-            message.contains("network") -> true
-            message.contains("timeout") -> true
-            message.contains("connection") -> true
-            message.contains("unavailable") -> true
-            message.contains("permission") -> false
-            message.contains("unauthorized") -> false
-            message.contains("invalid") -> false
-            message.contains("expired") -> false
-            message.contains("revoked") -> false
-            else -> false // Default to non-retryable for unknown errors
-        }
-    }
+    private fun isRetryableError(error: Throwable): Boolean = Companion.isRetryableError(error)
 }
