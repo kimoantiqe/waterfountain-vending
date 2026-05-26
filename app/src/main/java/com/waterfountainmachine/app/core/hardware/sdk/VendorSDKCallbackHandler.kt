@@ -1,6 +1,5 @@
-package com.waterfountainmachine.app.hardware.sdk
-
-import com.waterfountainmachine.app.utils.AppLog
+package com.waterfountainmachine.app.core.hardware.sdk
+import com.waterfountainmachine.app.core.utils.AppLog
 import kotlinx.coroutines.CancellableContinuation
 import kotlin.coroutines.resume
 

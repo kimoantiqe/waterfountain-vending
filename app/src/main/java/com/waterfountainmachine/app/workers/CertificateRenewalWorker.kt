@@ -5,8 +5,8 @@ import android.os.Bundle
 import androidx.work.*
 import com.google.firebase.analytics.FirebaseAnalytics
 import com.waterfountainmachine.app.core.backend.BackendMachineService
-import com.waterfountainmachine.app.security.SecurityModule
-import com.waterfountainmachine.app.utils.AppLog
+import com.waterfountainmachine.app.core.security.SecurityModule
+import com.waterfountainmachine.app.core.utils.AppLog
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.util.concurrent.TimeUnit

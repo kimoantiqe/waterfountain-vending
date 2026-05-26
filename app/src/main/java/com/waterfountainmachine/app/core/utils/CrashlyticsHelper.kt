@@ -1,5 +1,4 @@
-package com.waterfountainmachine.app.utils
-
+package com.waterfountainmachine.app.core.utils
 import com.google.firebase.crashlytics.FirebaseCrashlytics
 
 /**

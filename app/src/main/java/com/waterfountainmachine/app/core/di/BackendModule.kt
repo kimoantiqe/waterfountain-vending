@@ -1,11 +1,10 @@
-package com.waterfountainmachine.app.di
-
+package com.waterfountainmachine.app.core.di
 import android.content.Context
 import com.waterfountainmachine.app.core.backend.BackendSlotService
 import com.waterfountainmachine.app.core.backend.IBackendSlotService
 import com.waterfountainmachine.app.core.backend.MockBackendSlotService
-import com.waterfountainmachine.app.utils.AppLog
-import com.waterfountainmachine.app.utils.SecurePreferences
+import com.waterfountainmachine.app.core.utils.AppLog
+import com.waterfountainmachine.app.core.utils.SecurePreferences
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn

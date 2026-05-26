@@ -2,12 +2,12 @@ package com.waterfountainmachine.app.features.vending.viewmodels
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.waterfountainmachine.app.auth.AuthenticationException
-import com.waterfountainmachine.app.auth.IAuthenticationRepository
-import com.waterfountainmachine.app.config.WaterFountainConfig
-import com.waterfountainmachine.app.utils.AppLog
-import com.waterfountainmachine.app.utils.PhoneNumberUtils
-import com.waterfountainmachine.app.utils.UserErrorMessages
+import com.waterfountainmachine.app.core.auth.AuthenticationException
+import com.waterfountainmachine.app.core.auth.IAuthenticationRepository
+import com.waterfountainmachine.app.core.config.WaterFountainConfig
+import com.waterfountainmachine.app.core.utils.AppLog
+import com.waterfountainmachine.app.core.utils.PhoneNumberUtils
+import com.waterfountainmachine.app.core.utils.UserErrorMessages
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

@@ -1,5 +1,4 @@
-package com.waterfountainmachine.app.admin.fragments
-
+package com.waterfountainmachine.app.features.admin.fragments
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View

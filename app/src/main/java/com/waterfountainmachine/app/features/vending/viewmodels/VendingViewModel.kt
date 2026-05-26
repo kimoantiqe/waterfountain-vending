@@ -1,11 +1,10 @@
-package com.waterfountainmachine.app.viewmodels
-
+package com.waterfountainmachine.app.features.vending.viewmodels
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.waterfountainmachine.app.di.IODispatcher
-import com.waterfountainmachine.app.hardware.WaterFountainManager
-import com.waterfountainmachine.app.utils.AppLog
-import com.waterfountainmachine.app.utils.UserErrorMessages
+import com.waterfountainmachine.app.core.di.IODispatcher
+import com.waterfountainmachine.app.core.hardware.WaterFountainManager
+import com.waterfountainmachine.app.core.utils.AppLog
+import com.waterfountainmachine.app.core.utils.UserErrorMessages
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers

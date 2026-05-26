@@ -1,5 +1,4 @@
-package com.waterfountainmachine.app.admin.fragments
-
+package com.waterfountainmachine.app.features.admin.fragments
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -7,9 +6,9 @@ import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.waterfountainmachine.app.databinding.FragmentHardwareBinding
-import com.waterfountainmachine.app.hardware.WaterFountainManager
-import com.waterfountainmachine.app.utils.AppLog
-import com.waterfountainmachine.app.utils.AdminDebugConfig
+import com.waterfountainmachine.app.core.hardware.WaterFountainManager
+import com.waterfountainmachine.app.core.utils.AppLog
+import com.waterfountainmachine.app.core.utils.AdminDebugConfig
 import kotlinx.coroutines.launch
 
 class HardwareFragment : Fragment() {

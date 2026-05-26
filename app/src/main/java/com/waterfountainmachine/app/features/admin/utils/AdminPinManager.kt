@@ -1,9 +1,8 @@
-package com.waterfountainmachine.app.admin
-
+package com.waterfountainmachine.app.features.admin.utils
 import android.content.Context
-import com.waterfountainmachine.app.utils.AppLog
-import com.waterfountainmachine.app.utils.AdminDebugConfig
-import com.waterfountainmachine.app.utils.SecurePreferences
+import com.waterfountainmachine.app.core.utils.AppLog
+import com.waterfountainmachine.app.core.utils.AdminDebugConfig
+import com.waterfountainmachine.app.core.utils.SecurePreferences
 import java.security.MessageDigest
 import java.security.SecureRandom
 import java.util.Base64

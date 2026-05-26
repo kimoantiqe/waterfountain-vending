@@ -1,11 +1,10 @@
-package com.waterfountainmachine.app.viewmodels
-
+package com.waterfountainmachine.app.features.admin.viewmodels
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.waterfountainmachine.app.admin.AdminPinManager
-import com.waterfountainmachine.app.config.WaterFountainConfig
-import com.waterfountainmachine.app.utils.AppLog
+import com.waterfountainmachine.app.features.admin.utils.AdminPinManager
+import com.waterfountainmachine.app.core.config.WaterFountainConfig
+import com.waterfountainmachine.app.core.utils.AppLog
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow

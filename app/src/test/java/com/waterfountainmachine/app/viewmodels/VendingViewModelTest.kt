@@ -3,8 +3,10 @@ package com.waterfountainmachine.app.viewmodels
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
-import com.waterfountainmachine.app.hardware.WaterFountainManager
-import com.waterfountainmachine.app.hardware.sdk.WaterDispenseResult
+import com.waterfountainmachine.app.core.hardware.WaterFountainManager
+import com.waterfountainmachine.app.core.hardware.sdk.WaterDispenseResult
+import com.waterfountainmachine.app.features.vending.viewmodels.VendingViewModel
+import com.waterfountainmachine.app.features.vending.viewmodels.VendingUiState
 import io.mockk.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi

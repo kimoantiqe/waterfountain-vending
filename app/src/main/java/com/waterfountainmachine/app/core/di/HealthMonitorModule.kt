@@ -1,11 +1,10 @@
-package com.waterfountainmachine.app.di
-
+package com.waterfountainmachine.app.core.di
 import android.content.Context
-import com.waterfountainmachine.app.analytics.IMachineHealthMonitor
-import com.waterfountainmachine.app.analytics.MachineHealthMonitor
-import com.waterfountainmachine.app.analytics.MockMachineHealthMonitor
-import com.waterfountainmachine.app.utils.AppLog
-import com.waterfountainmachine.app.utils.SecurePreferences
+import com.waterfountainmachine.app.core.analytics.IMachineHealthMonitor
+import com.waterfountainmachine.app.core.analytics.MachineHealthMonitor
+import com.waterfountainmachine.app.core.analytics.MockMachineHealthMonitor
+import com.waterfountainmachine.app.core.utils.AppLog
+import com.waterfountainmachine.app.core.utils.SecurePreferences
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn

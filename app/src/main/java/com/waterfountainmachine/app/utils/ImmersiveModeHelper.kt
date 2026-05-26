@@ -7,6 +7,8 @@ import android.view.WindowInsetsController
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import com.waterfountainmachine.app.core.utils.AppLog
+import com.waterfountainmachine.app.core.utils.SecurePreferences
 
 /**
  * Helper class to manage immersive mode (hiding navigation bar and status bar)

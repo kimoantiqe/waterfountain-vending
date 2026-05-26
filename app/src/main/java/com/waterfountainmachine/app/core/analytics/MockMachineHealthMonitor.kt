@@ -1,8 +1,6 @@
-package com.waterfountainmachine.app.analytics
-
+package com.waterfountainmachine.app.core.analytics
 import android.content.Context
-import com.waterfountainmachine.app.utils.AppLog
-
+import com.waterfountainmachine.app.core.utils.AppLog
 /**
  * Mock Machine Health Monitor
  * 

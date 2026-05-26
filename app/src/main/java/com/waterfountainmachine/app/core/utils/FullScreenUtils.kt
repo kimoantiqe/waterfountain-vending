@@ -1,5 +1,4 @@
-package com.waterfountainmachine.app.utils
-
+package com.waterfountainmachine.app.core.utils
 import android.view.View
 import android.view.Window
 import androidx.core.view.WindowCompat

@@ -4,8 +4,10 @@ import android.content.Context
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
-import com.waterfountainmachine.app.admin.AdminPinManager
-import com.waterfountainmachine.app.config.WaterFountainConfig
+import com.waterfountainmachine.app.features.admin.utils.AdminPinManager
+import com.waterfountainmachine.app.core.config.WaterFountainConfig
+import com.waterfountainmachine.app.features.admin.viewmodels.AdminViewModel
+import com.waterfountainmachine.app.features.admin.viewmodels.AdminUiState
 import io.mockk.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi

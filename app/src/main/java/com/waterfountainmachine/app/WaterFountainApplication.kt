@@ -5,14 +5,14 @@ import com.google.firebase.Firebase
 import com.google.firebase.initialize
 import com.google.firebase.crashlytics.FirebaseCrashlytics
 import com.google.firebase.analytics.FirebaseAnalytics
-import com.waterfountainmachine.app.di.AuthModule
-import com.waterfountainmachine.app.security.SecurityModule
-import com.waterfountainmachine.app.hardware.WaterFountainManager
-import com.waterfountainmachine.app.admin.AdminPinManager
-import com.waterfountainmachine.app.utils.AppLog
+import com.waterfountainmachine.app.core.di.AuthModule
+import com.waterfountainmachine.app.core.security.SecurityModule
+import com.waterfountainmachine.app.core.hardware.WaterFountainManager
+import com.waterfountainmachine.app.features.admin.utils.AdminPinManager
+import com.waterfountainmachine.app.core.utils.AppLog
 import com.waterfountainmachine.app.core.slot.SlotInventoryManager
 import com.waterfountainmachine.app.core.backend.IBackendSlotService
-import com.waterfountainmachine.app.di.BackendModule
+import com.waterfountainmachine.app.core.di.BackendModule
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -72,7 +72,7 @@ class WaterFountainApplication : Application() {
     lateinit var hardwareManager: WaterFountainManager
         private set
 
-    private lateinit var healthMonitor: com.waterfountainmachine.app.analytics.IMachineHealthMonitor
+    private lateinit var healthMonitor: com.waterfountainmachine.app.core.analytics.IMachineHealthMonitor
 
     lateinit var slotInventoryManager: SlotInventoryManager
         private set
@@ -107,8 +107,8 @@ class WaterFountainApplication : Application() {
         AppLog.i(TAG, "Version: ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})")
         AppLog.i(TAG, "Build Type: ${if (BuildConfig.DEBUG) "DEBUG" else "RELEASE"}")
         
-        com.waterfountainmachine.app.utils.SecurePreferences.migrateSystemSettings(this)
-        com.waterfountainmachine.app.admin.AdminPinManager.initialize(this)
+        com.waterfountainmachine.app.core.utils.SecurePreferences.migrateSystemSettings(this)
+        com.waterfountainmachine.app.features.admin.utils.AdminPinManager.initialize(this)
         
         Firebase.initialize(context = this)
         
@@ -117,7 +117,7 @@ class WaterFountainApplication : Application() {
         
         // Initialize analytics with machine context
         val machineId = SecurityModule.getMachineId()
-        val analyticsManager = com.waterfountainmachine.app.analytics.AnalyticsManager.getInstance(this)
+        val analyticsManager = com.waterfountainmachine.app.core.analytics.AnalyticsManager.getInstance(this)
         analyticsManager.setMachineContext(machineId)
         AppLog.i(TAG, "Analytics machine context set: ${machineId?.let { "****${it.takeLast(4)}" } ?: "null"}")
         
@@ -135,7 +135,7 @@ class WaterFountainApplication : Application() {
         initializeAuthModule()
         
         hardwareManager = WaterFountainManager.getInstance(this)
-        healthMonitor = com.waterfountainmachine.app.di.HealthMonitorModule.getMachineHealthMonitor(this)
+        healthMonitor = com.waterfountainmachine.app.core.di.HealthMonitorModule.getMachineHealthMonitor(this)
         
         // Initialize slot inventory management
         slotInventoryManager = SlotInventoryManager.getInstance(this)
@@ -143,8 +143,8 @@ class WaterFountainApplication : Application() {
         AppLog.i(TAG, "Slot inventory manager initialized")
         
         // Start health monitor once machine is enrolled
-        if (com.waterfountainmachine.app.security.SecurityModule.isEnrolled()) {
-            val machineId = com.waterfountainmachine.app.security.SecurityModule.getMachineId()
+        if (com.waterfountainmachine.app.core.security.SecurityModule.isEnrolled()) {
+            val machineId = com.waterfountainmachine.app.core.security.SecurityModule.getMachineId()
             if (machineId != null) {
                 healthMonitor.start(machineId)
                 AppLog.i(TAG, "Health monitor started for machine: ****${machineId.takeLast(4)}")
@@ -307,7 +307,7 @@ class WaterFountainApplication : Application() {
             loggingManager.initialize(machineId)
             
             // Check if remote logging is enabled in settings
-            val prefs = com.waterfountainmachine.app.utils.SecurePreferences.getSystemSettings(this)
+            val prefs = com.waterfountainmachine.app.core.utils.SecurePreferences.getSystemSettings(this)
             val remoteLoggingEnabled = prefs.getBoolean("remote_logging_enabled", false)
             
             if (remoteLoggingEnabled) {
@@ -360,7 +360,7 @@ class WaterFountainApplication : Application() {
     /**
      * Get the health monitor instance
      */
-    fun getHealthMonitor(): com.waterfountainmachine.app.analytics.IMachineHealthMonitor {
+    fun getHealthMonitor(): com.waterfountainmachine.app.core.analytics.IMachineHealthMonitor {
         return healthMonitor
     }
     

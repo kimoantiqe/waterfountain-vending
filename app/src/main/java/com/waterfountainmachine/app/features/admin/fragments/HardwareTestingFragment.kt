@@ -1,5 +1,4 @@
-package com.waterfountainmachine.app.admin.fragments
-
+package com.waterfountainmachine.app.features.admin.fragments
 import android.graphics.Color
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -13,9 +12,9 @@ import androidx.lifecycle.lifecycleScope
 import com.waterfountainmachine.app.R
 import com.waterfountainmachine.app.WaterFountainApplication
 import com.waterfountainmachine.app.databinding.FragmentHardwareTestingBinding
-import com.waterfountainmachine.app.hardware.sdk.SlotValidator
-import com.waterfountainmachine.app.utils.AppLog
-import com.waterfountainmachine.app.utils.AdminDebugConfig
+import com.waterfountainmachine.app.core.hardware.sdk.SlotValidator
+import com.waterfountainmachine.app.core.utils.AppLog
+import com.waterfountainmachine.app.core.utils.AdminDebugConfig
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext

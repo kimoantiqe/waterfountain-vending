@@ -1,5 +1,4 @@
-package com.waterfountainmachine.app.admin.fragments
-
+package com.waterfountainmachine.app.features.admin.fragments
 import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
@@ -10,12 +9,12 @@ import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.waterfountainmachine.app.databinding.FragmentCertificateStatusBinding
-import com.waterfountainmachine.app.security.SecurityModule
-import com.waterfountainmachine.app.setup.CertificateSetupActivity
-import com.waterfountainmachine.app.utils.AppLog
-import com.waterfountainmachine.app.utils.AdminDebugConfig
-import com.waterfountainmachine.app.config.ApiEnvironment
-import com.waterfountainmachine.app.config.WaterFountainConfig
+import com.waterfountainmachine.app.core.security.SecurityModule
+import com.waterfountainmachine.app.core.setup.CertificateSetupActivity
+import com.waterfountainmachine.app.core.utils.AppLog
+import com.waterfountainmachine.app.core.utils.AdminDebugConfig
+import com.waterfountainmachine.app.core.config.ApiEnvironment
+import com.waterfountainmachine.app.core.config.WaterFountainConfig
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.Dispatchers

@@ -1,5 +1,4 @@
-package com.waterfountainmachine.app.admin.adapters
-
+package com.waterfountainmachine.app.features.admin.adapters
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -9,7 +8,7 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.waterfountainmachine.app.R
-import com.waterfountainmachine.app.admin.models.LogEntry
+import com.waterfountainmachine.app.features.admin.models.LogEntry
 import java.text.SimpleDateFormat
 import java.util.*
 

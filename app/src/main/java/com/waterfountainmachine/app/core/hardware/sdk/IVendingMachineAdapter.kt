@@ -1,5 +1,4 @@
-package com.waterfountainmachine.app.hardware.sdk
-
+package com.waterfountainmachine.app.core.hardware.sdk
 /**
  * Interface for vending machine adapter implementations.
  * Allows for polymorphic behavior between real hardware and mock implementations.

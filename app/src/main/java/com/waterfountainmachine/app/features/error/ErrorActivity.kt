@@ -1,5 +1,4 @@
-package com.waterfountainmachine.app.activities
-
+package com.waterfountainmachine.app.features.error
 import android.animation.ObjectAnimator
 import android.content.Intent
 import android.os.Bundle
@@ -10,13 +9,14 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityOptionsCompat
 import androidx.lifecycle.lifecycleScope
 import com.waterfountainmachine.app.R
-import com.waterfountainmachine.app.admin.AdminGestureDetector
-import com.waterfountainmachine.app.config.WaterFountainConfig
+import com.waterfountainmachine.app.features.admin.utils.AdminGestureDetector
+import com.waterfountainmachine.app.core.config.WaterFountainConfig
 import com.waterfountainmachine.app.databinding.ActivityErrorBinding
-import com.waterfountainmachine.app.utils.AppLog
-import com.waterfountainmachine.app.utils.FullScreenUtils
-import com.waterfountainmachine.app.utils.SoundManager
-import com.waterfountainmachine.app.utils.UserErrorMessages
+import com.waterfountainmachine.app.core.utils.AppLog
+import com.waterfountainmachine.app.core.utils.FullScreenUtils
+import com.waterfountainmachine.app.core.utils.SoundManager
+import com.waterfountainmachine.app.core.utils.UserErrorMessages
+import com.waterfountainmachine.app.features.vending.ui.MainActivity
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 

@@ -1,5 +1,4 @@
-package com.waterfountainmachine.app.hardware.sdk
-
+package com.waterfountainmachine.app.core.hardware.sdk
 /**
  * Slot Validator Utility
  * 

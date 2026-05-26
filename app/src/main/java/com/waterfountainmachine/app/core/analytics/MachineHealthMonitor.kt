@@ -1,13 +1,12 @@
-package com.waterfountainmachine.app.analytics
-
+package com.waterfountainmachine.app.core.analytics
 import android.content.Context
 import com.google.firebase.functions.FirebaseFunctions
 import com.google.firebase.functions.ktx.functions
 import com.google.firebase.ktx.Firebase
 import com.waterfountainmachine.app.BuildConfig
-import com.waterfountainmachine.app.security.SecurityModule
-import com.waterfountainmachine.app.utils.AppLog
-import com.waterfountainmachine.app.utils.CrashlyticsHelper
+import com.waterfountainmachine.app.core.security.SecurityModule
+import com.waterfountainmachine.app.core.utils.AppLog
+import com.waterfountainmachine.app.core.utils.CrashlyticsHelper
 import com.waterfountainmachine.app.core.slot.SlotInventoryManager
 import com.waterfountainmachine.app.core.backend.BackendMachineService
 import kotlinx.coroutines.CoroutineScope

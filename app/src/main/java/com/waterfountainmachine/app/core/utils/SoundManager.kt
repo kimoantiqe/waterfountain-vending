@@ -1,5 +1,4 @@
-package com.waterfountainmachine.app.utils
-
+package com.waterfountainmachine.app.core.utils
 import android.content.Context
 import android.media.AudioAttributes
 import android.media.MediaPlayer

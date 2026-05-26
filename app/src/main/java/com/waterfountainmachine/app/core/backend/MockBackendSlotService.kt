@@ -2,7 +2,7 @@ package com.waterfountainmachine.app.core.backend
 
 import android.content.Context
 import com.waterfountainmachine.app.core.slot.SlotInventoryManager
-import com.waterfountainmachine.app.utils.AppLog
+import com.waterfountainmachine.app.core.utils.AppLog
 import kotlinx.coroutines.delay
 import java.util.UUID
 

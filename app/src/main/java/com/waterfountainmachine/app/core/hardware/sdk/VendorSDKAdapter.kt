@@ -1,6 +1,5 @@
-package com.waterfountainmachine.app.hardware.sdk
-
-import com.waterfountainmachine.app.utils.AppLog
+package com.waterfountainmachine.app.core.hardware.sdk
+import com.waterfountainmachine.app.core.utils.AppLog
 import com.yy.tools.util.CYVendingMachine
 import kotlinx.coroutines.*
 import kotlin.coroutines.resume

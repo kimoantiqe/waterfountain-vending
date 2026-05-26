@@ -1,5 +1,4 @@
-package com.waterfountainmachine.app.activities
-
+package com.waterfountainmachine.app.features.admin.ui
 import android.app.Activity.OVERRIDE_TRANSITION_CLOSE
 import android.os.Build
 import android.os.Bundle
@@ -8,10 +7,9 @@ import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityOptionsCompat
 import com.waterfountainmachine.app.databinding.ActivityPinBinding
-import com.waterfountainmachine.app.utils.FullScreenUtils
-import com.waterfountainmachine.app.utils.InactivityTimer
-import com.waterfountainmachine.app.utils.HardwareKeyHandler
-
+import com.waterfountainmachine.app.core.utils.FullScreenUtils
+import com.waterfountainmachine.app.core.utils.InactivityTimer
+import com.waterfountainmachine.app.core.utils.HardwareKeyHandler
 class PINActivity : AppCompatActivity() {
     private lateinit var binding: ActivityPinBinding
     private lateinit var inactivityTimer: InactivityTimer

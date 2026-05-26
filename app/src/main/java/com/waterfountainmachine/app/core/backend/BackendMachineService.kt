@@ -4,8 +4,8 @@ import android.content.Context
 import com.google.firebase.functions.FirebaseFunctions
 import com.google.firebase.functions.ktx.functions
 import com.google.firebase.ktx.Firebase
-import com.waterfountainmachine.app.security.SecurityModule
-import com.waterfountainmachine.app.utils.AppLog
+import com.waterfountainmachine.app.core.security.SecurityModule
+import com.waterfountainmachine.app.core.utils.AppLog
 import kotlinx.coroutines.tasks.await
 import org.json.JSONArray
 import org.json.JSONObject

@@ -1,8 +1,6 @@
-package com.waterfountainmachine.app.utils
-
+package com.waterfountainmachine.app.core.utils
 import android.content.Context
-import com.waterfountainmachine.app.security.SecurityModule
-
+import com.waterfountainmachine.app.core.security.SecurityModule
 /**
  * Centralized Machine ID Provider
  * 

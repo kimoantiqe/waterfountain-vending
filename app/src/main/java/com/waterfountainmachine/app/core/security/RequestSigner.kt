@@ -1,5 +1,4 @@
-package com.waterfountainmachine.app.security
-
+package com.waterfountainmachine.app.core.security
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.Log

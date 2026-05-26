@@ -1,5 +1,4 @@
-package com.waterfountainmachine.app.admin
-
+package com.waterfountainmachine.app.features.admin.ui
 import android.content.Intent
 import android.os.Bundle
 import android.view.KeyEvent
@@ -7,13 +6,12 @@ import android.view.View
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import com.waterfountainmachine.app.R
-import com.waterfountainmachine.app.admin.fragments.*
+import com.waterfountainmachine.app.features.admin.fragments.*
 import com.waterfountainmachine.app.databinding.ActivityAdminPanelBinding
-import com.waterfountainmachine.app.utils.AppLog
-import com.waterfountainmachine.app.utils.FullScreenUtils
-import com.waterfountainmachine.app.utils.HardwareKeyHandler
-import com.waterfountainmachine.app.utils.InactivityTimer
-
+import com.waterfountainmachine.app.core.utils.AppLog
+import com.waterfountainmachine.app.core.utils.FullScreenUtils
+import com.waterfountainmachine.app.core.utils.HardwareKeyHandler
+import com.waterfountainmachine.app.core.utils.InactivityTimer
 class AdminPanelActivity : AppCompatActivity() {
     
     private lateinit var binding: ActivityAdminPanelBinding

@@ -1,17 +1,16 @@
-package com.waterfountainmachine.app.di
-
+package com.waterfountainmachine.app.core.di
 import android.content.Context
 import com.google.firebase.Firebase
 import com.google.firebase.functions.FirebaseFunctions
 import com.google.firebase.functions.functions
-import com.waterfountainmachine.app.auth.IAuthenticationRepository
-import com.waterfountainmachine.app.auth.MockAuthenticationRepository
-import com.waterfountainmachine.app.auth.RealAuthenticationRepository
-import com.waterfountainmachine.app.security.CertificateManager
-import com.waterfountainmachine.app.security.NonceGenerator
-import com.waterfountainmachine.app.security.RequestSigner
-import com.waterfountainmachine.app.utils.AppLog
-import com.waterfountainmachine.app.utils.SecurePreferences
+import com.waterfountainmachine.app.core.auth.IAuthenticationRepository
+import com.waterfountainmachine.app.core.auth.MockAuthenticationRepository
+import com.waterfountainmachine.app.core.auth.RealAuthenticationRepository
+import com.waterfountainmachine.app.core.security.CertificateManager
+import com.waterfountainmachine.app.core.security.NonceGenerator
+import com.waterfountainmachine.app.core.security.RequestSigner
+import com.waterfountainmachine.app.core.utils.AppLog
+import com.waterfountainmachine.app.core.utils.SecurePreferences
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn

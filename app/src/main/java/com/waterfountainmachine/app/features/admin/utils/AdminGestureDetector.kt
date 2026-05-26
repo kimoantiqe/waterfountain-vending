@@ -1,11 +1,10 @@
-package com.waterfountainmachine.app.admin
-
+package com.waterfountainmachine.app.features.admin.utils
 import android.content.Context
 import android.content.Intent
 import android.view.KeyEvent
 import android.view.View
-import com.waterfountainmachine.app.utils.AdminDebugConfig
-
+import com.waterfountainmachine.app.core.utils.AdminDebugConfig
+import com.waterfountainmachine.app.features.admin.ui.AdminAuthActivity
 /**
  * Detects admin access trigger: Press Enter key 3 times rapidly (USB keyboard)
  */

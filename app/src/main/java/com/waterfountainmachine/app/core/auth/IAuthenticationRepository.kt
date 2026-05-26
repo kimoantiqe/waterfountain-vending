@@ -1,5 +1,4 @@
-package com.waterfountainmachine.app.auth
-
+package com.waterfountainmachine.app.core.auth
 /**
  * Authentication repository interface for SMS OTP operations.
  * 

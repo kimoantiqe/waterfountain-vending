@@ -1,5 +1,4 @@
-package com.waterfountainmachine.app.activities
-
+package com.waterfountainmachine.app.features.vending.ui
 import android.animation.AnimatorSet
 import android.animation.ObjectAnimator
 import android.annotation.SuppressLint
@@ -18,24 +17,24 @@ import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.lifecycleScope
 import com.waterfountainmachine.app.R
 import com.waterfountainmachine.app.databinding.ActivityVendingAnimationBinding
-import com.waterfountainmachine.app.utils.AppLog
-import com.waterfountainmachine.app.views.ProgressRingView
-import com.waterfountainmachine.app.utils.FullScreenUtils
-import com.waterfountainmachine.app.utils.SoundManager
-import com.waterfountainmachine.app.utils.PhoneNumberUtils
-import com.waterfountainmachine.app.utils.MachineIdProvider
-import com.waterfountainmachine.app.config.WaterFountainConfig
-import com.waterfountainmachine.app.viewmodels.VendingViewModel
-import com.waterfountainmachine.app.viewmodels.VendingUiState
-import com.waterfountainmachine.app.analytics.AnalyticsManager
-import com.waterfountainmachine.app.analytics.MachineHealthMonitor
+import com.waterfountainmachine.app.core.utils.AppLog
+import com.waterfountainmachine.app.ui.views.ProgressRingView
+import com.waterfountainmachine.app.core.utils.FullScreenUtils
+import com.waterfountainmachine.app.core.utils.SoundManager
+import com.waterfountainmachine.app.core.utils.PhoneNumberUtils
+import com.waterfountainmachine.app.core.utils.MachineIdProvider
+import com.waterfountainmachine.app.core.config.WaterFountainConfig
+import com.waterfountainmachine.app.features.vending.viewmodels.VendingViewModel
+import com.waterfountainmachine.app.features.vending.viewmodels.VendingUiState
+import com.waterfountainmachine.app.core.analytics.AnalyticsManager
+import com.waterfountainmachine.app.core.analytics.MachineHealthMonitor
 import com.waterfountainmachine.app.WaterFountainApplication
 import com.waterfountainmachine.app.core.slot.SlotInventoryManager
 import com.waterfountainmachine.app.core.backend.IBackendSlotService
-import com.waterfountainmachine.app.di.BackendModule
-import com.waterfountainmachine.app.security.SecurityModule
-import com.waterfountainmachine.app.utils.ErrorScreenUtil
-import com.waterfountainmachine.app.utils.UserErrorMessages
+import com.waterfountainmachine.app.core.di.BackendModule
+import com.waterfountainmachine.app.core.security.SecurityModule
+import com.waterfountainmachine.app.core.utils.ErrorScreenUtil
+import com.waterfountainmachine.app.core.utils.UserErrorMessages
 import dagger.hilt.android.AndroidEntryPoint
 import nl.dionsegijn.konfetti.core.Party
 import nl.dionsegijn.konfetti.core.Position
@@ -806,7 +805,7 @@ class VendingAnimationActivity : AppCompatActivity() {
                             if (error is com.waterfountainmachine.app.core.backend.BackendSlotService.DailyLimitReachedException) {
                                 AppLog.w(TAG, "Daily limit reached - showing error")
                                 withContext(Dispatchers.Main) {
-                                    com.waterfountainmachine.app.utils.ErrorScreenUtil.showDailyLimitReached(this@VendingAnimationActivity)
+                                    com.waterfountainmachine.app.core.utils.ErrorScreenUtil.showDailyLimitReached(this@VendingAnimationActivity)
                                 }
                             } else {
                                 AppLog.e(TAG, "Failed to record vend", error)

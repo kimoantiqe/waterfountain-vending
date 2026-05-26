@@ -1,12 +1,11 @@
-package com.waterfountainmachine.app.hardware
-
+package com.waterfountainmachine.app.core.hardware
 import android.content.Context
 import android.content.SharedPreferences
-import com.waterfountainmachine.app.hardware.sdk.SlotValidator
-import com.waterfountainmachine.app.hardware.sdk.WaterDispenseResult
+import com.waterfountainmachine.app.core.hardware.sdk.SlotValidator
+import com.waterfountainmachine.app.core.hardware.sdk.WaterDispenseResult
 import com.waterfountainmachine.app.core.slot.SlotInventoryManager
-import com.waterfountainmachine.app.utils.AppLog
-import com.waterfountainmachine.app.config.WaterFountainConfig
+import com.waterfountainmachine.app.core.utils.AppLog
+import com.waterfountainmachine.app.core.config.WaterFountainConfig
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -235,8 +234,8 @@ class LaneManager private constructor(private val context: Context) {
      * Update backend slot status after failures
      */
     private fun updateBackendSlotStatus(lane: Int, errorCode: Byte?) {
-        val backendSlotService = com.waterfountainmachine.app.di.BackendModule.getBackendSlotService(context)
-        val machineId = com.waterfountainmachine.app.security.SecurityModule.getMachineId()
+        val backendSlotService = com.waterfountainmachine.app.core.di.BackendModule.getBackendSlotService(context)
+        val machineId = com.waterfountainmachine.app.core.security.SecurityModule.getMachineId()
         
         if (machineId == null) {
             AppLog.w(TAG, "Cannot update backend - machine ID not found")

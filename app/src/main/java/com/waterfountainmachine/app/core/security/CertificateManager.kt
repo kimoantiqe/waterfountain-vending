@@ -1,5 +1,4 @@
-package com.waterfountainmachine.app.security
-
+package com.waterfountainmachine.app.core.security
 import android.content.Context
 import android.util.Log
 import androidx.security.crypto.EncryptedSharedPreferences

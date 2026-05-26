@@ -1,5 +1,4 @@
-package com.waterfountainmachine.app.activities
-
+package com.waterfountainmachine.app.features.vending.ui
 import android.animation.AnimatorSet
 import android.animation.ObjectAnimator
 import android.content.Intent
@@ -12,18 +11,19 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.waterfountainmachine.app.R
 import com.waterfountainmachine.app.databinding.ActivitySmsVerifyBinding
-import com.waterfountainmachine.app.hardware.WaterFountainManager
-import com.waterfountainmachine.app.utils.FullScreenUtils
-import com.waterfountainmachine.app.utils.AnimationUtils
-import com.waterfountainmachine.app.utils.InactivityTimer
-import com.waterfountainmachine.app.utils.AppLog
-import com.waterfountainmachine.app.utils.SoundManager
-import com.waterfountainmachine.app.utils.UserErrorMessages
+import com.waterfountainmachine.app.core.hardware.WaterFountainManager
+import com.waterfountainmachine.app.core.utils.FullScreenUtils
+import com.waterfountainmachine.app.core.utils.AnimationUtils
+import com.waterfountainmachine.app.core.utils.InactivityTimer
+import com.waterfountainmachine.app.core.utils.AppLog
+import com.waterfountainmachine.app.core.utils.SoundManager
+import com.waterfountainmachine.app.core.utils.UserErrorMessages
 import com.waterfountainmachine.app.features.vending.viewmodels.SMSVerifyViewModel
 import com.waterfountainmachine.app.features.vending.viewmodels.SMSVerifyUiState
-import com.waterfountainmachine.app.analytics.MachineHealthMonitor
-import com.waterfountainmachine.app.utils.ErrorScreenUtil
+import com.waterfountainmachine.app.core.analytics.MachineHealthMonitor
+import com.waterfountainmachine.app.core.utils.ErrorScreenUtil
 import com.waterfountainmachine.app.WaterFountainApplication
+import com.waterfountainmachine.app.features.error.ErrorActivity
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
@@ -33,7 +33,7 @@ class SMSVerifyActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivitySmsVerifyBinding
     private val viewModel: SMSVerifyViewModel by viewModels()
-    private lateinit var analyticsManager: com.waterfountainmachine.app.analytics.AnalyticsManager
+    private lateinit var analyticsManager: com.waterfountainmachine.app.core.analytics.AnalyticsManager
     private var screenStartTime: Long = 0
 
     // Helper properties to access ViewModel state (for backward compatibility with existing code)
@@ -78,7 +78,7 @@ class SMSVerifyActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         
         // Initialize analytics
-        analyticsManager = com.waterfountainmachine.app.analytics.AnalyticsManager.getInstance(this)
+        analyticsManager = com.waterfountainmachine.app.core.analytics.AnalyticsManager.getInstance(this)
         screenStartTime = System.currentTimeMillis()
         analyticsManager.logScreenView(SCREEN_NAME, SCREEN_NAME)
         analyticsManager.logScreenEntered(SCREEN_NAME)

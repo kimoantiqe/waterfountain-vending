@@ -1,5 +1,4 @@
-package com.waterfountainmachine.app.admin.models
-
+package com.waterfountainmachine.app.features.admin.models
 data class LogEntry(
     val id: String,
     val timestamp: Long,

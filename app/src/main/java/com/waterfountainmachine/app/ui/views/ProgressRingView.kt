@@ -1,12 +1,11 @@
-package com.waterfountainmachine.app.views
-
+package com.waterfountainmachine.app.ui.views
 import android.animation.ValueAnimator
 import android.content.Context
 import android.graphics.*
 import android.util.AttributeSet
 import android.view.View
 import android.view.animation.DecelerateInterpolator
-import com.waterfountainmachine.app.config.WaterFountainConfig
+import com.waterfountainmachine.app.core.config.WaterFountainConfig
 import kotlin.math.cos
 import kotlin.math.sin
 

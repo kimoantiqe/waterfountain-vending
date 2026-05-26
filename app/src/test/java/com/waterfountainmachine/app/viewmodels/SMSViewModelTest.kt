@@ -3,7 +3,7 @@ package com.waterfountainmachine.app.viewmodels
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
-import com.waterfountainmachine.app.auth.IAuthenticationRepository
+import com.waterfountainmachine.app.core.auth.IAuthenticationRepository
 import com.waterfountainmachine.app.features.vending.viewmodels.SMSUiState
 import com.waterfountainmachine.app.features.vending.viewmodels.SMSViewModel
 import io.mockk.*
@@ -209,7 +209,7 @@ class SMSViewModelTest {
     @Test
     fun `requestOtp should succeed with valid 10-digit phone`() = runTest {
         coEvery { mockAuthRepository.requestOtp(any()) } returns Result.success(
-            com.waterfountainmachine.app.auth.OtpRequestResponse(success = true)
+            com.waterfountainmachine.app.core.auth.OtpRequestResponse(success = true)
         )
         
         viewModel.uiState.test {
@@ -318,7 +318,7 @@ class SMSViewModelTest {
     @Test
     fun `requestOtp should include phone visibility in success state`() = runTest {
         coEvery { mockAuthRepository.requestOtp(any()) } returns Result.success(
-            com.waterfountainmachine.app.auth.OtpRequestResponse(success = true)
+            com.waterfountainmachine.app.core.auth.OtpRequestResponse(success = true)
         )
         
         // Toggle visibility on
@@ -362,7 +362,7 @@ class SMSViewModelTest {
     @Test
     fun `critical state should be true during OTP request`() = runTest {
         coEvery { mockAuthRepository.requestOtp(any()) } returns Result.success(
-            com.waterfountainmachine.app.auth.OtpRequestResponse(success = true)
+            com.waterfountainmachine.app.core.auth.OtpRequestResponse(success = true)
         )
         
         viewModel.isInCriticalState.test {

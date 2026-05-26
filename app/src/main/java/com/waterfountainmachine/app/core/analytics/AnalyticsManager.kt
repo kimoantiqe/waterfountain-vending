@@ -1,5 +1,4 @@
-package com.waterfountainmachine.app.analytics
-
+package com.waterfountainmachine.app.core.analytics
 import android.content.Context
 import android.os.Build
 import android.os.Bundle
@@ -8,7 +7,7 @@ import com.google.firebase.analytics.ktx.analytics
 import com.google.firebase.analytics.ktx.logEvent
 import com.google.firebase.ktx.Firebase
 import com.waterfountainmachine.app.BuildConfig
-import com.waterfountainmachine.app.utils.AppLog
+import com.waterfountainmachine.app.core.utils.AppLog
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
@@ -250,9 +249,9 @@ class AnalyticsManager private constructor(private val context: Context) {
             // 1. Using live SMS (not mock)
             // 2. Using live backend (not mock)
             // 3. Using real hardware (not mock)
-            val isLiveSMS = com.waterfountainmachine.app.di.AuthModule.isUsingLiveSMS(context)
-            val isLiveBackend = com.waterfountainmachine.app.di.BackendModule.isUsingLiveBackend(context)
-            val isRealHardware = com.waterfountainmachine.app.utils.SecurePreferences.getSystemSettings(context)
+            val isLiveSMS = com.waterfountainmachine.app.core.di.AuthModule.isUsingLiveSMS(context)
+            val isLiveBackend = com.waterfountainmachine.app.core.di.BackendModule.isUsingLiveBackend(context)
+            val isRealHardware = com.waterfountainmachine.app.core.utils.SecurePreferences.getSystemSettings(context)
                 .getBoolean("use_real_serial", false)
             
             val isMock = !(isLiveSMS && isLiveBackend && isRealHardware)
@@ -337,9 +336,9 @@ class AnalyticsManager private constructor(private val context: Context) {
      * - Mock hardware (simulated serial)
      */
     fun getIsMock(): Boolean {
-        val isLiveSMS = com.waterfountainmachine.app.di.AuthModule.isUsingLiveSMS(context)
-        val isLiveBackend = com.waterfountainmachine.app.di.BackendModule.isUsingLiveBackend(context)
-        val isRealHardware = com.waterfountainmachine.app.utils.SecurePreferences.getSystemSettings(context)
+        val isLiveSMS = com.waterfountainmachine.app.core.di.AuthModule.isUsingLiveSMS(context)
+        val isLiveBackend = com.waterfountainmachine.app.core.di.BackendModule.isUsingLiveBackend(context)
+        val isRealHardware = com.waterfountainmachine.app.core.utils.SecurePreferences.getSystemSettings(context)
             .getBoolean("use_real_serial", false)
         
         return !(isLiveSMS && isLiveBackend && isRealHardware)

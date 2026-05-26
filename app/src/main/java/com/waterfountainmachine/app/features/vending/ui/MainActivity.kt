@@ -1,5 +1,4 @@
-package com.waterfountainmachine.app.activities
-
+package com.waterfountainmachine.app.features.vending.ui
 import android.animation.AnimatorSet
 import android.animation.ArgbEvaluator
 import android.animation.ObjectAnimator
@@ -22,19 +21,18 @@ import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
 import com.waterfountainmachine.app.R
 import com.waterfountainmachine.app.WaterFountainApplication
-import com.waterfountainmachine.app.admin.AdminGestureDetector
+import com.waterfountainmachine.app.features.admin.utils.AdminGestureDetector
 import com.waterfountainmachine.app.databinding.ActivityMainBinding
-import com.waterfountainmachine.app.utils.AppLog
-import com.waterfountainmachine.app.utils.FullScreenUtils
-import com.waterfountainmachine.app.utils.AnimationUtils
-import com.waterfountainmachine.app.utils.HardwareKeyHandler
-import com.waterfountainmachine.app.utils.SoundManager
-import com.waterfountainmachine.app.utils.ErrorScreenUtil
-import com.waterfountainmachine.app.utils.UserErrorMessages
-import com.waterfountainmachine.app.analytics.AnalyticsManager
-import com.waterfountainmachine.app.analytics.MachineHealthMonitor
-import com.waterfountainmachine.app.security.SecurityModule
-
+import com.waterfountainmachine.app.core.utils.AppLog
+import com.waterfountainmachine.app.core.utils.FullScreenUtils
+import com.waterfountainmachine.app.core.utils.AnimationUtils
+import com.waterfountainmachine.app.core.utils.HardwareKeyHandler
+import com.waterfountainmachine.app.core.utils.SoundManager
+import com.waterfountainmachine.app.core.utils.ErrorScreenUtil
+import com.waterfountainmachine.app.core.utils.UserErrorMessages
+import com.waterfountainmachine.app.core.analytics.AnalyticsManager
+import com.waterfountainmachine.app.core.analytics.MachineHealthMonitor
+import com.waterfountainmachine.app.core.security.SecurityModule
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private var canBobbingAnimator: AnimatorSet? = null
@@ -50,7 +48,7 @@ class MainActivity : AppCompatActivity() {
     private var screenEnterTime: Long = 0
     
     // Machine status monitoring
-    private val prefs by lazy { com.waterfountainmachine.app.utils.SecurePreferences.getSystemSettings(this) }
+    private val prefs by lazy { com.waterfountainmachine.app.core.utils.SecurePreferences.getSystemSettings(this) }
     private val machineStatusPrefs by lazy { getSharedPreferences("machine_health", MODE_PRIVATE) }
     private val statusChangeListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
         if (key == "is_disabled") {
@@ -199,7 +197,7 @@ class MainActivity : AppCompatActivity() {
     }
     
     private fun setupKioskMode() {
-        val prefs = com.waterfountainmachine.app.utils.SecurePreferences.getSystemSettings(this)
+        val prefs = com.waterfountainmachine.app.core.utils.SecurePreferences.getSystemSettings(this)
         val kioskModeEnabled = prefs.getBoolean("kiosk_mode", true)
         
         AppLog.i(TAG, "Kiosk mode setting: ${if (kioskModeEnabled) "ENABLED" else "DISABLED"}")

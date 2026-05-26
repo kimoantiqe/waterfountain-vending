@@ -1,9 +1,8 @@
-package com.waterfountainmachine.app.hardware
-
+package com.waterfountainmachine.app.core.hardware
 import android.content.Context
-import com.waterfountainmachine.app.config.WaterFountainConfig
-import com.waterfountainmachine.app.hardware.sdk.*
-import com.waterfountainmachine.app.utils.AppLog
+import com.waterfountainmachine.app.core.config.WaterFountainConfig
+import com.waterfountainmachine.app.core.hardware.sdk.*
+import com.waterfountainmachine.app.core.utils.AppLog
 import kotlinx.coroutines.*
 
 /**
@@ -50,7 +49,7 @@ class WaterFountainManager private constructor(
             AppLog.d(TAG, config.getConfigSummary())
             
             // Check if we should use real or mock serial communicator (using encrypted preferences)
-            val prefs = com.waterfountainmachine.app.utils.SecurePreferences.getSystemSettings(context)
+            val prefs = com.waterfountainmachine.app.core.utils.SecurePreferences.getSystemSettings(context)
             val useRealSerial = prefs.getBoolean("use_real_serial", false)
             
             AppLog.i(TAG, "Serial Communicator Configuration:")

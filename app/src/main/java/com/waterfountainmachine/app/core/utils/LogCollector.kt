@@ -1,7 +1,6 @@
-package com.waterfountainmachine.app.utils
-
+package com.waterfountainmachine.app.core.utils
 import android.util.Log
-import com.waterfountainmachine.app.admin.models.LogEntry
+import com.waterfountainmachine.app.features.admin.models.LogEntry
 import java.util.concurrent.ConcurrentLinkedQueue
 
 /**

@@ -1,5 +1,4 @@
-package com.waterfountainmachine.app.admin.fragments
-
+package com.waterfountainmachine.app.features.admin.fragments
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
@@ -11,11 +10,11 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.waterfountainmachine.app.databinding.FragmentLogsBinding
-import com.waterfountainmachine.app.admin.adapters.LogEntryAdapter
-import com.waterfountainmachine.app.admin.models.LogEntry
-import com.waterfountainmachine.app.utils.LogCollector
-import com.waterfountainmachine.app.utils.AppLog
-import com.waterfountainmachine.app.utils.AdminDebugConfig
+import com.waterfountainmachine.app.features.admin.adapters.LogEntryAdapter
+import com.waterfountainmachine.app.features.admin.models.LogEntry
+import com.waterfountainmachine.app.core.utils.LogCollector
+import com.waterfountainmachine.app.core.utils.AppLog
+import com.waterfountainmachine.app.core.utils.AdminDebugConfig
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 import java.io.File

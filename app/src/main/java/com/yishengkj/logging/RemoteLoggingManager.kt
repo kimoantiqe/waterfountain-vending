@@ -6,9 +6,9 @@ import androidx.work.*
 import com.google.firebase.functions.FirebaseFunctions
 import com.google.firebase.functions.ktx.functions
 import com.google.firebase.ktx.Firebase
-import com.waterfountainmachine.app.admin.models.LogEntry
-import com.waterfountainmachine.app.security.SecurityModule
-import com.waterfountainmachine.app.utils.AppLog
+import com.waterfountainmachine.app.features.admin.models.LogEntry
+import com.waterfountainmachine.app.core.security.SecurityModule
+import com.waterfountainmachine.app.core.utils.AppLog
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
@@ -225,7 +225,7 @@ class LogUploadWorker(
             AppLog.i(TAG, "Encryption passphrase fetched successfully")
             
             // Get logs from LogCollector
-            val allLogs = com.waterfountainmachine.app.utils.LogCollector.getLogs()
+            val allLogs = com.waterfountainmachine.app.core.utils.LogCollector.getLogs()
             if (allLogs.isEmpty()) {
                 AppLog.i(TAG, "No logs to upload")
                 return@withContext Result.success()

@@ -1,9 +1,7 @@
-package com.waterfountainmachine.app.utils
-
+package com.waterfountainmachine.app.core.utils
 import android.content.Context
 import android.content.Intent
-import com.waterfountainmachine.app.activities.ErrorActivity
-
+import com.waterfountainmachine.app.features.error.ErrorActivity
 /**
  * Utility object for displaying error screens throughout the app.
  * 

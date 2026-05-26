@@ -1,5 +1,4 @@
-package com.waterfountainmachine.app.config
-
+package com.waterfountainmachine.app.core.config
 import com.waterfountainmachine.app.BuildConfig
 
 /**

@@ -1,5 +1,4 @@
-package com.waterfountainmachine.app.admin.fragments
-
+package com.waterfountainmachine.app.features.admin.fragments
 import android.app.ActivityManager
 import android.content.Context
 import android.content.Intent
@@ -14,13 +13,13 @@ import android.view.ViewGroup
 import androidx.core.content.FileProvider
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
-import com.waterfountainmachine.app.activities.MainActivity
-import com.waterfountainmachine.app.di.AuthModule
-import com.waterfountainmachine.app.di.BackendModule
+import com.waterfountainmachine.app.features.vending.ui.MainActivity
+import com.waterfountainmachine.app.core.di.AuthModule
+import com.waterfountainmachine.app.core.di.BackendModule
 import com.waterfountainmachine.app.databinding.FragmentSystemBinding
-import com.waterfountainmachine.app.utils.AdminDebugConfig
-import com.waterfountainmachine.app.utils.AppLog
-import com.waterfountainmachine.app.utils.LogCollector
+import com.waterfountainmachine.app.core.utils.AdminDebugConfig
+import com.waterfountainmachine.app.core.utils.AppLog
+import com.waterfountainmachine.app.core.utils.LogCollector
 import kotlinx.coroutines.launch
 import java.io.File
 import java.io.FileWriter
@@ -102,7 +101,7 @@ class SystemFragment : Fragment() {
     }
     
     private fun loadCurrentSettings() {
-        val prefs = com.waterfountainmachine.app.utils.SecurePreferences.getSystemSettings(requireContext())
+        val prefs = com.waterfountainmachine.app.core.utils.SecurePreferences.getSystemSettings(requireContext())
         
         // Load toggle states WITHOUT triggering listeners
         binding.kioskModeToggle.isChecked = prefs.getBoolean("kiosk_mode", true)
@@ -116,7 +115,7 @@ class SystemFragment : Fragment() {
         binding.slotServiceModeToggle.isChecked = !useMockSlotService // Toggle shows "Sync Slots with Backend"
         
         // Load Health Monitor mode (default to real health monitoring)
-        val useMockHealthMonitor = com.waterfountainmachine.app.di.HealthMonitorModule.loadHealthMonitorModePreference(requireContext())
+        val useMockHealthMonitor = com.waterfountainmachine.app.core.di.HealthMonitorModule.loadHealthMonitorModePreference(requireContext())
         binding.healthMonitorModeToggle.isChecked = !useMockHealthMonitor // Toggle shows "Send Health Heartbeats"
         
         // Load Remote Logging mode (check if remote logging is enabled)
@@ -124,7 +123,7 @@ class SystemFragment : Fragment() {
         binding.remoteLoggingToggle.isChecked = remoteLoggingEnabled
         binding.sendLogsNowButton.isEnabled = remoteLoggingEnabled
         
-        binding.adminLoggingToggle.isChecked = com.waterfountainmachine.app.utils.AdminDebugConfig.isAdminLoggingEnabled(requireContext())
+        binding.adminLoggingToggle.isChecked = com.waterfountainmachine.app.core.utils.AdminDebugConfig.isAdminLoggingEnabled(requireContext())
         binding.analyticsDebugToggle.isChecked = prefs.getBoolean("analytics_debug_mode", false)
         binding.maintenanceModeToggle.isChecked = prefs.getBoolean("maintenance_mode", false)
         binding.hardwareModeToggle.isChecked = prefs.getBoolean("use_real_serial", false)
@@ -189,7 +188,7 @@ class SystemFragment : Fragment() {
     private fun updateKioskMode(enabled: Boolean) {
         lifecycleScope.launch {
             try {
-                com.waterfountainmachine.app.utils.SecurePreferences.getSystemSettings(requireContext())
+                com.waterfountainmachine.app.core.utils.SecurePreferences.getSystemSettings(requireContext())
                     .edit()
                     .putBoolean("kiosk_mode", enabled)
                     .apply()
@@ -308,7 +307,7 @@ class SystemFragment : Fragment() {
     private fun updateHideNavigationBar(enabled: Boolean) {
         lifecycleScope.launch {
             try {
-                com.waterfountainmachine.app.utils.SecurePreferences.getSystemSettings(requireContext())
+                com.waterfountainmachine.app.core.utils.SecurePreferences.getSystemSettings(requireContext())
                     .edit()
                     .putBoolean("hide_navigation_bar", enabled)
                     .apply()
@@ -348,7 +347,7 @@ class SystemFragment : Fragment() {
                 }
                 
                 // Save preference for next app startup
-                com.waterfountainmachine.app.utils.SecurePreferences.getSystemSettings(requireContext())
+                com.waterfountainmachine.app.core.utils.SecurePreferences.getSystemSettings(requireContext())
                     .edit()
                     .putBoolean("remote_logging_enabled", enabled)
                     .apply()
@@ -367,14 +366,14 @@ class SystemFragment : Fragment() {
         lifecycleScope.launch {
             try {
                 if (enabled) {
-                    com.waterfountainmachine.app.utils.AdminDebugConfig.enableAdminLogging(requireContext())
-                    val remainingMs = com.waterfountainmachine.app.utils.AdminDebugConfig.getRemainingLoggingTime(requireContext())
+                    com.waterfountainmachine.app.core.utils.AdminDebugConfig.enableAdminLogging(requireContext())
+                    val remainingMs = com.waterfountainmachine.app.core.utils.AdminDebugConfig.getRemainingLoggingTime(requireContext())
                     val remainingMin = remainingMs / 60000
                     binding.systemStatusText.text = "Admin logging enabled (auto-disables in ${remainingMin}min)"
                     // Note: Using regular AppLog here since this is about enabling/disabling admin logging itself
                     AppLog.i(TAG, "✅ Admin logging enabled for temporary debugging")
                 } else {
-                    com.waterfountainmachine.app.utils.AdminDebugConfig.disableAdminLogging(requireContext())
+                    com.waterfountainmachine.app.core.utils.AdminDebugConfig.disableAdminLogging(requireContext())
                     binding.systemStatusText.text = "Admin logging disabled"
                     AppLog.i(TAG, "❌ Admin logging disabled")
                 }
@@ -389,13 +388,13 @@ class SystemFragment : Fragment() {
     private fun updateAnalyticsDebugMode(enabled: Boolean) {
         lifecycleScope.launch {
             try {
-                com.waterfountainmachine.app.utils.SecurePreferences.getSystemSettings(requireContext())
+                com.waterfountainmachine.app.core.utils.SecurePreferences.getSystemSettings(requireContext())
                     .edit()
                     .putBoolean("analytics_debug_mode", enabled)
                     .apply()
                 
                 // Initialize AnalyticsManager and set debug mode
-                val analyticsManager = com.waterfountainmachine.app.analytics.AnalyticsManager.getInstance(requireContext())
+                val analyticsManager = com.waterfountainmachine.app.core.analytics.AnalyticsManager.getInstance(requireContext())
                 analyticsManager.setDebugMode(enabled)
                 
                 val statusMessage = if (enabled) {
@@ -455,7 +454,7 @@ class SystemFragment : Fragment() {
     private fun updateHardwareMode(enabled: Boolean) {
         lifecycleScope.launch {
             try {
-                com.waterfountainmachine.app.utils.SecurePreferences.getSystemSettings(requireContext())
+                com.waterfountainmachine.app.core.utils.SecurePreferences.getSystemSettings(requireContext())
                     .edit()
                     .putBoolean("use_real_serial", enabled)
                     .apply()
@@ -474,7 +473,7 @@ class SystemFragment : Fragment() {
     private fun toggleMaintenanceMode(enabled: Boolean) {
         lifecycleScope.launch {
             try {
-                val success = com.waterfountainmachine.app.utils.SecurePreferences.getSystemSettings(requireContext())
+                val success = com.waterfountainmachine.app.core.utils.SecurePreferences.getSystemSettings(requireContext())
                     .edit()
                     .putBoolean("maintenance_mode", enabled)
                     .putLong("maintenance_mode_timestamp", System.currentTimeMillis())
@@ -751,7 +750,7 @@ class SystemFragment : Fragment() {
             }
             
             // Verify current PIN
-            if (!com.waterfountainmachine.app.admin.AdminPinManager.verifyPin(requireContext(), currentPin)) {
+            if (!com.waterfountainmachine.app.features.admin.utils.AdminPinManager.verifyPin(requireContext(), currentPin)) {
                 currentPinLayout.error = "Incorrect current PIN"
                 // Keep security log - always log failed attempts
                 AppLog.w(TAG, "Failed PIN change attempt - incorrect current PIN")
@@ -792,7 +791,7 @@ class SystemFragment : Fragment() {
             }
             
             // Change the PIN
-            if (com.waterfountainmachine.app.admin.AdminPinManager.changePin(requireContext(), currentPin, newPin)) {
+            if (com.waterfountainmachine.app.features.admin.utils.AdminPinManager.changePin(requireContext(), currentPin, newPin)) {
                 // Keep security log - always log PIN changes
                 AppLog.i(TAG, "✅ Admin PIN changed successfully")
                 
@@ -841,7 +840,7 @@ class SystemFragment : Fragment() {
         lifecycleScope.launch {
             try {
                 // Check if machine is enrolled first
-                if (!com.waterfountainmachine.app.security.SecurityModule.isEnrolled()) {
+                if (!com.waterfountainmachine.app.core.security.SecurityModule.isEnrolled()) {
                     androidx.appcompat.app.AlertDialog.Builder(requireContext())
                         .setTitle("Cannot Send Logs")
                         .setMessage("Machine must be enrolled to upload logs. Certificate authentication is required.")

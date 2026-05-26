@@ -1,13 +1,12 @@
-package com.waterfountainmachine.app.auth
-
+package com.waterfountainmachine.app.core.auth
 import com.google.firebase.Firebase
 import com.google.firebase.functions.FirebaseFunctions
 import com.google.firebase.functions.FirebaseFunctionsException
 import com.google.firebase.functions.functions
-import com.waterfountainmachine.app.security.CertificateManager
-import com.waterfountainmachine.app.security.NonceGenerator
-import com.waterfountainmachine.app.security.RequestSigner
-import com.waterfountainmachine.app.utils.AppLog
+import com.waterfountainmachine.app.core.security.CertificateManager
+import com.waterfountainmachine.app.core.security.NonceGenerator
+import com.waterfountainmachine.app.core.security.RequestSigner
+import com.waterfountainmachine.app.core.utils.AppLog
 import kotlinx.coroutines.tasks.await
 
 /**

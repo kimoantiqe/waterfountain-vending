@@ -1,5 +1,4 @@
-package com.waterfountainmachine.app.setup
-
+package com.waterfountainmachine.app.core.setup
 import android.graphics.Color
 import android.os.Bundle
 import android.view.View
@@ -8,8 +7,8 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.google.firebase.functions.FirebaseFunctions
 import com.waterfountainmachine.app.databinding.ActivityCertificateSetupBinding
-import com.waterfountainmachine.app.security.SecurityModule
-import com.waterfountainmachine.app.utils.AppLog
+import com.waterfountainmachine.app.core.security.SecurityModule
+import com.waterfountainmachine.app.core.utils.AppLog
 import com.waterfountainmachine.app.workers.CertificateRenewalWorker
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch

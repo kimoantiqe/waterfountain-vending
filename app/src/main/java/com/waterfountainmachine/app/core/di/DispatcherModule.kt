@@ -1,5 +1,4 @@
-package com.waterfountainmachine.app.di
-
+package com.waterfountainmachine.app.core.di
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn

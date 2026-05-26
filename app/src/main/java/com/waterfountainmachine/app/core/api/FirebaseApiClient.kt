@@ -1,8 +1,7 @@
-package com.waterfountainmachine.app.api
-
+package com.waterfountainmachine.app.core.api
 import com.google.firebase.functions.FirebaseFunctions
-import com.waterfountainmachine.app.auth.AuthenticationException
-import com.waterfountainmachine.app.utils.AppLog
+import com.waterfountainmachine.app.core.auth.AuthenticationException
+import com.waterfountainmachine.app.core.utils.AppLog
 import kotlinx.coroutines.tasks.await
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject

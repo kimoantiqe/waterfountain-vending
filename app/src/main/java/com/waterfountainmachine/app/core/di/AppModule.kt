@@ -1,12 +1,11 @@
-package com.waterfountainmachine.app.di
-
+package com.waterfountainmachine.app.core.di
 import android.content.Context
-import com.waterfountainmachine.app.config.WaterFountainConfig
-import com.waterfountainmachine.app.hardware.WaterFountainManager
-import com.waterfountainmachine.app.security.CertificateManager
-import com.waterfountainmachine.app.security.NonceGenerator
-import com.waterfountainmachine.app.security.RequestSigner
-import com.waterfountainmachine.app.utils.SoundManager
+import com.waterfountainmachine.app.core.config.WaterFountainConfig
+import com.waterfountainmachine.app.core.hardware.WaterFountainManager
+import com.waterfountainmachine.app.core.security.CertificateManager
+import com.waterfountainmachine.app.core.security.NonceGenerator
+import com.waterfountainmachine.app.core.security.RequestSigner
+import com.waterfountainmachine.app.core.utils.SoundManager
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn

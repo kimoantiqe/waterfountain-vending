@@ -1,16 +1,15 @@
-package com.waterfountainmachine.app.admin
-
+package com.waterfountainmachine.app.features.admin.ui
 import android.content.Intent
 import android.os.Bundle
 import android.view.KeyEvent
 import androidx.appcompat.app.AppCompatActivity
 import com.waterfountainmachine.app.databinding.ActivityAdminAuthBinding
-import com.waterfountainmachine.app.utils.AppLog
-import com.waterfountainmachine.app.utils.FullScreenUtils
-import com.waterfountainmachine.app.utils.HardwareKeyHandler
-import com.waterfountainmachine.app.utils.InactivityTimer
-import com.waterfountainmachine.app.config.WaterFountainConfig
-
+import com.waterfountainmachine.app.core.utils.AppLog
+import com.waterfountainmachine.app.core.utils.FullScreenUtils
+import com.waterfountainmachine.app.core.utils.HardwareKeyHandler
+import com.waterfountainmachine.app.core.utils.InactivityTimer
+import com.waterfountainmachine.app.core.config.WaterFountainConfig
+import com.waterfountainmachine.app.features.admin.utils.AdminPinManager
 class AdminAuthActivity : AppCompatActivity() {
     
     private lateinit var binding: ActivityAdminAuthBinding
@@ -62,7 +61,7 @@ class AdminAuthActivity : AppCompatActivity() {
      * Load rate limiting state from encrypted preferences
      */
     private fun loadRateLimitState() {
-        val prefs = com.waterfountainmachine.app.utils.SecurePreferences.getSystemSettings(this)
+        val prefs = com.waterfountainmachine.app.core.utils.SecurePreferences.getSystemSettings(this)
         failedAttempts = prefs.getInt(KEY_FAILED_ATTEMPTS, 0)
         lockoutUntil = prefs.getLong(KEY_LOCKOUT_UNTIL, 0)
         
@@ -73,7 +72,7 @@ class AdminAuthActivity : AppCompatActivity() {
      * Save rate limiting state to encrypted preferences
      */
     private fun saveRateLimitState() {
-        val prefs = com.waterfountainmachine.app.utils.SecurePreferences.getSystemSettings(this)
+        val prefs = com.waterfountainmachine.app.core.utils.SecurePreferences.getSystemSettings(this)
         prefs.edit()
             .putInt(KEY_FAILED_ATTEMPTS, failedAttempts)
             .putLong(KEY_LOCKOUT_UNTIL, lockoutUntil)

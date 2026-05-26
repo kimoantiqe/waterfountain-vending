@@ -1,9 +1,8 @@
-package com.waterfountainmachine.app.debug
-
+package com.waterfountainmachine.app.core.debug
 import android.content.Context
-import com.waterfountainmachine.app.utils.AppLog
-import com.waterfountainmachine.app.config.WaterFountainConfig
-import com.waterfountainmachine.app.hardware.WaterFountainManager
+import com.waterfountainmachine.app.core.utils.AppLog
+import com.waterfountainmachine.app.core.config.WaterFountainConfig
+import com.waterfountainmachine.app.core.hardware.WaterFountainManager
 import kotlinx.coroutines.*
 
 /**

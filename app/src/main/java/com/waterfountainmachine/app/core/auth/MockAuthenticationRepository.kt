@@ -1,6 +1,5 @@
-package com.waterfountainmachine.app.auth
-
-import com.waterfountainmachine.app.utils.AppLog
+package com.waterfountainmachine.app.core.auth
+import com.waterfountainmachine.app.core.utils.AppLog
 import kotlinx.coroutines.delay
 import kotlin.random.Random
 
