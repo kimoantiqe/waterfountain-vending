@@ -15,6 +15,17 @@ jacoco {
     toolVersion = "0.8.11"
 }
 
+// CI can override version metadata via:
+//   -PciVersionName=1.2.3
+//   -PciVersionCode=123
+// Local development keeps the fallback values below.
+val ciVersionName = (project.findProperty("ciVersionName") as? String)
+    ?.trim()
+    ?.takeIf { it.isNotEmpty() }
+val ciVersionCode = (project.findProperty("ciVersionCode") as? String)
+    ?.toIntOrNull()
+    ?.takeIf { it > 0 }
+
 android {
     namespace = "com.waterfountainmachine.app"
     compileSdk = 34
@@ -23,8 +34,8 @@ android {
         applicationId = "com.waterfountainmachine.app"
         minSdk = 26
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = ciVersionCode ?: 1
+        versionName = ciVersionName ?: "1.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
