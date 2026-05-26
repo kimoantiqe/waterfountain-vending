@@ -1,5 +1,4 @@
-package com.waterfountainmachine.app.admin.fragments
-
+package com.waterfountainmachine.app.features.admin.fragments
 import android.content.Context
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -16,10 +15,10 @@ import com.waterfountainmachine.app.R
 import com.waterfountainmachine.app.core.slot.SlotInventoryManager
 import com.waterfountainmachine.app.core.backend.IBackendSlotService
 import com.waterfountainmachine.app.core.backend.BackendSlotService
-import com.waterfountainmachine.app.hardware.LaneManager
-import com.waterfountainmachine.app.di.BackendModule
-import com.waterfountainmachine.app.hardware.sdk.SlotValidator
-import com.waterfountainmachine.app.utils.AppLog
+import com.waterfountainmachine.app.core.hardware.LaneManager
+import com.waterfountainmachine.app.core.di.BackendModule
+import com.waterfountainmachine.app.core.hardware.sdk.SlotValidator
+import com.waterfountainmachine.app.core.utils.AppLog
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -84,9 +83,16 @@ class SlotInventoryFragment : Fragment() {
         initializeViews(view)
         setupUI()
         updateSyncStatusBanner()
+        // Cache-then-network: paint last known state immediately so the screen
+        // is not blank, then kick off a backend sync so the operator always
+        // sees fresh truth without having to remember to tap Refresh. If the
+        // device is not enrolled or offline, refreshFromBackend() will surface
+        // an error in the status banner and the cache remains the visible
+        // state.
         loadSlotInventory()
+        refreshFromBackend()
         updateNextDispenseQueue()
-        
+
         return view
     }
     
@@ -157,8 +163,16 @@ class SlotInventoryFragment : Fragment() {
      */
     private fun loadSlotInventory() {
         val allSlots = slotInventoryManager.getAllSlots()
-        
-        // Update each slot card
+
+        // Reset every card to its placeholder state first. Without this, cards
+        // for slots that were configured in a previous snapshot but are no
+        // longer in the cache (e.g. removed on the backend, then evicted by
+        // replaceAllSlots) would keep displaying their stale data.
+        for (card in slotViews.values) {
+            card.clearData()
+        }
+
+        // Update each slot card that has backing data.
         for (slotData in allSlots) {
             slotViews[slotData.slot]?.updateData(
                 remainingBottles = slotData.remainingBottles,
@@ -173,7 +187,7 @@ class SlotInventoryFragment : Fragment() {
         updateTotals(allSlots)
         
         // Update status message
-        if (!com.waterfountainmachine.app.security.SecurityModule.isEnrolled()) {
+        if (!com.waterfountainmachine.app.core.security.SecurityModule.isEnrolled()) {
             statusText.text = "⚠️ Machine not enrolled. Showing cached data. Enroll machine to sync."
             statusText.setTextColor(ContextCompat.getColor(requireContext(), android.R.color.holo_orange_dark))
         } else {
@@ -199,7 +213,7 @@ class SlotInventoryFragment : Fragment() {
         lifecycleScope.launch(Dispatchers.IO) {
             try {
                 // Check if machine is enrolled
-                if (!com.waterfountainmachine.app.security.SecurityModule.isEnrolled()) {
+                if (!com.waterfountainmachine.app.core.security.SecurityModule.isEnrolled()) {
                     withContext(Dispatchers.Main) {
                         statusText.text = "Error: Machine not enrolled. Enroll machine first."
                         statusText.setTextColor(ContextCompat.getColor(requireContext(), android.R.color.holo_red_dark))
@@ -210,7 +224,7 @@ class SlotInventoryFragment : Fragment() {
                 }
                 
                 // Get machine ID from certificate
-                val machineId = com.waterfountainmachine.app.security.SecurityModule.getMachineId()
+                val machineId = com.waterfountainmachine.app.core.security.SecurityModule.getMachineId()
                 
                 if (machineId == null) {
                     withContext(Dispatchers.Main) {
@@ -412,6 +426,19 @@ class SlotInventoryFragment : Fragment() {
                 .show()
         }
         
+        /**
+         * Reset this card to its unconfigured-placeholder state. Mirrors the
+         * defaults set in init() so a card that previously displayed a now-
+         * evicted slot doesn't keep showing stale data after a re-sync.
+         */
+        fun clearData() {
+            bottlesText.text = "Cans: ?"
+            canNameText.text = "Can: -"
+            invStatusText.text = "Inv: -"
+            hwStatusText.text = "HW: -"
+            setCardBackgroundColor(ContextCompat.getColor(context, android.R.color.darker_gray))
+        }
+
         fun updateData(
             remainingBottles: Int,
             capacity: Int,

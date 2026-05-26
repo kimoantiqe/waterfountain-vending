@@ -2,8 +2,8 @@ package com.waterfountainmachine.app.core.slot
 
 import android.content.Context
 import android.content.SharedPreferences
-import com.waterfountainmachine.app.hardware.sdk.SlotValidator
-import com.waterfountainmachine.app.utils.AppLog
+import com.waterfountainmachine.app.core.hardware.sdk.SlotValidator
+import com.waterfountainmachine.app.core.utils.AppLog
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -90,22 +90,35 @@ class SlotInventoryManager private constructor(private val context: Context) {
     }
     
     /**
-     * Get inventory for a specific slot
+     * Get inventory for a specific slot.
+     *
+     * Returns null when the slot was never written to the cache (i.e. has no
+     * lastUpdated timestamp). This is the canonical "this slot is not
+     * configured on this device" signal — callers must NOT treat the absence
+     * of a slot as "0 bottles, ACTIVE". A real configured slot always has a
+     * non-zero lastUpdated set by [updateSlotInventory] or
+     * [BackendSlotService.syncInventoryWithBackend].
      */
     fun getSlotInventory(slot: Int): SlotInventory? {
         if (!SlotValidator.isValidSlot(slot)) {
             AppLog.w(TAG, "Invalid slot number: $slot")
             return null
         }
-        
+
+        val lastUpdated = prefs.getLong(getLastUpdatedKey(slot), 0L)
+        if (lastUpdated == 0L) {
+            // Slot has never been written; treat as "not configured" rather
+            // than fabricating defaults like 0 bottles / ACTIVE.
+            return null
+        }
+
         val bottles = prefs.getInt(getBottlesKey(slot), 0)
         val capacity = prefs.getInt(getCapacityKey(slot), 4) // Default capacity 4 (max)
         val campaignId = prefs.getString(getCampaignKey(slot), null)
         val canDesignId = prefs.getString(getDesignKey(slot), null)
         val canDesignName = prefs.getString(getDesignNameKey(slot), null)
         val statusStr = prefs.getString(getStatusKey(slot), "ACTIVE") ?: "ACTIVE"
-        val lastUpdated = prefs.getLong(getLastUpdatedKey(slot), 0L)
-        
+
         return SlotInventory(
             slot = slot,
             remainingBottles = bottles,
@@ -218,6 +231,62 @@ class SlotInventoryManager private constructor(private val context: Context) {
         }
     }
     
+    /**
+     * Atomically replace the entire slot cache with the snapshot returned by
+     * the backend. This is the ONLY write path that should be used by sync —
+     * regular admin/vend flows use [updateSlotInventory] for single-slot edits.
+     *
+     * Why atomic-replace (not merge):
+     *   The backend is the single source of truth for which slots exist. If a
+     *   slot was deleted on the backend, a merge-only sync would leave stale
+     *   data on the device forever. Replacing keeps the cache in lockstep with
+     *   what the backend authoritatively returned at sync time.
+     *
+     * Atomicity: all slot_* prefs keys are removed and the new set is written
+     * inside a single editor.commit() call. PREF_LAST_SYNC is also written in
+     * the same commit so a half-replaced cache cannot be observed.
+     *
+     * Note: this only touches keys with the slot_* prefix. Other prefs in this
+     * file (currently none, but defensive) are preserved.
+     */
+    fun replaceAllSlots(slots: List<SlotInventory>) {
+        val now = System.currentTimeMillis()
+        val editor = prefs.edit()
+
+        // Step 1: remove every existing slot_* key. We can't simply call
+        // editor.clear() because that would wipe PREF_LAST_SYNC and any future
+        // non-slot prefs that share this file.
+        for (key in prefs.all.keys) {
+            if (key.startsWith(PREFIX_BOTTLES)) {
+                editor.remove(key)
+            }
+        }
+
+        // Step 2: write the new snapshot.
+        for (slot in slots) {
+            editor.putInt(getBottlesKey(slot.slot), slot.remainingBottles)
+            editor.putInt(getCapacityKey(slot.slot), slot.capacity)
+            editor.putString(getStatusKey(slot.slot), slot.status.name)
+            editor.putLong(getLastUpdatedKey(slot.slot), now)
+            if (slot.campaignId != null) editor.putString(getCampaignKey(slot.slot), slot.campaignId)
+            if (slot.canDesignId != null) editor.putString(getDesignKey(slot.slot), slot.canDesignId)
+            if (slot.canDesignName != null) editor.putString(getDesignNameKey(slot.slot), slot.canDesignName)
+        }
+
+        // Step 3: bump last-sync timestamp in the same transaction.
+        editor.putLong(PREF_LAST_SYNC, now)
+
+        // commit() (synchronous, returns success bool) instead of apply() so a
+        // crash mid-sync cannot leave a half-replaced cache on disk.
+        val ok = editor.commit()
+        if (!ok) {
+            AppLog.e(TAG, "replaceAllSlots: commit() returned false")
+        }
+
+        refreshStateFlow()
+        AppLog.i(TAG, "replaceAllSlots: cache replaced with ${slots.size} slot(s)")
+    }
+
     /**
      * Get slots that are low on inventory (< 20% capacity)
      */

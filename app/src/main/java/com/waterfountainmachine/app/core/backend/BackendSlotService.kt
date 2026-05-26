@@ -4,9 +4,9 @@ import android.content.Context
 import com.google.firebase.functions.FirebaseFunctions
 import com.google.firebase.functions.ktx.functions
 import com.google.firebase.ktx.Firebase
-import com.waterfountainmachine.app.security.SecurityModule
+import com.waterfountainmachine.app.core.security.SecurityModule
 import com.waterfountainmachine.app.core.slot.SlotInventoryManager
-import com.waterfountainmachine.app.utils.AppLog
+import com.waterfountainmachine.app.core.utils.AppLog
 import kotlinx.coroutines.tasks.await
 import org.json.JSONArray
 import org.json.JSONObject
@@ -86,14 +86,16 @@ class BackendSlotService private constructor(private val context: Context) : IBa
                 operationName = "syncInventoryWithBackend"
             )
             
-            // Parse response
+            // Parse response into SlotInventory list (no writes yet — we only
+            // mutate the local cache after the full payload parses cleanly).
             val slotsData = result.data as? List<*> ?: emptyList<Any>()
             val slotInventoryManager = SlotInventoryManager.getInstance(context)
+            val now = System.currentTimeMillis()
             val slots = mutableListOf<SlotInventoryManager.SlotInventory>()
-            
+
             for (slotData in slotsData) {
                 val slotMap = slotData as? Map<*, *> ?: continue
-                
+
                 val slot = (slotMap["slot"] as? Number)?.toInt() ?: continue
                 val remainingBottles = (slotMap["remainingBottles"] as? Number)?.toInt() ?: 0
                 val capacity = (slotMap["capacity"] as? Number)?.toInt() ?: 7
@@ -101,21 +103,10 @@ class BackendSlotService private constructor(private val context: Context) : IBa
                 val canDesignId = slotMap["canDesignId"] as? String
                 val canDesignName = slotMap["canDesignName"] as? String
                 val statusStr = slotMap["status"] as? String ?: "active"
-                
+
                 // Backend sends lowercase status, convert to enum
                 val status = SlotInventoryManager.SlotStatus.fromString(statusStr)
-                
-                // Update local storage
-                slotInventoryManager.updateSlotInventory(
-                    slot = slot,
-                    remainingBottles = remainingBottles,
-                    capacity = capacity,
-                    campaignId = campaignId,
-                    canDesignId = canDesignId,
-                    canDesignName = canDesignName,
-                    status = status
-                )
-                
+
                 slots.add(SlotInventoryManager.SlotInventory(
                     slot = slot,
                     remainingBottles = remainingBottles,
@@ -124,13 +115,17 @@ class BackendSlotService private constructor(private val context: Context) : IBa
                     canDesignId = canDesignId,
                     canDesignName = canDesignName,
                     status = status,
-                    lastUpdated = System.currentTimeMillis()
+                    lastUpdated = now
                 ))
             }
-            
-            slotInventoryManager.updateLastSyncTimestamp()
-            AppLog.i(TAG, "Successfully synced ${slots.size} slots from backend")
-            
+
+            // Atomic replace: backend is the source of truth, so any slot the
+            // backend did NOT return must be evicted from the local cache.
+            // replaceAllSlots also bumps lastSyncTimestamp inside the same
+            // commit so we don't need a separate updateLastSyncTimestamp call.
+            slotInventoryManager.replaceAllSlots(slots)
+            AppLog.i(TAG, "Successfully synced ${slots.size} slots from backend (atomic replace)")
+
             Result.success(slots)
         } catch (e: Exception) {
             AppLog.e(TAG, "Failed to sync inventory with backend", e)
