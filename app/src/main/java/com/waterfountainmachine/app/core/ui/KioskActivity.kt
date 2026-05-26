@@ -4,7 +4,7 @@ import android.os.Bundle
 import android.view.View
 import androidx.annotation.DrawableRes
 import androidx.appcompat.app.AppCompatActivity
-import com.waterfountainmachine.app.core.analytics.MachineHealthMonitor
+import com.waterfountainmachine.app.core.di.HealthMonitorModule
 import com.waterfountainmachine.app.core.utils.AppLog
 import com.waterfountainmachine.app.core.utils.ErrorScreenUtil
 import com.waterfountainmachine.app.core.utils.FullScreenUtils
@@ -82,14 +82,18 @@ abstract class KioskActivity : AppCompatActivity() {
 
     /**
      * Show the standard "machine disabled" full-screen error and finish this
-     * activity if [MachineHealthMonitor] reports the kiosk is out of service.
+     * activity if the health monitor reports the kiosk is out of service.
+     *
+     * Resolves the monitor through [HealthMonitorModule.getMachineHealthMonitor]
+     * which returns the same singleton Hilt injects elsewhere, so the
+     * Mock/Real choice picked at app startup is honoured here too.
      *
      * @param reason Short tag added to the log line, e.g. "blocking SMS entry".
      * @return `true` if the activity has shown the error and called
      *     `finish()` -- the caller MUST `return` in this case.
      */
     protected fun bailIfMachineDisabled(reason: String): Boolean {
-        val monitor = MachineHealthMonitor.getInstance(this)
+        val monitor = HealthMonitorModule.getMachineHealthMonitor(this)
         if (!monitor.isMachineDisabled()) return false
 
         AppLog.w(localClassName, "Machine is DISABLED - $reason")

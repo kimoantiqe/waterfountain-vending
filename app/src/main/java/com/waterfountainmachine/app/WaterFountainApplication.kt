@@ -82,6 +82,19 @@ class WaterFountainApplication : Application(), Configuration.Provider {
         }
     }
     
+    /**
+     * Process-lifetime coroutine scope used by [WaterFountainApplication] for
+     * fire-and-forget startup work (slot-inventory sync, remote-logging boot).
+     *
+     * Intentionally never cancelled: the [Application] singleton lives until
+     * the process dies, at which point the JVM tears the scope down with
+     * everything else. The [SupervisorJob] keeps a single startup failure
+     * (e.g. backend slot sync fails on first boot) from cancelling sibling
+     * launches like remote logging initialisation.
+     *
+     * Per-component work that has a shorter lifetime (an Activity, a Worker,
+     * a Service) MUST use its own scope -- do not borrow this one.
+     */
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     
     lateinit var hardwareManager: WaterFountainManager

@@ -6,8 +6,10 @@ import com.waterfountainmachine.app.core.hardware.sdk.WaterDispenseResult
 import com.waterfountainmachine.app.core.slot.SlotInventoryManager
 import com.waterfountainmachine.app.core.utils.AppLog
 import com.waterfountainmachine.app.core.config.WaterFountainConfig
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 
 /**
@@ -58,6 +60,25 @@ class LaneManager private constructor(private val context: Context) {
     private val slotInventoryManager: SlotInventoryManager by lazy {
         SlotInventoryManager.getInstance(context)
     }
+
+    /**
+     * Singleton-scoped coroutine scope for backend slot-status updates.
+     *
+     * Replaces the previous per-call `CoroutineScope(Dispatchers.IO).launch { ... }`
+     * pattern which leaked one `Job` per dispense and swallowed all exceptions.
+     * Lives for the process lifetime (matches the singleton). The
+     * [SupervisorJob] keeps a single failed update from cancelling sibling
+     * updates; the [CoroutineExceptionHandler] catches anything
+     * [kotlinx.coroutines.launch] would otherwise route to the thread's
+     * uncaught-exception handler.
+     */
+    private val backendUpdateScope = CoroutineScope(
+        SupervisorJob() +
+            Dispatchers.IO +
+            CoroutineExceptionHandler { _, throwable ->
+                AppLog.e(TAG, "Uncaught error in LaneManager backendUpdateScope", throwable)
+            }
+    )
     
     // Configuration - Column-first rotation pattern
     // Pattern: Row1-Slot1, Row2-Slot1, Row3-Slot1, Row4-Slot1, Row5-Slot1, Row6-Slot1,
@@ -266,8 +287,9 @@ class LaneManager private constructor(private val context: Context) {
             )
         }
         
-        // Use coroutine to update backend asynchronously
-        CoroutineScope(Dispatchers.IO).launch {
+        // Use the singleton-scoped backend update scope so we don't leak
+        // a fresh Job per dispense or swallow exceptions.
+        backendUpdateScope.launch {
             backendSlotService.updateSlotStatus(
                 machineId = machineId,
                 slot = lane,
