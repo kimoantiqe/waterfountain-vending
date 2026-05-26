@@ -79,11 +79,26 @@ jobs:
           if-no-files-found: error
           retention-days: 90
 
-      - name: Publish GitHub Release (tag builds only)
+      - name: Publish GitHub Release (tag builds)
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
           name: Vending APK ${{ steps.version.outputs.version_name }}
+          target_commitish: ${{ github.sha }}
+          prerelease: false
+          make_latest: "true"
+          generate_release_notes: true
+          files: dist/*.apk
+
+      - name: Publish release-branch pre-release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/release'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: release-${{ steps.version.outputs.version_name }}
+          name: Release-branch build ${{ steps.version.outputs.version_name }}
+          target_commitish: ${{ github.sha }}
+          prerelease: true
+          make_latest: "false"
           generate_release_notes: true
           files: dist/*.apk
