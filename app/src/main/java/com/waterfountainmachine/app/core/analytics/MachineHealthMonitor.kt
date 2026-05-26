@@ -51,8 +51,11 @@ interface IMachineHealthMonitor {
  * Implementation: Uses coroutines for periodic heartbeats instead of Handler
  */
 class MachineHealthMonitor private constructor(private val context: Context) : IMachineHealthMonitor {
-    
-    private val functions: FirebaseFunctions = Firebase.functions
+
+    // Lazy so unit tests that exercise the pure counter/status logic do
+    // not need FirebaseApp.initializeApp() up front. The heartbeat path
+    // still resolves the same instance the first time it sends.
+    private val functions: FirebaseFunctions by lazy { Firebase.functions }
     private val backendMachineService = BackendMachineService.getInstance(context)
 
     /**

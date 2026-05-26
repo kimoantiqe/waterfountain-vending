@@ -73,7 +73,9 @@ class BackendMachineService private constructor(private val context: Context) {
         }
     }
     
-    private val functions: FirebaseFunctions = Firebase.functions
+    // Lazy so unit tests that exercise pure callers (e.g. MachineHealth
+    // counter logic) do not need FirebaseApp.initializeApp() up front.
+    private val functions: FirebaseFunctions by lazy { Firebase.functions }
     
     /**
      * Machine status data class
