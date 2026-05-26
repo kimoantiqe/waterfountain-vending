@@ -7,12 +7,11 @@ import android.view.View
 import android.view.animation.AccelerateDecelerateInterpolator
 import android.widget.TextView
 import androidx.activity.viewModels
-import androidx.appcompat.app.AppCompatActivity
+import com.waterfountainmachine.app.core.ui.KioskActivity
 import androidx.lifecycle.lifecycleScope
 import com.waterfountainmachine.app.R
 import com.waterfountainmachine.app.databinding.ActivitySmsVerifyBinding
 import com.waterfountainmachine.app.core.hardware.WaterFountainManager
-import com.waterfountainmachine.app.core.utils.FullScreenUtils
 import com.waterfountainmachine.app.core.utils.AnimationUtils
 import com.waterfountainmachine.app.core.utils.InactivityTimer
 import com.waterfountainmachine.app.core.utils.AppLog
@@ -30,12 +29,15 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 
 @AndroidEntryPoint
-class SMSVerifyActivity : AppCompatActivity() {
+class SMSVerifyActivity : KioskActivity() {
 
     private lateinit var binding: ActivitySmsVerifyBinding
     private val viewModel: SMSVerifyViewModel by viewModels()
     private lateinit var analyticsManager: com.waterfountainmachine.app.core.analytics.AnalyticsManager
     private var screenStartTime: Long = 0
+
+    override val fullScreenRoot: View
+        get() = binding.root
 
     // Helper properties to access ViewModel state (for backward compatibility with existing code)
     private val otpCode: String
@@ -85,27 +87,10 @@ class SMSVerifyActivity : AppCompatActivity() {
         analyticsManager.logScreenEntered(SCREEN_NAME)
         
         // Check if machine is remotely disabled before proceeding
-        val machineHealthMonitor = MachineHealthMonitor.getInstance(this)
-        if (machineHealthMonitor.isMachineDisabled()) {
-            AppLog.w(TAG, "Machine is DISABLED - blocking OTP verification")
-            ErrorScreenUtil.showError(
-                context = this,
-                message = UserErrorMessages.MACHINE_DISABLED,
-                displayDuration = 24 * 60 * 60 * 1000L
-            )
-            finish()
-            return
-        }
-        
-        // Set window background to black to prevent white flash during transitions
-        window.setBackgroundDrawableResource(android.R.color.black)
-        
+        if (bailIfMachineDisabled("blocking OTP verification")) return
+
         binding = ActivitySmsVerifyBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        
-        // Set volume control to media stream for proper audio routing
-        @Suppress("DEPRECATION")
-        volumeControlStream = android.media.AudioManager.STREAM_MUSIC
 
         // Get phone number and visibility state from intent
         val phoneNumber = intent.getStringExtra(EXTRA_PHONE_NUMBER) ?: ""
@@ -114,7 +99,7 @@ class SMSVerifyActivity : AppCompatActivity() {
         // Initialize ViewModel with phone number
         viewModel.initialize(phoneNumber)
 
-        FullScreenUtils.setupFullScreen(window, binding.root)
+        applyFullScreen()
         
         // Initialize sound manager
         soundManager = SoundManager(this)
@@ -1133,7 +1118,7 @@ class SMSVerifyActivity : AppCompatActivity() {
         super.onResume()
         // Re-apply immersive mode in case user swiped to reveal nav bar
         com.waterfountainmachine.app.utils.ImmersiveModeHelper.applyImmersiveModeFromSettings(this)
-        FullScreenUtils.reapplyFullScreen(window, binding.root)
+        applyFullScreen()
         inactivityTimer.reset()
     }
 

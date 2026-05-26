@@ -2,15 +2,15 @@ package com.waterfountainmachine.app.features.admin.ui
 import android.content.Intent
 import android.os.Bundle
 import android.view.KeyEvent
-import androidx.appcompat.app.AppCompatActivity
+import android.view.View
 import com.waterfountainmachine.app.databinding.ActivityAdminAuthBinding
+import com.waterfountainmachine.app.core.ui.KioskActivity
 import com.waterfountainmachine.app.core.utils.AppLog
-import com.waterfountainmachine.app.core.utils.FullScreenUtils
 import com.waterfountainmachine.app.core.utils.HardwareKeyHandler
 import com.waterfountainmachine.app.core.utils.InactivityTimer
 import com.waterfountainmachine.app.core.config.WaterFountainConfig
 import com.waterfountainmachine.app.features.admin.utils.AdminPinManager
-class AdminAuthActivity : AppCompatActivity() {
+class AdminAuthActivity : KioskActivity() {
     
     private lateinit var binding: ActivityAdminAuthBinding
     private lateinit var inactivityTimer: InactivityTimer
@@ -22,6 +22,9 @@ class AdminAuthActivity : AppCompatActivity() {
     // Rate limiting: 3 attempts, then 1-hour lockout
     private var failedAttempts = 0
     private var lockoutUntil: Long = 0
+
+    override val fullScreenRoot: View
+        get() = binding.root
     
     companion object {
         private const val TAG = "AdminAuthActivity"
@@ -45,7 +48,7 @@ class AdminAuthActivity : AppCompatActivity() {
         // Load rate limiting state from encrypted preferences
         loadRateLimitState()
         
-        setupFullScreen()
+        applyFullScreen()
         setupKeypad()
         setupUI()
         
@@ -149,10 +152,6 @@ class AdminAuthActivity : AppCompatActivity() {
         binding.btn9.alpha = alpha
         binding.clearButton.alpha = alpha
         binding.deleteButton.alpha = alpha
-    }
-    
-    private fun setupFullScreen() {
-        FullScreenUtils.setupFullScreen(window, binding.root)
     }
     
     private fun setupUI() {
@@ -351,12 +350,5 @@ class AdminAuthActivity : AppCompatActivity() {
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
         return HardwareKeyHandler.handleKeyDown(keyCode) { finish() }
             || super.onKeyDown(keyCode, event)
-    }
-    
-    override fun onWindowFocusChanged(hasFocus: Boolean) {
-        super.onWindowFocusChanged(hasFocus)
-        if (hasFocus) {
-            FullScreenUtils.reapplyFullScreen(window, binding.root)
-        }
     }
 }

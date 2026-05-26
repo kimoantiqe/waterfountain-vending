@@ -3,20 +3,22 @@ import android.content.Intent
 import android.os.Bundle
 import android.view.KeyEvent
 import android.view.View
-import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import com.waterfountainmachine.app.R
 import com.waterfountainmachine.app.features.admin.fragments.*
 import com.waterfountainmachine.app.databinding.ActivityAdminPanelBinding
+import com.waterfountainmachine.app.core.ui.KioskActivity
 import com.waterfountainmachine.app.core.utils.AppLog
-import com.waterfountainmachine.app.core.utils.FullScreenUtils
 import com.waterfountainmachine.app.core.utils.HardwareKeyHandler
 import com.waterfountainmachine.app.core.utils.InactivityTimer
-class AdminPanelActivity : AppCompatActivity() {
+class AdminPanelActivity : KioskActivity() {
     
     private lateinit var binding: ActivityAdminPanelBinding
     private lateinit var inactivityTimer: InactivityTimer
     private var currentFragment: Fragment? = null
+
+    override val fullScreenRoot: View
+        get() = binding.root
     
     companion object {
         private const val TAG = "AdminPanelActivity"
@@ -34,7 +36,7 @@ class AdminPanelActivity : AppCompatActivity() {
             finish()
         }
         
-        setupFullScreen()
+        applyFullScreen()
         setupNavigation()
         
         // Start with certificate status
@@ -43,10 +45,6 @@ class AdminPanelActivity : AppCompatActivity() {
         // Start inactivity timer
         inactivityTimer.start()
         AppLog.d(TAG, "Admin panel started with ${ADMIN_PANEL_TIMEOUT_MS/1000}s timeout")
-    }
-    
-    private fun setupFullScreen() {
-        FullScreenUtils.setupFullScreen(window, binding.root)
     }
     
     private fun setupNavigation() {
@@ -134,12 +132,5 @@ class AdminPanelActivity : AppCompatActivity() {
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
         return HardwareKeyHandler.handleKeyDown(keyCode) { finish() }
             || super.onKeyDown(keyCode, event)
-    }
-    
-    override fun onWindowFocusChanged(hasFocus: Boolean) {
-        super.onWindowFocusChanged(hasFocus)
-        if (hasFocus) {
-            FullScreenUtils.reapplyFullScreen(window, binding.root)
-        }
     }
 }

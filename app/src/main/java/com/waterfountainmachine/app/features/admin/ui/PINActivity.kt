@@ -3,27 +3,27 @@ import android.app.Activity.OVERRIDE_TRANSITION_CLOSE
 import android.os.Build
 import android.os.Bundle
 import android.view.KeyEvent
+import android.view.View
 import androidx.activity.OnBackPressedCallback
-import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityOptionsCompat
 import com.waterfountainmachine.app.databinding.ActivityPinBinding
-import com.waterfountainmachine.app.core.utils.FullScreenUtils
+import com.waterfountainmachine.app.core.ui.KioskActivity
 import com.waterfountainmachine.app.core.utils.InactivityTimer
 import com.waterfountainmachine.app.core.utils.HardwareKeyHandler
-class PINActivity : AppCompatActivity() {
+class PINActivity : KioskActivity() {
     private lateinit var binding: ActivityPinBinding
     private lateinit var inactivityTimer: InactivityTimer
 
+    override val fullScreenRoot: View
+        get() = binding.root
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        
-        // Set window background to black to prevent white flash during transitions
-        window.setBackgroundDrawableResource(android.R.color.black)
-        
+
         binding = ActivityPinBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        FullScreenUtils.setupFullScreen(window, binding.root)
+        applyFullScreen()
         setupClickListeners()
         
         // Setup back button handler using modern API
@@ -72,13 +72,6 @@ class PINActivity : AppCompatActivity() {
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
         return HardwareKeyHandler.handleKeyDown(keyCode) { returnToVendingScreen() }
             || super.onKeyDown(keyCode, event)
-    }
-
-    override fun onWindowFocusChanged(hasFocus: Boolean) {
-        super.onWindowFocusChanged(hasFocus)
-        if (hasFocus) {
-            FullScreenUtils.reapplyFullScreen(window, binding.root)
-        }
     }
 
     override fun onDestroy() {

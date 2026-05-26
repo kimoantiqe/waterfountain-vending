@@ -23,8 +23,8 @@ import com.waterfountainmachine.app.R
 import com.waterfountainmachine.app.WaterFountainApplication
 import com.waterfountainmachine.app.features.admin.utils.AdminGestureDetector
 import com.waterfountainmachine.app.databinding.ActivityMainBinding
+import com.waterfountainmachine.app.core.ui.KioskActivity
 import com.waterfountainmachine.app.core.utils.AppLog
-import com.waterfountainmachine.app.core.utils.FullScreenUtils
 import com.waterfountainmachine.app.core.utils.AnimationUtils
 import com.waterfountainmachine.app.core.utils.HardwareKeyHandler
 import com.waterfountainmachine.app.core.utils.SoundManager
@@ -33,13 +33,16 @@ import com.waterfountainmachine.app.core.utils.UserErrorMessages
 import com.waterfountainmachine.app.core.analytics.AnalyticsManager
 import com.waterfountainmachine.app.core.analytics.MachineHealthMonitor
 import com.waterfountainmachine.app.core.security.SecurityModule
-class MainActivity : AppCompatActivity() {
+class MainActivity : KioskActivity() {
     private lateinit var binding: ActivityMainBinding
     private var canBobbingAnimator: AnimatorSet? = null
     private lateinit var adminGestureDetector: AdminGestureDetector
     private lateinit var soundManager: SoundManager
     private lateinit var analyticsManager: AnalyticsManager
     private lateinit var machineHealthMonitor: MachineHealthMonitor
+
+    override val fullScreenRoot: View
+        get() = binding.root
     
     private var isNavigating = false
     private val navigationResetRunnable = Runnable { isNavigating = false }
@@ -71,22 +74,16 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        
-        window.setBackgroundDrawableResource(android.R.color.black)
-        
+
         AppLog.i(TAG, "Water Fountain Vending Machine starting...")
-        
+
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        
-        // Set volume control to media stream for proper audio routing
-        @Suppress("DEPRECATION")
-        volumeControlStream = android.media.AudioManager.STREAM_MUSIC
-        
+
         AppLog.i(TAG, "MainActivity created successfully")
 
         setupKioskMode()
-        setupFullScreen()
+        applyFullScreen()
         setupSoundManager()
         setupAnalytics()  // Must be called before any analytics tracking
         setupBackButtonHandler()
@@ -223,10 +220,6 @@ class MainActivity : AppCompatActivity() {
         } else {
             AppLog.i(TAG, "Kiosk mode disabled - running in normal mode")
         }
-    }
-
-    private fun setupFullScreen() {
-        FullScreenUtils.setupFullScreen(window, binding.root)
     }
 
     private fun setupClickListener() {
@@ -423,13 +416,6 @@ class MainActivity : AppCompatActivity() {
         // Handle general hardware key blocking
         return HardwareKeyHandler.handleKeyDown(keyCode)
             || super.onKeyDown(keyCode, event)
-    }
-
-    override fun onWindowFocusChanged(hasFocus: Boolean) {
-        super.onWindowFocusChanged(hasFocus)
-        if (hasFocus) {
-            FullScreenUtils.reapplyFullScreen(window, binding.root)
-        }
     }
 
     private fun setupAdminGesture() {

@@ -6,11 +6,10 @@ import android.os.Bundle
 import android.view.View
 import android.view.animation.AccelerateDecelerateInterpolator
 import androidx.appcompat.app.AlertDialog
-import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.waterfountainmachine.app.R
 import com.waterfountainmachine.app.databinding.ActivitySmsBinding
-import com.waterfountainmachine.app.core.utils.FullScreenUtils
+import com.waterfountainmachine.app.core.ui.KioskActivity
 import com.waterfountainmachine.app.core.utils.AnimationUtils
 import com.waterfountainmachine.app.core.utils.InactivityTimer
 import com.waterfountainmachine.app.core.utils.AppLog
@@ -30,9 +29,12 @@ import kotlinx.coroutines.launch
 import androidx.activity.viewModels
 
 @AndroidEntryPoint
-class SMSActivity : AppCompatActivity() {
+class SMSActivity : KioskActivity() {
 
     private lateinit var binding: ActivitySmsBinding
+
+    override val fullScreenRoot: View
+        get() = binding.root
     
     // Get ViewModel via Hilt ViewModelProvider
     private val viewModel: SMSViewModel by viewModels()
@@ -64,31 +66,14 @@ class SMSActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        
+
         // Check if machine is remotely disabled before proceeding
-        val machineHealthMonitor = MachineHealthMonitor.getInstance(this)
-        if (machineHealthMonitor.isMachineDisabled()) {
-            AppLog.w(TAG, "Machine is DISABLED - blocking SMS entry")
-            ErrorScreenUtil.showError(
-                context = this,
-                message = UserErrorMessages.MACHINE_DISABLED,
-                displayDuration = 24 * 60 * 60 * 1000L
-            )
-            finish()
-            return
-        }
-        
-        // Set window background to black to prevent white flash during transitions
-        window.setBackgroundDrawableResource(android.R.color.black)
-        
+        if (bailIfMachineDisabled("blocking SMS entry")) return
+
         binding = ActivitySmsBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        
-        // Set volume control to media stream for proper audio routing
-        @Suppress("DEPRECATION")
-        volumeControlStream = android.media.AudioManager.STREAM_MUSIC
 
-        FullScreenUtils.setupFullScreen(window, binding.root)
+        applyFullScreen()
         
         // Initialize analytics
         analyticsManager = AnalyticsManager.getInstance(this)
@@ -1031,7 +1016,7 @@ class SMSActivity : AppCompatActivity() {
         super.onResume()
         // Re-apply immersive mode in case user swiped to reveal nav bar
         com.waterfountainmachine.app.utils.ImmersiveModeHelper.applyImmersiveModeFromSettings(this)
-        FullScreenUtils.reapplyFullScreen(window, binding.root)
+        applyFullScreen()
         inactivityTimer.reset()
     }
 

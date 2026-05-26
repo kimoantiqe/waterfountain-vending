@@ -11,6 +11,7 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import com.waterfountainmachine.app.core.ui.KioskActivity
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
@@ -48,7 +49,10 @@ import kotlinx.coroutines.withContext
 import java.util.concurrent.TimeUnit
 
 @AndroidEntryPoint
-class VendingAnimationActivity : AppCompatActivity() {
+class VendingAnimationActivity : KioskActivity() {
+
+    override val kioskWindowBackground: Int = R.drawable.gradient_background_main
+    // fullScreenRoot left as default (window.decorView) -- matches existing behaviour.
 
     private lateinit var binding: ActivityVendingAnimationBinding
     private val viewModel: VendingViewModel by viewModels()
@@ -108,16 +112,9 @@ class VendingAnimationActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        
-        // Set window background to match gradient BEFORE setContentView to prevent black flash
-        window.setBackgroundDrawableResource(R.drawable.gradient_background_main)
-        
+
         binding = ActivityVendingAnimationBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        
-        // Set volume control to media stream for proper audio routing
-        @Suppress("DEPRECATION")
-        volumeControlStream = android.media.AudioManager.STREAM_MUSIC
 
         // Restore slot from savedInstanceState if activity was recreated
         if (savedInstanceState != null) {
@@ -130,18 +127,8 @@ class VendingAnimationActivity : AppCompatActivity() {
         dispensingTime = intent.getLongExtra("dispensingTime", 8000)
         
         // Check if machine is remotely disabled before starting vending
-        val machineHealthMonitor = MachineHealthMonitor.getInstance(this)
-        if (machineHealthMonitor.isMachineDisabled()) {
-            AppLog.w(TAG, "Machine is DISABLED - blocking vending operation")
-            ErrorScreenUtil.showError(
-                context = this,
-                message = UserErrorMessages.MACHINE_DISABLED,
-                displayDuration = 24 * 60 * 60 * 1000L // 24 hours
-            )
-            finish()
-            return
-        }
-        
+        if (bailIfMachineDisabled("blocking vending operation")) return
+
         // Initialize analytics
         analyticsManager = AnalyticsManager.getInstance(this)
         analyticsManager.logScreenView("VendingAnimationActivity", "VendingAnimationActivity")
@@ -184,7 +171,7 @@ class VendingAnimationActivity : AppCompatActivity() {
         setupViewModelObservers()
 
         initializeViews()
-        setupFullscreen()
+        applyFullScreen()
         
         // Start all views invisible to prevent "boop in" effect
         binding.statusText.alpha = 0f
@@ -265,10 +252,6 @@ class VendingAnimationActivity : AppCompatActivity() {
         binding.completionText.text = completionMessages.random()
     }
 
-    private fun setupFullscreen() {
-        FullScreenUtils.setupFullScreen(window, window.decorView)
-    }
-    
     override fun onResume() {
         super.onResume()
         // Re-apply immersive mode in case user swiped to reveal nav bar

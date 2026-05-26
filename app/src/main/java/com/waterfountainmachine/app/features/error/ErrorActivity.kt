@@ -5,15 +5,14 @@ import android.os.Bundle
 import android.view.KeyEvent
 import android.view.View
 import androidx.activity.OnBackPressedCallback
-import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityOptionsCompat
 import androidx.lifecycle.lifecycleScope
 import com.waterfountainmachine.app.R
 import com.waterfountainmachine.app.features.admin.utils.AdminGestureDetector
 import com.waterfountainmachine.app.core.config.WaterFountainConfig
+import com.waterfountainmachine.app.core.ui.KioskActivity
 import com.waterfountainmachine.app.databinding.ActivityErrorBinding
 import com.waterfountainmachine.app.core.utils.AppLog
-import com.waterfountainmachine.app.core.utils.FullScreenUtils
 import com.waterfountainmachine.app.core.utils.SoundManager
 import com.waterfountainmachine.app.core.utils.UserErrorMessages
 import com.waterfountainmachine.app.features.vending.ui.MainActivity
@@ -47,11 +46,14 @@ import kotlinx.coroutines.launch
  * startActivity(intent)
  * ```
  */
-class ErrorActivity : AppCompatActivity() {
+class ErrorActivity : KioskActivity() {
 
     private lateinit var binding: ActivityErrorBinding
     private lateinit var soundManager: SoundManager
     private lateinit var adminGestureDetector: AdminGestureDetector
+
+    override val fullScreenRoot: View
+        get() = binding.root
     
     companion object {
         private const val TAG = "ErrorActivity"
@@ -72,19 +74,12 @@ class ErrorActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        
-        // Set window background to black to prevent white flash
-        window.setBackgroundDrawableResource(android.R.color.black)
-        
+
         binding = ActivityErrorBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        
-        // Set volume control to media stream for proper audio routing
-        @Suppress("DEPRECATION")
-        volumeControlStream = android.media.AudioManager.STREAM_MUSIC
-        
-        FullScreenUtils.setupFullScreen(window, binding.root)
-        
+
+        applyFullScreen()
+
         // Set up admin gesture detector for triple-tap/triple-enter access
         setupAdminGesture()
         
