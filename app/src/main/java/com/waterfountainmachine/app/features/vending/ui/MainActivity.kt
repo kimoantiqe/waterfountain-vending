@@ -31,15 +31,26 @@ import com.waterfountainmachine.app.core.utils.SoundManager
 import com.waterfountainmachine.app.core.utils.ErrorScreenUtil
 import com.waterfountainmachine.app.core.utils.UserErrorMessages
 import com.waterfountainmachine.app.core.analytics.AnalyticsManager
+import com.waterfountainmachine.app.core.analytics.IMachineHealthMonitor
 import com.waterfountainmachine.app.core.analytics.MachineHealthMonitor
 import com.waterfountainmachine.app.core.security.SecurityModule
+import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
+@AndroidEntryPoint
 class MainActivity : KioskActivity() {
     private lateinit var binding: ActivityMainBinding
     private var canBobbingAnimator: AnimatorSet? = null
     private lateinit var adminGestureDetector: AdminGestureDetector
     private lateinit var soundManager: SoundManager
     private lateinit var analyticsManager: AnalyticsManager
-    private lateinit var machineHealthMonitor: MachineHealthMonitor
+
+    /**
+     * Health monitor (real or mock) provided by the Hilt graph via
+     * [com.waterfountainmachine.app.core.di.HealthMonitorModule]. Uses the
+     * interface type so the mock variant can be swapped in for QA without
+     * touching this Activity.
+     */
+    @Inject lateinit var machineHealthMonitor: IMachineHealthMonitor
 
     override val fullScreenRoot: View
         get() = binding.root
@@ -133,8 +144,7 @@ class MainActivity : KioskActivity() {
      * Also registers listener to detect runtime status changes
      */
     private fun checkMachineDisabled() {
-        machineHealthMonitor = MachineHealthMonitor.getInstance(this)
-        
+        // machineHealthMonitor injected by Hilt; no manual getInstance() needed.
         // Register listener for runtime status changes (both machine health and secure preferences)
         machineStatusPrefs.registerOnSharedPreferenceChangeListener(statusChangeListener)
         prefs.registerOnSharedPreferenceChangeListener(statusChangeListener)

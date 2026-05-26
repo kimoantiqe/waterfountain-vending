@@ -1,6 +1,7 @@
 package com.waterfountainmachine.app.core.utils
 import android.util.Log
 import com.waterfountainmachine.app.features.admin.models.LogEntry
+import com.yishengkj.logging.SensitiveDataRedactor
 import java.util.concurrent.ConcurrentLinkedQueue
 
 /**
@@ -70,32 +71,48 @@ object LogCollector {
 }
 
 /**
- * Extension functions for easy logging with automatic collection
+ * Extension functions for easy logging with automatic collection.
+ *
+ * SECURITY: every message and tag is run through [SensitiveDataRedactor]
+ * before it reaches logcat or the in-memory [LogCollector] buffer, so PII
+ * (E.164 phone numbers, OTP codes, PEM blocks, emails) never lands in any
+ * log sink — including the admin-panel log viewer and any future log-export
+ * support flow.
  */
 object AppLog {
-    
+
     fun e(tag: String, message: String, throwable: Throwable? = null) {
-        Log.e(tag, message, throwable)
-        LogCollector.addLog(LogEntry.Level.ERROR, tag, message, throwable)
+        val t = SensitiveDataRedactor.redactTag(tag)
+        val m = SensitiveDataRedactor.redact(message)
+        Log.e(t, m, throwable)
+        LogCollector.addLog(LogEntry.Level.ERROR, t, m, throwable)
     }
-    
+
     fun w(tag: String, message: String, throwable: Throwable? = null) {
-        Log.w(tag, message, throwable)
-        LogCollector.addLog(LogEntry.Level.WARNING, tag, message, throwable)
+        val t = SensitiveDataRedactor.redactTag(tag)
+        val m = SensitiveDataRedactor.redact(message)
+        Log.w(t, m, throwable)
+        LogCollector.addLog(LogEntry.Level.WARNING, t, m, throwable)
     }
-    
+
     fun i(tag: String, message: String) {
-        Log.i(tag, message)
-        LogCollector.addLog(LogEntry.Level.INFO, tag, message)
+        val t = SensitiveDataRedactor.redactTag(tag)
+        val m = SensitiveDataRedactor.redact(message)
+        Log.i(t, m)
+        LogCollector.addLog(LogEntry.Level.INFO, t, m)
     }
-    
+
     fun d(tag: String, message: String) {
-        Log.d(tag, message)
-        LogCollector.addLog(LogEntry.Level.DEBUG, tag, message)
+        val t = SensitiveDataRedactor.redactTag(tag)
+        val m = SensitiveDataRedactor.redact(message)
+        Log.d(t, m)
+        LogCollector.addLog(LogEntry.Level.DEBUG, t, m)
     }
-    
+
     fun v(tag: String, message: String) {
-        Log.v(tag, message)
-        LogCollector.addLog(LogEntry.Level.DEBUG, tag, message)
+        val t = SensitiveDataRedactor.redactTag(tag)
+        val m = SensitiveDataRedactor.redact(message)
+        Log.v(t, m)
+        LogCollector.addLog(LogEntry.Level.DEBUG, t, m)
     }
 }

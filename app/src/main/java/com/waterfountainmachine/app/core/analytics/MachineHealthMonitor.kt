@@ -15,7 +15,6 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.tasks.await
 import org.json.JSONArray
 import org.json.JSONObject
@@ -28,6 +27,18 @@ interface IMachineHealthMonitor {
     fun start(machineId: String)
     fun stop()
     fun recordDispense(slotNumber: Int, success: Boolean, errorCode: String? = null)
+
+    /**
+     * Has the backend remotely disabled this machine? Customer-facing
+     * Activities call this in `onCreate` and short-circuit to the
+     * maintenance screen when it returns `true`.
+     */
+    fun isMachineDisabled(): Boolean = false
+
+    /**
+     * Optional reason string for [isMachineDisabled]; used only for logs.
+     */
+    fun getDisabledReason(): String? = null
 }
 
 /**
@@ -43,6 +54,14 @@ class MachineHealthMonitor private constructor(private val context: Context) : I
     
     private val functions: FirebaseFunctions = Firebase.functions
     private val backendMachineService = BackendMachineService.getInstance(context)
+
+    /**
+     * Process-scoped coroutine scope. [MachineHealthMonitor] is a singleton
+     * keyed on [Context.getApplicationContext] and is intentionally never
+     * torn down — the heartbeat must run for the life of the kiosk process.
+     * The scope dies with the process; there is no [stop]+cancel pairing.
+     * Use [stop] to halt heartbeats temporarily without killing the scope.
+     */
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private var heartbeatJob: Job? = null
     private var machineId: String? = null
@@ -129,15 +148,7 @@ class MachineHealthMonitor private constructor(private val context: Context) : I
         
         AppLog.i(TAG, "Health monitor stopped")
     }
-    
-    /**
-     * Clean up resources (call when app is destroyed)
-     */
-    fun cleanup() {
-        stop()
-        scope.cancel()
-    }
-    
+
     /**
      * Record a dispense attempt
      */
@@ -284,14 +295,14 @@ class MachineHealthMonitor private constructor(private val context: Context) : I
      * Check if machine is currently disabled
      * Called by MainActivity to determine if error screen should be shown
      */
-    fun isMachineDisabled(): Boolean {
+    override fun isMachineDisabled(): Boolean {
         return prefs.getBoolean(KEY_IS_DISABLED, false)
     }
     
     /**
      * Get disabled reason message
      */
-    fun getDisabledReason(): String? {
+    override fun getDisabledReason(): String? {
         return prefs.getString(KEY_DISABLED_REASON, null)
     }
     

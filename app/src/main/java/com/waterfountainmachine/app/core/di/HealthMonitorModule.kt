@@ -60,63 +60,47 @@ object HealthMonitorModule {
     }
     
     /**
-     * Provide Machine Health Monitor
-     * 
-     * Injects the correct monitor (Mock or Real) based on SharedPreferences
-     * at app startup. Changes require app restart to take effect.
+     * Provide [IMachineHealthMonitor] to the Hilt graph.
+     *
+     * Delegates to [getMachineHealthMonitor] so Hilt-managed and non-Hilt
+     * callers (e.g. [com.waterfountainmachine.app.WaterFountainApplication])
+     * always observe the same singleton instance and the same Mock/Real
+     * decision. Without this delegation, Hilt would create its own cache
+     * and a parallel one would live in [cachedMonitor], causing the two
+     * graphs to drift apart over time.
+     *
+     * Mode is captured once at app startup; changes require an app restart.
      */
     @Provides
     @Singleton
     fun provideMachineHealthMonitor(
         @ApplicationContext context: Context
-    ): IMachineHealthMonitor {
-        if (cachedMonitor != null) {
-            return cachedMonitor!!
-        }
-        
-        val useMockMode = loadHealthMonitorModePreference(context)
-        val mode = if (useMockMode) "Mock" else "Real Health Monitoring"
-        
-        AppLog.i(TAG, "Providing MachineHealthMonitor: $mode")
-        
-        val monitor = if (useMockMode) {
-            AppLog.i(TAG, "✅ Injecting MockMachineHealthMonitor")
-            MockMachineHealthMonitor(context)
-        } else {
-            AppLog.i(TAG, "✅ Injecting MachineHealthMonitor (Real)")
-            MachineHealthMonitor.getInstance(context)
-        }
-        
-        cachedMonitor = monitor
-        return monitor
-    }
-    
+    ): IMachineHealthMonitor = getMachineHealthMonitor(context)
+
     /**
-     * Get health monitor instance for non-Hilt classes
-     * 
-     * This allows classes that don't use Hilt to get the correct monitor
-     * based on the current mode setting.
+     * Get the singleton health monitor instance.
+     *
+     * Public so non-Hilt entry points (currently only [Application.onCreate])
+     * can obtain it without going through [dagger.hilt.EntryPoint] indirection.
+     * All other callers should `@Inject` it.
+     *
+     * Thread-safe via the double-checked-lock pattern in [synchronized].
      */
     fun getMachineHealthMonitor(context: Context): IMachineHealthMonitor {
-        if (cachedMonitor != null) {
-            val monitorType = if (cachedMonitor is MockMachineHealthMonitor) "Mock" else "Real"
-            AppLog.d(TAG, "Returning cached monitor: $monitorType")
-            return cachedMonitor!!
+        cachedMonitor?.let { return it }
+        return synchronized(this) {
+            cachedMonitor ?: createMonitor(context).also { cachedMonitor = it }
         }
-        
+    }
+
+    private fun createMonitor(context: Context): IMachineHealthMonitor {
         val useMockMode = loadHealthMonitorModePreference(context)
-        val mode = if (useMockMode) "Mock" else "Real Health Monitoring"
-        AppLog.i(TAG, "Creating new MachineHealthMonitor: $mode")
-        
-        val monitor = if (useMockMode) {
+        return if (useMockMode) {
             AppLog.i(TAG, "🔴 Using MockMachineHealthMonitor - NO HEARTBEATS")
             MockMachineHealthMonitor(context)
         } else {
             AppLog.i(TAG, "🟢 Using MachineHealthMonitor - REAL HEARTBEATS TO FIREBASE")
             MachineHealthMonitor.getInstance(context)
         }
-        
-        cachedMonitor = monitor
-        return monitor
     }
 }

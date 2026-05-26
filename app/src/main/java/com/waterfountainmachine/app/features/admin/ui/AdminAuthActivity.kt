@@ -10,6 +10,8 @@ import com.waterfountainmachine.app.core.utils.HardwareKeyHandler
 import com.waterfountainmachine.app.core.utils.InactivityTimer
 import com.waterfountainmachine.app.core.config.WaterFountainConfig
 import com.waterfountainmachine.app.features.admin.utils.AdminPinManager
+import dagger.hilt.android.AndroidEntryPoint
+@AndroidEntryPoint
 class AdminAuthActivity : KioskActivity() {
     
     private lateinit var binding: ActivityAdminAuthBinding

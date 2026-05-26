@@ -10,6 +10,8 @@ import com.waterfountainmachine.app.databinding.ActivityPinBinding
 import com.waterfountainmachine.app.core.ui.KioskActivity
 import com.waterfountainmachine.app.core.utils.InactivityTimer
 import com.waterfountainmachine.app.core.utils.HardwareKeyHandler
+import dagger.hilt.android.AndroidEntryPoint
+@AndroidEntryPoint
 class PINActivity : KioskActivity() {
     private lateinit var binding: ActivityPinBinding
     private lateinit var inactivityTimer: InactivityTimer

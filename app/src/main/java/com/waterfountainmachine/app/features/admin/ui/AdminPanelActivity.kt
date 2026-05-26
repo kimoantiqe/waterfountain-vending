@@ -11,6 +11,8 @@ import com.waterfountainmachine.app.core.ui.KioskActivity
 import com.waterfountainmachine.app.core.utils.AppLog
 import com.waterfountainmachine.app.core.utils.HardwareKeyHandler
 import com.waterfountainmachine.app.core.utils.InactivityTimer
+import dagger.hilt.android.AndroidEntryPoint
+@AndroidEntryPoint
 class AdminPanelActivity : KioskActivity() {
     
     private lateinit var binding: ActivityAdminPanelBinding
