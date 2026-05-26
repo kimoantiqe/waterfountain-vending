@@ -202,11 +202,17 @@ class LogUploadWorker(
                 return@withContext Result.failure()
             }
             
-            // Fetch encryption passphrase from backend
-            val passphrase = try {
+            // Authorization preflight: ask the backend whether this machine
+            // is still permitted to upload logs. We deliberately discard the
+            // returned passphrase -- uploadBatch() authenticates each request
+            // end-to-end via SecurityModule.createAuthenticatedRequest(), so
+            // the passphrase isn't used to encrypt anything client-side. The
+            // call's only purpose is to fail fast on revoked machines and
+            // backend outages BEFORE we read/compress/JSON-encode logs.
+            try {
                 fetchEncryptionPassphrase(machineId)
             } catch (e: Exception) {
-                AppLog.e(TAG, "❌ Failed to fetch encryption passphrase: ${e.message}", e)
+                AppLog.e(TAG, "❌ Upload authorization preflight failed: ${e.message}", e)
                 // Store error in failed batch for visibility in admin panel
                 val errorBatch = LogUploadQueue(
                     compressedLogs = "",
@@ -215,14 +221,14 @@ class LogUploadWorker(
                     logCount = 0,
                     uploadAttempts = 1,
                     status = "failed",
-                    lastError = "Passphrase fetch failed: ${e.message}",
+                    lastError = "Authorization preflight failed: ${e.message}",
                     lastAttemptAt = System.currentTimeMillis()
                 )
                 dao.insert(errorBatch)
                 return@withContext Result.failure()
             }
-            
-            AppLog.i(TAG, "Encryption passphrase fetched successfully")
+
+            AppLog.i(TAG, "Upload authorization preflight succeeded")
             
             // Get logs from LogCollector
             val allLogs = com.waterfountainmachine.app.core.utils.LogCollector.getLogs()
