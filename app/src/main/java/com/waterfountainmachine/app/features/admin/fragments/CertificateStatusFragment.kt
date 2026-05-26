@@ -9,6 +9,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.waterfountainmachine.app.databinding.FragmentCertificateStatusBinding
+import com.waterfountainmachine.app.core.security.CertificateHealth
 import com.waterfountainmachine.app.core.security.SecurityModule
 import com.waterfountainmachine.app.core.setup.CertificateSetupActivity
 import com.waterfountainmachine.app.core.utils.AppLog
@@ -99,51 +100,87 @@ class CertificateStatusFragment : Fragment() {
         // Update enrollment status
         binding.enrollmentStatusText.text = "✓ Enrolled"
         binding.enrollmentStatusText.setTextColor(Color.parseColor("#4CAF50"))
-        
+
+        // Single source of truth: ask SecurityModule to categorise the cert.
+        val health = SecurityModule.getCertificateHealth()
+        renderHealthBanner(health)
+
         // Load certificate details
         val certInfo = SecurityModule.getCertificateInfo()
-        
+
         if (certInfo != null) {
             binding.detailsCard.visibility = View.VISIBLE
-            
+
             binding.machineIdText.text = certInfo["machineId"] ?: "-"
             binding.serialNumberText.text = certInfo["serialNumber"] ?: "-"
             binding.expiryDateText.text = certInfo["expiryDate"] ?: "-"
-            
+
             val daysRemaining = certInfo["daysRemaining"]?.toIntOrNull() ?: 0
             binding.daysRemainingText.text = "$daysRemaining days"
-            
-            // Color code days remaining
-            binding.daysRemainingText.setTextColor(when {
-                daysRemaining < 7 -> Color.parseColor("#F44336") // Red
-                daysRemaining < 30 -> Color.parseColor("#FF9800") // Orange
-                else -> Color.parseColor("#4CAF50") // Green
-            })
-            
-            val status = certInfo["status"] ?: "Unknown"
-            binding.certificateStatusText.text = status
-            
-            // Color code status
-            binding.certificateStatusText.setTextColor(when (status) {
-                "Expired" -> Color.parseColor("#F44336")
-                "Expiring Soon" -> Color.parseColor("#FF9800")
-                "Valid" -> Color.parseColor("#4CAF50")
-                else -> Color.parseColor("#666666")
-            })
+            binding.daysRemainingText.setTextColor(healthColor(health))
+
+            binding.certificateStatusText.text = certInfo["status"] ?: "Unknown"
+            binding.certificateStatusText.setTextColor(healthColor(health))
         }
-        
+
         // Show enrolled buttons
         binding.enrollButton.visibility = View.GONE
         binding.testConnectionButton.visibility = View.VISIBLE
         binding.reenrollButton.visibility = View.VISIBLE
         binding.unenrollButton.visibility = View.VISIBLE
     }
+
+    /**
+     * Surface a high-visibility banner to admins ONLY when the certificate is
+     * not Healthy. End users never see this fragment -- this is the agreed
+     * "admin-only" channel for cert lifecycle warnings.
+     */
+    private fun renderHealthBanner(health: CertificateHealth) {
+        val banner = binding.healthBanner
+        val text = binding.healthBannerText
+        when (health) {
+            CertificateHealth.NotEnrolled,
+            is CertificateHealth.Healthy -> {
+                banner.visibility = View.GONE
+            }
+            is CertificateHealth.ExpiringSoon -> {
+                banner.visibility = View.VISIBLE
+                banner.setCardBackgroundColor(Color.parseColor("#FF9800")) // amber
+                text.text = "\u26A0 Certificate expires in ${health.daysRemaining} days. " +
+                        "Schedule a re-enrollment."
+            }
+            is CertificateHealth.Critical -> {
+                banner.visibility = View.VISIBLE
+                banner.setCardBackgroundColor(Color.parseColor("#FF5722")) // deep orange
+                text.text = "\u26A0 Certificate expires in ${health.daysRemaining} days. " +
+                        "Auto-renewal in progress; re-enroll now if it keeps failing."
+            }
+            is CertificateHealth.Expired -> {
+                banner.visibility = View.VISIBLE
+                banner.setCardBackgroundColor(Color.parseColor("#F44336")) // red
+                text.text = "\u2717 Certificate EXPIRED ${health.daysOverdue} day" +
+                        (if (health.daysOverdue == 1) "" else "s") +
+                        " ago. Re-enrollment required -- machine is locked out."
+            }
+        }
+    }
+
+    private fun healthColor(health: CertificateHealth): Int = when (health) {
+        is CertificateHealth.Expired -> Color.parseColor("#F44336")
+        is CertificateHealth.Critical -> Color.parseColor("#FF5722")
+        is CertificateHealth.ExpiringSoon -> Color.parseColor("#FF9800")
+        is CertificateHealth.Healthy -> Color.parseColor("#4CAF50")
+        CertificateHealth.NotEnrolled -> Color.parseColor("#666666")
+    }
     
     private fun showNotEnrolledState() {
         // Update enrollment status
         binding.enrollmentStatusText.text = "Not Enrolled"
         binding.enrollmentStatusText.setTextColor(Color.parseColor("#F44336"))
-        
+
+        // Banner is admin-warning-only; nothing to warn about when not enrolled.
+        binding.healthBanner.visibility = View.GONE
+
         // Hide details
         binding.detailsCard.visibility = View.GONE
         

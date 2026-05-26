@@ -206,6 +206,19 @@ object SecurityModule {
     }
 
     /**
+     * Categorise the current certificate's lifecycle state.
+     *
+     * Single source of truth for "is this cert healthy, expiring, critical, or
+     * expired?". Prefer this over re-deriving the bands from
+     * [getDaysUntilExpiry] / [isCertificateExpiringSoon] / [isCertificateExpired]
+     * at each call site.
+     */
+    fun getCertificateHealth(): CertificateHealth {
+        if (!certificateManager.hasCertificate()) return CertificateHealth.NotEnrolled
+        return CertificateHealth.from(getDaysUntilExpiry())
+    }
+
+    /**
      * Delete certificate and private key (unenroll machine).
      */
     fun unenroll() {
@@ -273,6 +286,17 @@ object SecurityModule {
         val certData = certificateManager.getCertificate() ?: return null
 
         val daysRemaining = getDaysUntilExpiry() ?: 0
+        val statusLabel = if (!certData.isValid) {
+            "Expired"
+        } else {
+            when (CertificateHealth.from(getDaysUntilExpiry())) {
+                CertificateHealth.NotEnrolled -> "Not Enrolled"
+                is CertificateHealth.Expired -> "Expired"
+                is CertificateHealth.Critical -> "Expiring Soon"
+                is CertificateHealth.ExpiringSoon -> "Expiring Soon"
+                is CertificateHealth.Healthy -> "Valid"
+            }
+        }
 
         return mapOf(
             "machineId" to certData.machineId,
@@ -281,12 +305,7 @@ object SecurityModule {
                 .format(java.util.Date(certData.expiryDate)),
             "daysRemaining" to daysRemaining.toString(),
             "isValid" to certData.isValid.toString(),
-            "status" to when {
-                !certData.isValid -> "Expired"
-                daysRemaining <= 7 -> "Expiring Soon"
-                daysRemaining <= 30 -> "Valid"
-                else -> "Valid"
-            }
+            "status" to statusLabel
         )
     }
     
