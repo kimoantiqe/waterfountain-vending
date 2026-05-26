@@ -125,6 +125,7 @@ class SMSVerifyViewModel @Inject constructor(
             AppLog.d(TAG, "Verify request debounced")
             return
         }
+        lastVerifyTime = now
 
         viewModelScope.launch {
             try {
