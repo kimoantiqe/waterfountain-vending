@@ -21,8 +21,8 @@ class BackendSlotService private constructor(private val context: Context) : IBa
     
     companion object {
         private const val TAG = "BackendSlotService"
-        private const val MAX_RETRIES = 3
-        private const val RETRY_DELAY_MS = 1000L
+        internal const val MAX_RETRIES = 3
+        internal const val RETRY_DELAY_MS = 1000L
         
         @Volatile
         private var INSTANCE: BackendSlotService? = null
@@ -32,31 +32,96 @@ class BackendSlotService private constructor(private val context: Context) : IBa
                 INSTANCE ?: BackendSlotService(context.applicationContext).also { INSTANCE = it }
             }
         }
+
+        /**
+         * Exponential-ish backoff retry. Used by every backend call so a
+         * single transient network blip doesn't surface as a user-visible
+         * failure. Delay grows linearly: 1×, 2×, 3× [RETRY_DELAY_MS] — fast
+         * enough to recover from a brief gateway hiccup, slow enough to back
+         * off when the backend is actually down. Exposed (internal) so tests
+         * can exercise it directly without spinning up Firebase.
+         *
+         * @param operation suspend block to retry on any [Exception].
+         * @param operationName label used in retry-log lines.
+         * @param delayMillis delay implementation; default forwards to
+         *   [kotlinx.coroutines.delay] so tests can pass a no-op.
+         */
+        internal suspend fun <T> retryOperation(
+            operation: suspend () -> T,
+            operationName: String,
+            delayMillis: suspend (Long) -> Unit = { kotlinx.coroutines.delay(it) }
+        ): T {
+            var lastException: Exception? = null
+            repeat(MAX_RETRIES) { attempt ->
+                try {
+                    return operation()
+                } catch (e: Exception) {
+                    lastException = e
+                    if (attempt < MAX_RETRIES - 1) {
+                        AppLog.w(TAG, "$operationName failed (attempt ${attempt + 1}/$MAX_RETRIES), retrying...")
+                        delayMillis(RETRY_DELAY_MS * (attempt + 1))
+                    }
+                }
+            }
+            throw lastException ?: Exception("Operation failed after $MAX_RETRIES attempts")
+        }
+
+        /**
+         * Pure parser for the `getSlotInventory` callable response. Accepts
+         * the raw `result.data` (a `List<Map<*, *>>` shaped payload) and
+         * returns a clean list of [SlotInventoryManager.SlotInventory].
+         *
+         * Malformed entries (missing or non-numeric `slot`) are silently
+         * dropped — same behavior as production. Unknown status strings
+         * fall back to [SlotInventoryManager.SlotStatus.ACTIVE] via
+         * [SlotInventoryManager.SlotStatus.fromString].
+         */
+        internal fun parseSlotInventoryList(
+            data: Any?,
+            nowMillis: Long = System.currentTimeMillis()
+        ): List<SlotInventoryManager.SlotInventory> {
+            val list = data as? List<*> ?: return emptyList()
+            val out = mutableListOf<SlotInventoryManager.SlotInventory>()
+            for (raw in list) {
+                val m = raw as? Map<*, *> ?: continue
+                val slot = (m["slot"] as? Number)?.toInt() ?: continue
+                out += SlotInventoryManager.SlotInventory(
+                    slot = slot,
+                    remainingBottles = (m["remainingBottles"] as? Number)?.toInt() ?: 0,
+                    capacity = (m["capacity"] as? Number)?.toInt() ?: 7,
+                    campaignId = m["campaignId"] as? String,
+                    canDesignId = m["canDesignId"] as? String,
+                    canDesignName = m["canDesignName"] as? String,
+                    status = SlotInventoryManager.SlotStatus.fromString(
+                        m["status"] as? String ?: "active"
+                    ),
+                    lastUpdated = nowMillis
+                )
+            }
+            return out
+        }
+
+        /**
+         * Pure parser for the `recordVendWithSlot` callable response. Missing
+         * `eventId` becomes `""` (production behavior) so callers that only
+         * care about the analytics-attribution fields still get them.
+         */
+        internal fun parseVendEventResult(data: Any?): IBackendSlotService.VendEventResult {
+            val m = data as? Map<*, *>
+            return IBackendSlotService.VendEventResult(
+                eventId = m?.get("eventId") as? String ?: "",
+                campaignId = m?.get("campaignId") as? String,
+                canDesignId = m?.get("canDesignId") as? String,
+                advertiserId = m?.get("advertiserId") as? String,
+                machineName = m?.get("machineName") as? String,
+                campaignName = m?.get("campaignName") as? String,
+                canDesignName = m?.get("canDesignName") as? String,
+                advertiserName = m?.get("advertiserName") as? String
+            )
+        }
     }
     
     private val functions: FirebaseFunctions = Firebase.functions
-    
-    /**
-     * Retry logic wrapper for backend calls
-     */
-    private suspend fun <T> retryOperation(
-        operation: suspend () -> T,
-        operationName: String
-    ): T {
-        var lastException: Exception? = null
-        repeat(MAX_RETRIES) { attempt ->
-            try {
-                return operation()
-            } catch (e: Exception) {
-                lastException = e
-                if (attempt < MAX_RETRIES - 1) {
-                    AppLog.w(TAG, "$operationName failed (attempt ${attempt + 1}/$MAX_RETRIES), retrying...")
-                    kotlinx.coroutines.delay(RETRY_DELAY_MS * (attempt + 1))
-                }
-            }
-        }
-        throw lastException ?: Exception("Operation failed after $MAX_RETRIES attempts")
-    }
     
     /**
      * Sync slot inventory with backend
@@ -88,36 +153,8 @@ class BackendSlotService private constructor(private val context: Context) : IBa
             
             // Parse response into SlotInventory list (no writes yet — we only
             // mutate the local cache after the full payload parses cleanly).
-            val slotsData = result.data as? List<*> ?: emptyList<Any>()
+            val slots = parseSlotInventoryList(result.data)
             val slotInventoryManager = SlotInventoryManager.getInstance(context)
-            val now = System.currentTimeMillis()
-            val slots = mutableListOf<SlotInventoryManager.SlotInventory>()
-
-            for (slotData in slotsData) {
-                val slotMap = slotData as? Map<*, *> ?: continue
-
-                val slot = (slotMap["slot"] as? Number)?.toInt() ?: continue
-                val remainingBottles = (slotMap["remainingBottles"] as? Number)?.toInt() ?: 0
-                val capacity = (slotMap["capacity"] as? Number)?.toInt() ?: 7
-                val campaignId = slotMap["campaignId"] as? String
-                val canDesignId = slotMap["canDesignId"] as? String
-                val canDesignName = slotMap["canDesignName"] as? String
-                val statusStr = slotMap["status"] as? String ?: "active"
-
-                // Backend sends lowercase status, convert to enum
-                val status = SlotInventoryManager.SlotStatus.fromString(statusStr)
-
-                slots.add(SlotInventoryManager.SlotInventory(
-                    slot = slot,
-                    remainingBottles = remainingBottles,
-                    capacity = capacity,
-                    campaignId = campaignId,
-                    canDesignId = canDesignId,
-                    canDesignName = canDesignName,
-                    status = status,
-                    lastUpdated = now
-                ))
-            }
 
             // Atomic replace: backend is the source of truth, so any slot the
             // backend did NOT return must be evicted from the local cache.
@@ -174,18 +211,7 @@ class BackendSlotService private constructor(private val context: Context) : IBa
                 operationName = "recordVendWithSlot"
             )
             
-            val resultData = result.data as? Map<*, *>
-            val vendResult = IBackendSlotService.VendEventResult(
-                eventId = resultData?.get("eventId") as? String ?: "",
-                campaignId = resultData?.get("campaignId") as? String,
-                canDesignId = resultData?.get("canDesignId") as? String,
-                advertiserId = resultData?.get("advertiserId") as? String,
-                // Names for analytics (no lookup tables needed in BigQuery)
-                machineName = resultData?.get("machineName") as? String,
-                campaignName = resultData?.get("campaignName") as? String,
-                canDesignName = resultData?.get("canDesignName") as? String,
-                advertiserName = resultData?.get("advertiserName") as? String
-            )
+            val vendResult = parseVendEventResult(result.data)
             AppLog.d(TAG, "📊 Vend result: eventId=${vendResult.eventId}, campaign=${vendResult.campaignName ?: vendResult.campaignId}, design=${vendResult.canDesignName ?: vendResult.canDesignId}, advertiser=${vendResult.advertiserName ?: vendResult.advertiserId}")
             Result.success(vendResult)
         } catch (e: com.google.firebase.functions.FirebaseFunctionsException) {
