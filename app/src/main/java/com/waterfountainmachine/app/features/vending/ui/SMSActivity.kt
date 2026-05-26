@@ -994,18 +994,21 @@ class SMSActivity : KioskActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        inactivityTimer.cleanup()
-        
+        // When bailIfMachineDisabled() short-circuits onCreate, these
+        // lateinit fields were never set. Guard so a remote disable does
+        // not turn into a crash on activity teardown.
+        if (::inactivityTimer.isInitialized) inactivityTimer.cleanup()
+
         // Clean up animations
         questionMarkAnimator?.apply {
             removeAllListeners()
             cancel()
         }
         questionMarkAnimator = null
-        
+
         // Release sound resources
-        soundManager.release()
-        
+        if (::soundManager.isInitialized) soundManager.release()
+
         // Clean up QR code cache
         cachedQRCode?.recycle()
         cachedQRCode = null
@@ -1014,6 +1017,9 @@ class SMSActivity : KioskActivity() {
 
     override fun onResume() {
         super.onResume()
+        // When bailIfMachineDisabled() short-circuits onCreate, the
+        // immersive / timer setup never happened. Skip post-bail.
+        if (!::inactivityTimer.isInitialized) return
         // Re-apply immersive mode in case user swiped to reveal nav bar
         com.waterfountainmachine.app.utils.ImmersiveModeHelper.applyImmersiveModeFromSettings(this)
         applyFullScreen()
@@ -1022,7 +1028,7 @@ class SMSActivity : KioskActivity() {
 
     override fun onPause() {
         super.onPause()
-        inactivityTimer.stop()
+        if (::inactivityTimer.isInitialized) inactivityTimer.stop()
     }
 
     override fun onBackPressed() {

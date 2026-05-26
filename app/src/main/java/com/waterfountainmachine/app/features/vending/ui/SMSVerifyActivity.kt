@@ -79,15 +79,17 @@ class SMSVerifyActivity : KioskActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        
+
+        // Check if machine is remotely disabled before any side effects
+        // (analytics, view inflation, ViewModel init). Mirrors SMSActivity's
+        // ordering so a disabled machine produces no Firebase events.
+        if (bailIfMachineDisabled("blocking OTP verification")) return
+
         // Initialize analytics
         analyticsManager = com.waterfountainmachine.app.core.analytics.AnalyticsManager.getInstance(this)
         screenStartTime = System.currentTimeMillis()
         analyticsManager.logScreenView(SCREEN_NAME, SCREEN_NAME)
         analyticsManager.logScreenEntered(SCREEN_NAME)
-        
-        // Check if machine is remotely disabled before proceeding
-        if (bailIfMachineDisabled("blocking OTP verification")) return
 
         binding = ActivitySmsVerifyBinding.inflate(layoutInflater)
         setContentView(binding.root)
@@ -1085,26 +1087,31 @@ class SMSVerifyActivity : KioskActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        inactivityTimer.cleanup()
-        
-        // Clean up pending callbacks
-        autoVerifyRunnable?.let { binding.otpBox1.removeCallbacks(it) }
-        
+        // When bailIfMachineDisabled() short-circuits onCreate, these
+        // lateinit fields were never set. Guard so a remote disable does
+        // not turn into a crash on activity teardown.
+        if (::inactivityTimer.isInitialized) inactivityTimer.cleanup()
+
+        // Clean up pending callbacks (only meaningful if binding was inflated)
+        if (::binding.isInitialized) {
+            autoVerifyRunnable?.let { binding.otpBox1.removeCallbacks(it) }
+        }
+
         // Clean up animations
         questionMarkAnimator?.apply {
             removeAllListeners()
             cancel()
         }
         questionMarkAnimator = null
-        
+
         // Clean up sound manager
-        soundManager.release()
-        
+        if (::soundManager.isInitialized) soundManager.release()
+
         // Clean up QR code cache bitmap
         cachedQRCode?.recycle()
         cachedQRCode = null
         cachedQRCodeText = null
-        
+
         // Clean up hardware resources
         if (::waterFountainManager.isInitialized) {
             lifecycleScope.launch {
@@ -1115,6 +1122,7 @@ class SMSVerifyActivity : KioskActivity() {
 
     override fun onResume() {
         super.onResume()
+        if (!::inactivityTimer.isInitialized) return
         // Re-apply immersive mode in case user swiped to reveal nav bar
         com.waterfountainmachine.app.utils.ImmersiveModeHelper.applyImmersiveModeFromSettings(this)
         applyFullScreen()
@@ -1123,7 +1131,7 @@ class SMSVerifyActivity : KioskActivity() {
 
     override fun onPause() {
         super.onPause()
-        inactivityTimer.stop()
+        if (::inactivityTimer.isInitialized) inactivityTimer.stop()
         // Note: OTP timer is now managed by ViewModel, no manual cancellation needed
     }
 }

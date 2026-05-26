@@ -917,19 +917,24 @@ class VendingAnimationActivity : KioskActivity() {
     }
     
     override fun onDestroy() {
-        // Clear campaign context when activity is destroyed
-        analyticsManager.clearCampaignContext()
-        
+        // When bailIfMachineDisabled() short-circuits onCreate, these
+        // lateinit fields were never set. Guard so a remote disable does
+        // not turn into a crash on activity teardown.
+        if (::analyticsManager.isInitialized) {
+            // Clear campaign context when activity is destroyed
+            analyticsManager.clearCampaignContext()
+        }
+
         // Additional cleanup in onDestroy as safety net
         binding.logoImage.removeCallbacks(logoDelayedRunnable)
         binding.root.removeCallbacks(confettiDelayedRunnable)
         binding.pickupReminderPanel.removeCallbacks(pickupReminderRunnable)
         binding.pickupReminderPanel.removeCallbacks(chevronPulseRunnable)
         binding.pickupReminderPanel.removeCallbacks(shimmerRunnable)
-        
+
         // Clean up sound manager (this will also stop any playing sounds)
-        soundManager.release()
-        
+        if (::soundManager.isInitialized) soundManager.release()
+
         super.onDestroy()
     }
 }
