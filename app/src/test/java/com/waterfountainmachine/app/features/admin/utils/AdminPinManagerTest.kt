@@ -1,10 +1,10 @@
 package com.waterfountainmachine.app.features.admin.utils
 
 import android.content.Context
-import android.content.SharedPreferences
 import com.google.common.truth.Truth.assertThat
 import com.google.firebase.crashlytics.FirebaseCrashlytics
 import com.waterfountainmachine.app.core.utils.SecurePreferences
+import com.waterfountainmachine.app.testing.FakeSharedPreferences
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkObject
@@ -275,61 +275,5 @@ class AdminPinManagerTest {
         // hash still the original legacy SHA-256.
         assertThat(prefs.getString("admin_pin_algo", null)).isNull()
         assertThat(prefs.getString("admin_pin_hash", null)).isEqualTo(legacyHash)
-    }
-}
-
-/**
- * Minimal in-memory [SharedPreferences] fake. Just enough surface for
- * [AdminPinManager]: String / Int / Long get+put, contains, remove, clear.
- */
-private class FakeSharedPreferences : SharedPreferences {
-    private val map = mutableMapOf<String, Any?>()
-
-    override fun getAll(): Map<String, *> = map.toMap()
-    override fun getString(key: String, defValue: String?): String? =
-        map[key] as? String ?: defValue
-    override fun getStringSet(key: String, defValues: Set<String>?): Set<String>? =
-        @Suppress("UNCHECKED_CAST") (map[key] as? Set<String>) ?: defValues
-    override fun getInt(key: String, defValue: Int): Int = map[key] as? Int ?: defValue
-    override fun getLong(key: String, defValue: Long): Long = map[key] as? Long ?: defValue
-    override fun getFloat(key: String, defValue: Float): Float = map[key] as? Float ?: defValue
-    override fun getBoolean(key: String, defValue: Boolean): Boolean =
-        map[key] as? Boolean ?: defValue
-    override fun contains(key: String): Boolean = map.containsKey(key)
-    override fun edit(): SharedPreferences.Editor = FakeEditor()
-    override fun registerOnSharedPreferenceChangeListener(
-        l: SharedPreferences.OnSharedPreferenceChangeListener?
-    ) = Unit
-    override fun unregisterOnSharedPreferenceChangeListener(
-        l: SharedPreferences.OnSharedPreferenceChangeListener?
-    ) = Unit
-
-    private inner class FakeEditor : SharedPreferences.Editor {
-        private val pending = mutableMapOf<String, Any?>()
-        private val removals = mutableSetOf<String>()
-        private var clearAll = false
-
-        override fun putString(key: String, value: String?) = apply { pending[key] = value }
-        override fun putStringSet(key: String, values: Set<String>?) =
-            apply { pending[key] = values }
-        override fun putInt(key: String, value: Int) = apply { pending[key] = value }
-        override fun putLong(key: String, value: Long) = apply { pending[key] = value }
-        override fun putFloat(key: String, value: Float) = apply { pending[key] = value }
-        override fun putBoolean(key: String, value: Boolean) = apply { pending[key] = value }
-        override fun remove(key: String) = apply { removals += key }
-        override fun clear() = apply { clearAll = true }
-
-        override fun commit(): Boolean {
-            flush()
-            return true
-        }
-        override fun apply() {
-            flush()
-        }
-        private fun flush() {
-            if (clearAll) map.clear()
-            removals.forEach { map.remove(it) }
-            map.putAll(pending)
-        }
     }
 }

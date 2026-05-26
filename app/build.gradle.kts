@@ -233,6 +233,13 @@ dependencies {
     testImplementation("com.google.truth:truth:1.1.5")
     testImplementation("androidx.arch.core:core-testing:2.2.0")
     testImplementation("androidx.work:work-testing:2.9.0")
+
+    // Hilt unit-test support — lets @AndroidEntryPoint activities boot
+    // under Robolectric via HiltTestApplication + HiltAndroidRule.
+    // Compiler is bound to kaptTest so the test-only Hilt component is
+    // generated for the unit-test classpath (no androidTest needed).
+    testImplementation("com.google.dagger:hilt-android-testing:2.50")
+    kaptTest("com.google.dagger:hilt-android-compiler:2.50")
 }
 
 // ---------------------------------------------------------------------------
