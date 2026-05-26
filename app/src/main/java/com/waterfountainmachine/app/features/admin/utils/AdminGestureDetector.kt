@@ -10,7 +10,8 @@ import com.waterfountainmachine.app.features.admin.ui.AdminAuthActivity
  */
 class AdminGestureDetector(
     private val context: Context,
-    private val view: View
+    @Suppress("unused") private val view: View,
+    private val clock: () -> Long = System::currentTimeMillis,
 ) {
     
     companion object {
@@ -24,7 +25,7 @@ class AdminGestureDetector(
     
     fun onKeyEvent(keyCode: Int, event: KeyEvent): Boolean {
         if (keyCode == KeyEvent.KEYCODE_ENTER && event.action == KeyEvent.ACTION_DOWN) {
-            val currentTime = System.currentTimeMillis()
+            val currentTime = clock()
             val timeSinceLastPress = currentTime - lastKeyPressTime
             
             AdminDebugConfig.logAdmin(context, TAG, "Enter key received (time since last: ${timeSinceLastPress}ms)")
