@@ -210,6 +210,72 @@ class AdminPinManagerTest {
         assertThat(attempts).isEqualTo(3)
         assertThat(lockout).isEqualTo(999_999L)
     }
+
+    // --- PBKDF2 migration ---------------------------------------------------
+
+    @Test
+    fun `setPin writes pbkdf2 algo tag`() {
+        AdminPinManager.setPin(context, correctPin)
+        assertThat(prefs.getString("admin_pin_algo", null))
+            .isEqualTo(AdminPinManager.ALGO_PBKDF2_V1)
+    }
+
+    @Test
+    fun `pbkdf2 hash differs from legacy sha256 hash for same pin and salt`() {
+        val salt = ByteArray(32) { it.toByte() }
+        val legacy = AdminPinManager.hashPinLegacy(correctPin, salt)
+        val modern = AdminPinManager.hashPinPbkdf2(correctPin, salt)
+        assertThat(modern).isNotEqualTo(legacy)
+    }
+
+    @Test
+    fun `verifyPin accepts a legacy sha256 hash and migrates it in place`() {
+        // Simulate a device upgraded from the old salted-SHA-256 build:
+        // hash + salt present, but no algo tag.
+        val salt = ByteArray(32) { it.toByte() }
+        val legacyHash = AdminPinManager.hashPinLegacy(correctPin, salt)
+        prefs.edit()
+            .putString("admin_pin_hash", legacyHash)
+            .putString(
+                "admin_pin_salt",
+                java.util.Base64.getEncoder().encodeToString(salt)
+            )
+            .apply()
+        // Sanity: algo tag is absent → legacy path.
+        assertThat(prefs.getString("admin_pin_algo", null)).isNull()
+
+        // First verify with the correct PIN succeeds AND upgrades the hash.
+        assertThat(AdminPinManager.verifyPin(context, correctPin)).isTrue()
+
+        assertThat(prefs.getString("admin_pin_algo", null))
+            .isEqualTo(AdminPinManager.ALGO_PBKDF2_V1)
+        // Hash is now the PBKDF2 derivative, no longer the legacy SHA-256.
+        assertThat(prefs.getString("admin_pin_hash", null)).isNotEqualTo(legacyHash)
+
+        // Subsequent verifies continue to work against the upgraded hash.
+        assertThat(AdminPinManager.verifyPin(context, correctPin)).isTrue()
+        assertThat(AdminPinManager.verifyPin(context, wrongPin)).isFalse()
+    }
+
+    @Test
+    fun `verifyPin does not migrate when wrong pin is supplied against a legacy hash`() {
+        val salt = ByteArray(32) { it.toByte() }
+        val legacyHash = AdminPinManager.hashPinLegacy(correctPin, salt)
+        prefs.edit()
+            .putString("admin_pin_hash", legacyHash)
+            .putString(
+                "admin_pin_salt",
+                java.util.Base64.getEncoder().encodeToString(salt)
+            )
+            .apply()
+
+        assertThat(AdminPinManager.verifyPin(context, wrongPin)).isFalse()
+
+        // Wrong PIN must NOT trigger any write -- algo tag still absent,
+        // hash still the original legacy SHA-256.
+        assertThat(prefs.getString("admin_pin_algo", null)).isNull()
+        assertThat(prefs.getString("admin_pin_hash", null)).isEqualTo(legacyHash)
+    }
 }
 
 /**

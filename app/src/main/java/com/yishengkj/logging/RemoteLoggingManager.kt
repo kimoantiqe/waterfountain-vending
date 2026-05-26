@@ -326,13 +326,16 @@ class LogUploadWorker(
         
         val passphrase = data["passphrase"] as? String
         val isDefault = data["isDefault"] as? Boolean ?: true
-        
-        if (passphrase == null && !isDefault) {
-            throw Exception("No passphrase configured for this machine")
-        }
-        
-        // Return passphrase or null (which will use default in database)
-        return passphrase ?: LogQueueDatabase.DEFAULT_PASSPHRASE
+
+        // We no longer ship a hard-coded fallback passphrase in the APK
+        // (CRIT-1). If the backend cannot return one for this machine the
+        // upload MUST fail rather than silently re-encrypt with a literal
+        // anybody could extract.
+        return passphrase
+            ?: throw Exception(
+                "Server returned no log-encryption passphrase " +
+                    "(isDefault=$isDefault); refusing to use embedded fallback"
+            )
     }
     
     private suspend fun uploadBatch(

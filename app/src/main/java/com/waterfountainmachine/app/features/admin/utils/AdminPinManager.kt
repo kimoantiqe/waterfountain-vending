@@ -6,31 +6,44 @@ import com.waterfountainmachine.app.core.utils.SecurePreferences
 import java.security.MessageDigest
 import java.security.SecureRandom
 import java.util.Base64
+import javax.crypto.SecretKeyFactory
+import javax.crypto.spec.PBEKeySpec
 
 /**
  * Secure Admin PIN Manager
- * 
- * Handles admin PIN authentication using industry-standard security practices:
- * - Stores salted SHA-256 hash instead of plaintext PIN
- * - Uses cryptographically secure random salt
- * - Stored in EncryptedSharedPreferences (AES-256-GCM)
- * - Constant-time comparison to prevent timing attacks
- * - Rate limiting with lockout mechanism
- * 
+ *
+ * Stores PINs as PBKDF2-HMAC-SHA256 hashes (200k iterations, 256-bit key,
+ * 32-byte random salt) in EncryptedSharedPreferences. Replaces an earlier
+ * single-round salted SHA-256 scheme; legacy hashes are detected on
+ * [verifyPin] and **transparently upgraded** to PBKDF2 the first time the
+ * operator enters the correct PIN, so no fleet-wide reset is needed.
+ *
  * Security Features:
- * - PIN never stored in plaintext
- * - Unique salt per device prevents rainbow table attacks
- * - Encrypted storage provides defense-in-depth
- * - Secure random number generation
- * - 3 attempts lockout for 1 hour
+ * - PBKDF2-HMAC-SHA256 with 200,000 iterations (~100 ms on the kiosk
+ *   hardware; raises offline brute-force cost to ~days per device on GPU).
+ * - 32-byte cryptographically-random salt per PIN write.
+ * - EncryptedSharedPreferences (AES-256-GCM) as defense-in-depth.
+ * - Constant-time hash comparison to prevent timing attacks.
+ * - 3 attempts lockout for 1 hour (state stored in encrypted prefs).
  */
 object AdminPinManager {
-    
+
     private const val TAG = "AdminPinManager"
     private const val PREF_PIN_HASH = "admin_pin_hash"
     private const val PREF_PIN_SALT = "admin_pin_salt"
+    private const val PREF_PIN_ALGO = "admin_pin_algo"
     private const val PREF_FAILED_ATTEMPTS = "admin_failed_attempts"
     private const val PREF_LOCKOUT_UNTIL = "admin_lockout_until"
+
+    /**
+     * Current hash algorithm tag. Bumped when the KDF parameters change so
+     * the migration path in [verifyPin] knows which scheme produced a stored
+     * hash. Absence of [PREF_PIN_ALGO] => legacy salted SHA-256.
+     */
+    internal const val ALGO_PBKDF2_V1 = "pbkdf2-hmac-sha256-200k-v1"
+    private const val PBKDF2_ITERATIONS = 200_000
+    private const val PBKDF2_KEY_LENGTH_BITS = 256
+    private const val SALT_BYTES = 32
 
     /**
      * Bootstrap PIN. This value is intentionally cleartext in source. Its only
@@ -62,8 +75,13 @@ object AdminPinManager {
     }
     
     /**
-     * Verify if provided PIN matches stored hash
-     * 
+     * Verify if provided PIN matches stored hash.
+     *
+     * If the stored hash uses the legacy salted SHA-256 scheme and the PIN
+     * matches, the hash is **transparently re-written** with PBKDF2 so the
+     * next verify uses the stronger KDF. Failed verifies do NOT trigger any
+     * write.
+     *
      * @param context Application context
      * @param pin PIN to verify
      * @return true if PIN is correct, false otherwise
@@ -71,36 +89,41 @@ object AdminPinManager {
     fun verifyPin(context: Context, pin: String): Boolean {
         try {
             AdminDebugConfig.logAdmin(context, TAG, "Verifying PIN of length: ${pin.length}")
-            
+
             val prefs = SecurePreferences.getSystemSettings(context)
-            
+
             val storedHash = prefs.getString(PREF_PIN_HASH, null)
             val storedSalt = prefs.getString(PREF_PIN_SALT, null)
-            
+            val storedAlgo = prefs.getString(PREF_PIN_ALGO, null)
+
             if (storedHash == null || storedSalt == null) {
                 AppLog.e(TAG, "No PIN configured in secure storage")
                 return false
             }
-            
-            AdminDebugConfig.logAdmin(context, TAG, "Found stored hash and salt")
-            
-            // Decode salt
+
+            AdminDebugConfig.logAdmin(context, TAG, "Found stored hash and salt (algo=${storedAlgo ?: "legacy-sha256"})")
+
             val salt = Base64.getDecoder().decode(storedSalt)
-            
-            // Hash the provided PIN with stored salt
-            val providedHash = hashPin(pin, salt)
-            
-            AdminDebugConfig.logAdmin(context, TAG, "Generated hash for comparison")
-            
-            // Constant-time comparison to prevent timing attacks
+            val isLegacy = storedAlgo != ALGO_PBKDF2_V1
+            val providedHash = if (isLegacy) hashPinLegacy(pin, salt) else hashPinPbkdf2(pin, salt)
             val result = constantTimeCompare(providedHash, storedHash)
-            
+
             if (result) {
                 AdminDebugConfig.logAdminInfo(context, TAG, "✅ PIN verification successful")
+                if (isLegacy) {
+                    // Transparent upgrade: re-hash the now-known-good PIN with
+                    // PBKDF2 so future verifies use the stronger scheme.
+                    AdminDebugConfig.logAdminInfo(
+                        context,
+                        TAG,
+                        "Upgrading legacy SHA-256 hash to $ALGO_PBKDF2_V1"
+                    )
+                    setPin(context, pin)
+                }
             } else {
                 AppLog.w(TAG, "❌ PIN verification failed - incorrect PIN") // SECURITY: Always logged
             }
-            
+
             return result
         } catch (e: Exception) {
             AppLog.e(TAG, "Error verifying PIN", e)
@@ -122,21 +145,22 @@ object AdminPinManager {
                 AppLog.e(TAG, "Invalid PIN format. Must be 8 digits.")
                 return false
             }
-            
+
             // Generate cryptographically secure random salt
             val salt = generateSalt()
-            
-            // Hash the PIN with salt
-            val hash = hashPin(newPin, salt)
-            
-            // Store hash and salt in encrypted preferences
+
+            // Hash the PIN with PBKDF2-HMAC-SHA256
+            val hash = hashPinPbkdf2(newPin, salt)
+
+            // Store hash, salt, and algo tag in encrypted preferences
             val prefs = SecurePreferences.getSystemSettings(context)
             prefs.edit()
                 .putString(PREF_PIN_HASH, hash)
                 .putString(PREF_PIN_SALT, Base64.getEncoder().encodeToString(salt))
+                .putString(PREF_PIN_ALGO, ALGO_PBKDF2_V1)
                 .apply()
-            
-            AdminDebugConfig.logAdminInfo(context, TAG, "Admin PIN updated successfully")
+
+            AdminDebugConfig.logAdminInfo(context, TAG, "Admin PIN updated successfully (algo=$ALGO_PBKDF2_V1)")
             return true
         } catch (e: Exception) {
             AppLog.e(TAG, "Error setting PIN", e)
@@ -241,31 +265,39 @@ object AdminPinManager {
     }
     
     /**
-     * Generate cryptographically secure random salt (32 bytes)
+     * Generate cryptographically secure random salt.
      */
     private fun generateSalt(): ByteArray {
-        val salt = ByteArray(32)
+        val salt = ByteArray(SALT_BYTES)
         SecureRandom().nextBytes(salt)
         return salt
     }
-    
+
     /**
-     * Hash PIN with salt using SHA-256
-     * 
-     * @param pin PIN to hash
-     * @param salt Cryptographic salt
-     * @return Base64-encoded hash
+     * Hash PIN with PBKDF2-HMAC-SHA256, [PBKDF2_ITERATIONS] iterations, 256-bit key.
+     *
+     * @return Base64-encoded derived key.
      */
-    private fun hashPin(pin: String, salt: ByteArray): String {
+    internal fun hashPinPbkdf2(pin: String, salt: ByteArray): String {
+        val spec = PBEKeySpec(pin.toCharArray(), salt, PBKDF2_ITERATIONS, PBKDF2_KEY_LENGTH_BITS)
+        try {
+            val factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256")
+            val derived = factory.generateSecret(spec).encoded
+            return Base64.getEncoder().encodeToString(derived)
+        } finally {
+            spec.clearPassword()
+        }
+    }
+
+    /**
+     * Legacy salted single-round SHA-256 hash. Retained ONLY so [verifyPin] can
+     * recognise hashes written by older builds and trigger transparent
+     * migration to PBKDF2. Never used to produce new hashes.
+     */
+    internal fun hashPinLegacy(pin: String, salt: ByteArray): String {
         val digest = MessageDigest.getInstance("SHA-256")
-        
-        // Add salt to digest
         digest.update(salt)
-        
-        // Hash PIN
         val hash = digest.digest(pin.toByteArray(Charsets.UTF_8))
-        
-        // Return Base64-encoded hash
         return Base64.getEncoder().encodeToString(hash)
     }
     
