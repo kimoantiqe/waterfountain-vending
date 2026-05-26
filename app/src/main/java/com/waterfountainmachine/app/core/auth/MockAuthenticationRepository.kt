@@ -96,9 +96,11 @@ class MockAuthenticationRepository(
             )
         } else {
             // Invalid OTP
-            val errorMsg = "Invalid OTP code. Expected: $MOCK_OTP_CODE"
-            AppLog.w(TAG, "Mock: Invalid OTP - received: $otp, expected: $MOCK_OTP_CODE")
-            
+            val errorMsg = "Invalid OTP code"
+            // SECURITY: never log raw OTP values, even in the mock repo. Devices in
+            // dev still upload logs remotely; PII discipline is the same.
+            AppLog.w(TAG, "Mock: OTP mismatch for ${maskPhone(phone)} (received ${otp.length} digits)")
+
             return Result.failure(
                 AuthenticationException.InvalidOtpError(errorMsg)
             )

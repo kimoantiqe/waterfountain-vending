@@ -172,7 +172,8 @@ class AnalyticsManager private constructor(private val context: Context) {
         // Check if it's at least 10 digits (US standard)
         val digitsOnly = phoneNumber.replace(Regex("[^0-9]"), "")
         if (digitsOnly.length < 10) {
-            AppLog.w(TAG, "⚠️ phone_number too short: '$phoneNumber' (${digitsOnly.length} digits)")
+            // SECURITY: log only the digit count, never the raw user input.
+            AppLog.w(TAG, "⚠️ phone_number too short: ${digitsOnly.length} digits")
             return null
         }
         return phoneNumber

@@ -255,7 +255,8 @@ class CertificateSetupActivity : AppCompatActivity() {
             AppLog.d(TAG, "Certificate received successfully")
             AppLog.d(TAG, "Certificate length: ${certificate.length} chars")
             AppLog.d(TAG, "Certificate valid until: $validUntil")
-            AppLog.d(TAG, "Certificate preview: ${certificate.take(100)}...")
+            // SECURITY: never log certificate body -- even the first 100 chars leak
+            // machine identity and the PEM header reveals the cert format/CA.
             AppLog.d(TAG, "=== Enrollment API Call Complete ===")
             
             return certificate

@@ -16,6 +16,7 @@ import com.waterfountainmachine.app.core.utils.FullScreenUtils
 import com.waterfountainmachine.app.core.utils.AnimationUtils
 import com.waterfountainmachine.app.core.utils.InactivityTimer
 import com.waterfountainmachine.app.core.utils.AppLog
+import com.waterfountainmachine.app.core.utils.PhoneNumberUtils
 import com.waterfountainmachine.app.core.utils.SoundManager
 import com.waterfountainmachine.app.core.utils.UserErrorMessages
 import com.waterfountainmachine.app.features.vending.viewmodels.SMSVerifyViewModel
@@ -538,7 +539,7 @@ class SMSVerifyActivity : AppCompatActivity() {
         // In a real implementation, integrate with SMS service like Twilio
         // For demo purposes, we'll just show a simulated code
         val phoneNumber = viewModel.phoneNumber.value
-        AppLog.i(TAG, "Sending verification code to $phoneNumber")
+        AppLog.i(TAG, "Sending verification code to ${PhoneNumberUtils.maskPhoneForLogging(phoneNumber)}")
     }
 
     private fun verifyAndProceed() {
