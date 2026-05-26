@@ -29,6 +29,48 @@ class BackendMachineService private constructor(private val context: Context) {
                 INSTANCE ?: BackendMachineService(context.applicationContext).also { INSTANCE = it }
             }
         }
+
+        /**
+         * Pure parser for the `getMachineStatus` callable response. Extracted so
+         * it can be unit-tested without mocking the Firebase Functions client.
+         * Returns a failing [Result] for the same missing/invalid-field cases
+         * the production call path rejects.
+         */
+        internal fun parseMachineStatus(data: Any?): Result<MachineStatus> {
+            val map = data as? Map<*, *>
+                ?: return Result.failure(Exception("Invalid response format"))
+            val status = map["status"] as? String
+                ?: return Result.failure(Exception("Missing status field"))
+            return Result.success(
+                MachineStatus(
+                    status = status,
+                    disabledReason = map["disabledReason"] as? String,
+                    disabledAt = (map["disabledAt"] as? Number)?.toLong()
+                )
+            )
+        }
+
+        /**
+         * Pure parser for the `renewCertificate` callable response. See
+         * [parseMachineStatus] for rationale.
+         */
+        internal fun parseCertificateRenewal(data: Any?): Result<CertificateRenewalResult> {
+            val map = data as? Map<*, *>
+                ?: return Result.failure(Exception("Invalid response format"))
+            val certificatePem = map["certificatePem"] as? String
+                ?: return Result.failure(Exception("Missing certificatePem field"))
+            val serialNumber = map["serialNumber"] as? String
+                ?: return Result.failure(Exception("Missing serialNumber field"))
+            val expiresAt = map["expiresAt"] as? String
+                ?: return Result.failure(Exception("Missing expiresAt field"))
+            return Result.success(
+                CertificateRenewalResult(
+                    certificatePem = certificatePem,
+                    serialNumber = serialNumber,
+                    expiresAt = expiresAt
+                )
+            )
+        }
     }
     
     private val functions: FirebaseFunctions = Firebase.functions
@@ -63,25 +105,10 @@ class BackendMachineService private constructor(private val context: Context) {
                 .getHttpsCallable("getMachineStatus")
                 .call(authenticatedRequest.toMap())
                 .await()
-            
-            val data = result.data as? Map<*, *>
-                ?: return Result.failure(Exception("Invalid response format"))
-            
-            val status = data["status"] as? String
-                ?: return Result.failure(Exception("Missing status field"))
-            
-            val disabledReason = data["disabledReason"] as? String
-            val disabledAt = (data["disabledAt"] as? Number)?.toLong()
-            
-            AppLog.d(TAG, "Machine status: $status")
-            
-            Result.success(
-                MachineStatus(
-                    status = status,
-                    disabledReason = disabledReason,
-                    disabledAt = disabledAt
-                )
-            )
+
+            val parsed = parseMachineStatus(result.data)
+            parsed.onSuccess { AppLog.d(TAG, "Machine status: ${it.status}") }
+            parsed
         } catch (e: Exception) {
             AppLog.e(TAG, "Failed to get machine status", e)
             Result.failure(e)
@@ -120,28 +147,10 @@ class BackendMachineService private constructor(private val context: Context) {
                 .getHttpsCallable("renewCertificate")
                 .call(authenticatedRequest.toMap())
                 .await()
-            
-            val data = result.data as? Map<*, *>
-                ?: return Result.failure(Exception("Invalid response format"))
-            
-            val certificatePem = data["certificatePem"] as? String
-                ?: return Result.failure(Exception("Missing certificatePem field"))
-            
-            val serialNumber = data["serialNumber"] as? String
-                ?: return Result.failure(Exception("Missing serialNumber field"))
-            
-            val expiresAt = data["expiresAt"] as? String
-                ?: return Result.failure(Exception("Missing expiresAt field"))
-            
-            AppLog.d(TAG, "Certificate renewed successfully. New serial: $serialNumber")
-            
-            Result.success(
-                CertificateRenewalResult(
-                    certificatePem = certificatePem,
-                    serialNumber = serialNumber,
-                    expiresAt = expiresAt
-                )
-            )
+
+            val parsed = parseCertificateRenewal(result.data)
+            parsed.onSuccess { AppLog.d(TAG, "Certificate renewed successfully. New serial: ${it.serialNumber}") }
+            parsed
         } catch (e: Exception) {
             AppLog.e(TAG, "Failed to renew certificate", e)
             Result.failure(e)
