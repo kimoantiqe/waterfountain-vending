@@ -1,7 +1,9 @@
 package com.waterfountainmachine.app.core.backend
 
 import com.google.common.truth.Truth.assertThat
+import com.google.firebase.functions.FirebaseFunctionsException
 import com.waterfountainmachine.app.core.slot.SlotInventoryManager
+import io.mockk.mockk
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
@@ -196,5 +198,154 @@ class BackendSlotServiceTest {
         )
         assertThat(r.eventId).isEqualTo("")
         assertThat(r.campaignId).isEqualTo("c1")
+    }
+
+    // ---------- retryOperation: failure-mode edge cases ----------
+
+    @Test
+    fun `retryOperation preserves the original exception type through the retry loop`() = runTest {
+        // The vend path downcasts the rethrown exception to
+        // FirebaseFunctionsException for daily-limit translation. If retry
+        // ever wraps/replaces the exception, that downcast breaks silently.
+        class CustomFailure(message: String) : Exception(message)
+
+        val thrown = runCatching {
+            BackendSlotService.retryOperation<String>(
+                operation = { throw CustomFailure("boom") },
+                operationName = "test",
+                delayMillis = { /* no wait */ }
+            )
+        }.exceptionOrNull()
+
+        assertThat(thrown).isInstanceOf(CustomFailure::class.java)
+        assertThat(thrown).hasMessageThat().isEqualTo("boom")
+    }
+
+    @Test
+    fun `retryOperation rethrows the LAST exception, not the first`() = runTest {
+        var attempts = 0
+        val thrown = runCatching {
+            BackendSlotService.retryOperation<String>(
+                operation = {
+                    attempts++
+                    throw RuntimeException("attempt $attempts of 3")
+                },
+                operationName = "test",
+                delayMillis = { /* no wait */ }
+            )
+        }.exceptionOrNull()
+
+        // The last attempt is the one that should surface — important for
+        // diagnostics so the log shows the most recent failure, not a
+        // stale one from minutes ago.
+        assertThat(thrown).hasMessageThat().contains("attempt 3 of 3")
+    }
+
+    // ---------- parseSlotInventoryList: partial-failure semantics ----------
+
+    @Test
+    fun `parseSlotInventoryList returns 47 valid slots when 1 of 48 entries is malformed`() {
+        // Production realism: the device pulls all 48 slots from the
+        // getSlotInventory callable. If the backend ever ships ONE bad row
+        // (e.g., a schema migration in flight), we still want the other 47
+        // to render — never an empty kiosk.
+        val data = buildList {
+            for (i in 1..48) {
+                if (i == 24) {
+                    // Slot 24 is malformed: slot field missing entirely.
+                    add(mapOf("remainingBottles" to 5, "capacity" to 7))
+                } else {
+                    add(mapOf("slot" to i, "remainingBottles" to 5, "capacity" to 7))
+                }
+            }
+        }
+
+        val slots = BackendSlotService.parseSlotInventoryList(data)
+
+        assertThat(slots).hasSize(47)
+        assertThat(slots.map { it.slot }).doesNotContain(24)
+        // The slots either side of the bad row are unaffected.
+        assertThat(slots.map { it.slot }).containsAtLeast(23, 25)
+    }
+
+    // ---------- mapVendFirebaseException ----------
+
+    @Test
+    fun `mapVendFirebaseException translates RESOURCE_EXHAUSTED to DailyLimitReachedException`() {
+        // FirebaseFunctionsException has a package-private constructor, so
+        // we mock it for identity comparisons only — the helper takes the
+        // (code, message, original) triple split out for exactly this
+        // testability reason.
+        val original = mockk<FirebaseFunctionsException>(relaxed = true)
+
+        val result = BackendSlotService.mapVendFirebaseException(
+            FirebaseFunctionsException.Code.RESOURCE_EXHAUSTED,
+            "limit",
+            original
+        )
+
+        assertThat(result.isFailure).isTrue()
+        assertThat(result.exceptionOrNull())
+            .isInstanceOf(BackendSlotService.DailyLimitReachedException::class.java)
+        assertThat(result.exceptionOrNull()).hasMessageThat().isEqualTo("limit")
+    }
+
+    @Test
+    fun `mapVendFirebaseException uses default message when RESOURCE_EXHAUSTED message is null`() {
+        val original = mockk<FirebaseFunctionsException>(relaxed = true)
+
+        val result = BackendSlotService.mapVendFirebaseException(
+            FirebaseFunctionsException.Code.RESOURCE_EXHAUSTED,
+            null,
+            original
+        )
+
+        assertThat(result.exceptionOrNull())
+            .isInstanceOf(BackendSlotService.DailyLimitReachedException::class.java)
+        assertThat(result.exceptionOrNull()).hasMessageThat().isEqualTo("Daily limit reached")
+    }
+
+    @Test
+    fun `mapVendFirebaseException surfaces UNAUTHENTICATED as the original Firebase exception`() {
+        // Non-rate-limit codes must bubble up as the original
+        // FirebaseFunctionsException so callers can switch on `.code`.
+        val original = mockk<FirebaseFunctionsException>(relaxed = true)
+
+        val result = BackendSlotService.mapVendFirebaseException(
+            FirebaseFunctionsException.Code.UNAUTHENTICATED,
+            "bad cert",
+            original
+        )
+
+        assertThat(result.exceptionOrNull()).isSameInstanceAs(original)
+    }
+
+    @Test
+    fun `mapVendFirebaseException surfaces UNAVAILABLE as the original Firebase exception`() {
+        // UNAVAILABLE is what we get for backend partial-outages. Preserve
+        // identity so callers can decide whether to retry at a higher layer.
+        val original = mockk<FirebaseFunctionsException>(relaxed = true)
+
+        val result = BackendSlotService.mapVendFirebaseException(
+            FirebaseFunctionsException.Code.UNAVAILABLE,
+            "backend unavailable",
+            original
+        )
+
+        assertThat(result.exceptionOrNull()).isSameInstanceAs(original)
+    }
+
+    @Test
+    fun `mapVendFirebaseException surfaces DEADLINE_EXCEEDED as the original Firebase exception`() {
+        // Timeout case — caller may want to surface a "try again" UI.
+        val original = mockk<FirebaseFunctionsException>(relaxed = true)
+
+        val result = BackendSlotService.mapVendFirebaseException(
+            FirebaseFunctionsException.Code.DEADLINE_EXCEEDED,
+            "timeout",
+            original
+        )
+
+        assertThat(result.exceptionOrNull()).isSameInstanceAs(original)
     }
 }

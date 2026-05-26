@@ -119,6 +119,33 @@ class BackendSlotService private constructor(private val context: Context) : IBa
                 advertiserName = m?.get("advertiserName") as? String
             )
         }
+
+        /**
+         * Translate a [com.google.firebase.functions.FirebaseFunctionsException]
+         * surfaced from `recordVendWithSlot` into the right [Result] shape.
+         * `RESOURCE_EXHAUSTED` becomes [DailyLimitReachedException] so
+         * the vending UI can render the "daily limit reached" path instead
+         * of a generic backend-error screen; every other code is surfaced
+         * as the original [FirebaseFunctionsException] so callers can
+         * still switch on `.code`.
+         *
+         * Split into (code, message, original) because
+         * `FirebaseFunctionsException`'s constructor is package-private
+         * and cannot be instantiated from unit tests. Keeping the
+         * signature surface-area small lets the mapping table be
+         * exercised without spinning up Firebase.
+         */
+        internal fun mapVendFirebaseException(
+            code: com.google.firebase.functions.FirebaseFunctionsException.Code,
+            message: String?,
+            original: com.google.firebase.functions.FirebaseFunctionsException
+        ): Result<IBackendSlotService.VendEventResult> {
+            return when (code) {
+                com.google.firebase.functions.FirebaseFunctionsException.Code.RESOURCE_EXHAUSTED ->
+                    Result.failure(DailyLimitReachedException(message ?: "Daily limit reached"))
+                else -> Result.failure(original)
+            }
+        }
     }
     
     private val functions: FirebaseFunctions = Firebase.functions
@@ -215,16 +242,8 @@ class BackendSlotService private constructor(private val context: Context) : IBa
             AppLog.d(TAG, "📊 Vend result: eventId=${vendResult.eventId}, campaign=${vendResult.campaignName ?: vendResult.campaignId}, design=${vendResult.canDesignName ?: vendResult.canDesignId}, advertiser=${vendResult.advertiserName ?: vendResult.advertiserId}")
             Result.success(vendResult)
         } catch (e: com.google.firebase.functions.FirebaseFunctionsException) {
-            when (e.code) {
-                com.google.firebase.functions.FirebaseFunctionsException.Code.RESOURCE_EXHAUSTED -> {
-                    AppLog.w(TAG, "Daily limit reached")
-                    Result.failure(DailyLimitReachedException(e.message ?: "Daily limit reached"))
-                }
-                else -> {
-                    AppLog.e(TAG, "Firebase error: ${e.code}", e)
-                    Result.failure(e)
-                }
-            }
+            AppLog.e(TAG, "Firebase error: ${e.code}", e)
+            return mapVendFirebaseException(e.code, e.message, e)
         } catch (e: Exception) {
             AppLog.e(TAG, "Failed to record vend", e)
             Result.failure(e)
