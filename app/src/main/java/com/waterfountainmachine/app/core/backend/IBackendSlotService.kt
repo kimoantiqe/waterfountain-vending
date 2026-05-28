@@ -58,6 +58,12 @@ interface IBackendSlotService {
         val machineName: String?,
         val campaignName: String?,
         val canDesignName: String?,
-        val advertiserName: String?
+        val advertiserName: String?,
+        // Sponsorship presentation fields surfaced at vend time so the
+        // vending animation can show a customer-facing message + swap the
+        // in-ring logo to the advertiser brand. Both are nullable because
+        // a can design with no messages / no advertiser logo is valid.
+        val customerMessage: String? = null,
+        val advertiserLogoUrl: String? = null
     )
 }

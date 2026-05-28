@@ -54,4 +54,8 @@
         <item>Stay hydrated!</item>
         <item>Freshly dispensed!</item>
     </string-array>
+
+    <!-- Sponsorship billboard (shown during vend reveal) -->
+    <string name="sponsorship_byline">brought to you by %1$s</string>
+    <string name="sponsorship_logo_content_description">Sponsor brand logo</string>
 </resources>

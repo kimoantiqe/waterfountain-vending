@@ -93,6 +93,45 @@
                 android:layout_marginTop="60dp"
                 android:letterSpacing="0.02"/>
 
+            <!-- Sponsorship billboard - customer message + advertiser byline
+                 shown during the reveal moment. Hidden until the backend
+                 returns a non-blank customerMessage in the vend response. -->
+            <LinearLayout
+                android:id="@+id/sponsorshipBillboard"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:layout_marginTop="48dp"
+                android:alpha="0"
+                android:visibility="gone">
+
+                <TextView
+                    android:id="@+id/sponsorshipMessage"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textSize="48sp"
+                    android:textColor="#555555"
+                    android:fontFamily="@font/gilroy"
+                    android:gravity="center"
+                    android:maxWidth="1000dp"
+                    android:lineHeight="60sp"
+                    android:letterSpacing="0.02"/>
+
+                <TextView
+                    android:id="@+id/sponsorshipByline"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textSize="28sp"
+                    android:textColor="#888888"
+                    android:fontFamily="@font/gilroy"
+                    android:gravity="center"
+                    android:layout_marginTop="16dp"
+                    android:alpha="0.85"
+                    android:visibility="gone"/>
+
+            </LinearLayout>
+
         </LinearLayout>
 
     </LinearLayout>

@@ -108,6 +108,10 @@ class BackendSlotService private constructor(private val context: Context) : IBa
          */
         internal fun parseVendEventResult(data: Any?): IBackendSlotService.VendEventResult {
             val m = data as? Map<*, *>
+            // Treat blank strings as missing so the animation does not show
+            // an empty billboard or attempt to Glide-load an empty URL.
+            fun stringOrNull(key: String): String? =
+                (m?.get(key) as? String)?.takeIf { it.isNotBlank() }
             return IBackendSlotService.VendEventResult(
                 eventId = m?.get("eventId") as? String ?: "",
                 campaignId = m?.get("campaignId") as? String,
@@ -116,7 +120,9 @@ class BackendSlotService private constructor(private val context: Context) : IBa
                 machineName = m?.get("machineName") as? String,
                 campaignName = m?.get("campaignName") as? String,
                 canDesignName = m?.get("canDesignName") as? String,
-                advertiserName = m?.get("advertiserName") as? String
+                advertiserName = m?.get("advertiserName") as? String,
+                customerMessage = stringOrNull("customerMessage"),
+                advertiserLogoUrl = stringOrNull("advertiserLogoUrl")
             )
         }
 

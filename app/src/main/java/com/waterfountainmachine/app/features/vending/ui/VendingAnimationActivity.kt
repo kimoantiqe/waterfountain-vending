@@ -3,7 +3,10 @@ import android.animation.AnimatorSet
 import android.animation.ObjectAnimator
 import android.annotation.SuppressLint
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.os.Bundle
+import android.view.View
 import android.view.animation.DecelerateInterpolator
 import android.view.animation.OvershootInterpolator
 import android.widget.FrameLayout
@@ -46,6 +49,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.net.HttpURLConnection
+import java.net.URL
 import java.util.concurrent.TimeUnit
 
 @AndroidEntryPoint
@@ -783,6 +788,23 @@ class VendingAnimationActivity : KioskActivity() {
                             }
                             
                             analyticsManager.logVendingCompleted(slotNumber = slot, durationMs = dispensingTimeMs)
+
+                            // Sponsorship presentation: swap the in-ring logo to the
+                            // advertiser brand (Q1) and show the customer-message
+                            // billboard at reveal (Q2). Both are best-effort — a
+                            // missing logo URL leaves the WaterFountain logo in
+                            // place; a blank message leaves the billboard hidden.
+                            val logoUrl = vendResult.advertiserLogoUrl
+                            if (!logoUrl.isNullOrBlank()) {
+                                loadAdvertiserLogo(logoUrl)
+                            }
+                            val msg = vendResult.customerMessage
+                            if (!msg.isNullOrBlank()) {
+                                val byline = vendResult.advertiserName?.takeIf { it.isNotBlank() }
+                                withContext(Dispatchers.Main) {
+                                    showSponsorshipBillboard(msg, byline)
+                                }
+                            }
                         },
                         onFailure = { error ->
                             if (error is com.waterfountainmachine.app.core.backend.BackendSlotService.DailyLimitReachedException) {
@@ -902,7 +924,90 @@ class VendingAnimationActivity : KioskActivity() {
             }
         }
     }
-    
+
+    /**
+     * Show the sponsorship billboard (customer message + advertiser byline)
+     * during the reveal moment. Animation: fade-in + slight slide-up (800 ms),
+     * hold (3500 ms), fade-out (600 ms). Must be called on the main thread.
+     *
+     * @param message  customer message from the vend response (already trimmed
+     *                 + non-blank — caller filters blanks).
+     * @param advertiserName  optional sponsor name for the byline. When null,
+     *                 only the message line is shown.
+     */
+    @SuppressLint("SetTextI18n")
+    internal fun showSponsorshipBillboard(message: String, advertiserName: String?) {
+        binding.sponsorshipMessage.text = message
+        if (advertiserName != null) {
+            binding.sponsorshipByline.text = getString(R.string.sponsorship_byline, advertiserName)
+            binding.sponsorshipByline.visibility = View.VISIBLE
+        } else {
+            binding.sponsorshipByline.visibility = View.GONE
+        }
+
+        binding.sponsorshipBillboard.apply {
+            alpha = 0f
+            translationY = 30f
+            visibility = View.VISIBLE
+        }
+        binding.sponsorshipBillboard.animate()
+            .alpha(1f)
+            .translationY(0f)
+            .setDuration(800)
+            .setInterpolator(DecelerateInterpolator(2.5f))
+            .withEndAction {
+                binding.sponsorshipBillboard.postDelayed(billboardFadeOutRunnable, 3500L)
+            }
+            .start()
+    }
+
+    private val billboardFadeOutRunnable = Runnable {
+        binding.sponsorshipBillboard.animate()
+            .alpha(0f)
+            .translationY(20f)
+            .setDuration(600)
+            .setInterpolator(DecelerateInterpolator(2f))
+            .withEndAction {
+                binding.sponsorshipBillboard.visibility = View.GONE
+            }
+            .start()
+    }
+
+    /**
+     * Fetch the advertiser logo over HTTPS and swap it into [logoImage].
+     * Uses [HttpURLConnection] + [BitmapFactory] (no extra image lib) so
+     * the app keeps its dependency surface small — see AGENTS.md
+     * "engineered enough, not over-engineered." Failures are intentionally
+     * swallowed: the existing WaterFountain logo stays in the ring, which
+     * is the correct fallback.
+     */
+    private suspend fun loadAdvertiserLogo(url: String) {
+        val bitmap: Bitmap? = withContext(Dispatchers.IO) {
+            try {
+                val conn = (URL(url).openConnection() as HttpURLConnection).apply {
+                    connectTimeout = 4000
+                    readTimeout = 6000
+                    instanceFollowRedirects = true
+                }
+                conn.inputStream.use { BitmapFactory.decodeStream(it) }
+            } catch (e: Exception) {
+                AppLog.w(TAG, "Failed to load advertiser logo from $url: ${e.message}")
+                null
+            }
+        }
+        if (bitmap != null) {
+            withContext(Dispatchers.Main) {
+                // Defensive: activity may be finishing by the time the
+                // bitmap decode returns. Skip the swap if so.
+                if (!isFinishing && !isDestroyed) {
+                    binding.logoImage.setImageBitmap(bitmap)
+                    binding.logoImage.contentDescription =
+                        getString(R.string.sponsorship_logo_content_description)
+                }
+            }
+        }
+    }
+
     @Suppress("DEPRECATION")
     @SuppressLint("MissingSuperCall")
     override fun onBackPressed() {
@@ -931,6 +1036,7 @@ class VendingAnimationActivity : KioskActivity() {
         binding.pickupReminderPanel.removeCallbacks(pickupReminderRunnable)
         binding.pickupReminderPanel.removeCallbacks(chevronPulseRunnable)
         binding.pickupReminderPanel.removeCallbacks(shimmerRunnable)
+        binding.sponsorshipBillboard.removeCallbacks(billboardFadeOutRunnable)
 
         // Clean up sound manager (this will also stop any playing sounds)
         if (::soundManager.isInitialized) soundManager.release()
