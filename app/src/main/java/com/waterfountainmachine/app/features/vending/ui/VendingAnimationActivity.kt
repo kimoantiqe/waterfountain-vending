@@ -789,21 +789,25 @@ class VendingAnimationActivity : KioskActivity() {
                             
                             analyticsManager.logVendingCompleted(slotNumber = slot, durationMs = dispensingTimeMs)
 
-                            // Sponsorship presentation: swap the in-ring logo to the
-                            // advertiser brand (Q1) and show the customer-message
-                            // billboard at reveal (Q2). Both are best-effort — a
-                            // missing logo URL leaves the WaterFountain logo in
-                            // place; a blank message leaves the billboard hidden.
-                            val logoUrl = vendResult.advertiserLogoUrl
+                            // Animation surface: swap the in-ring WaterFountain
+                            // logo to the canDesign's brand logo (Q1) and show the
+                            // customer-message billboard at reveal (Q2). Both are
+                            // best-effort — a missing logo URL leaves the bundled
+                            // WaterFountain logo in place; a blank message leaves
+                            // the billboard hidden.
+                            val logoUrl = vendResult.animationLogo
                             if (!logoUrl.isNullOrBlank()) {
-                                loadAdvertiserLogo(logoUrl)
+                                loadAnimationLogo(logoUrl)
                             }
-                            val msg = vendResult.customerMessage
+                            val msg = vendResult.animationMessage
                             if (!msg.isNullOrBlank()) {
                                 val byline = vendResult.advertiserName?.takeIf { it.isNotBlank() }
+                                AppLog.i(TAG, "🪧 Showing sponsorship billboard: msg='$msg', byline='${byline ?: "none"}'")
                                 withContext(Dispatchers.Main) {
                                     showSponsorshipBillboard(msg, byline)
                                 }
+                            } else {
+                                AppLog.w(TAG, "🪧 No sponsorship billboard: animationMessage=${vendResult.animationMessage?.let { "'$it'" } ?: "null"}")
                             }
                         },
                         onFailure = { error ->
@@ -974,14 +978,15 @@ class VendingAnimationActivity : KioskActivity() {
     }
 
     /**
-     * Fetch the advertiser logo over HTTPS and swap it into [logoImage].
-     * Uses [HttpURLConnection] + [BitmapFactory] (no extra image lib) so
-     * the app keeps its dependency surface small — see AGENTS.md
-     * "engineered enough, not over-engineered." Failures are intentionally
-     * swallowed: the existing WaterFountain logo stays in the ring, which
-     * is the correct fallback.
+     * Fetch the can design's animation logo over HTTPS and swap it into
+     * [logoImage] in place of the bundled WaterFountain logo. Uses
+     * [HttpURLConnection] + [BitmapFactory] (no extra image lib) so the app
+     * keeps its dependency surface small — see AGENTS.md "engineered enough,
+     * not over-engineered." Failures are intentionally swallowed: the
+     * existing WaterFountain logo stays in the ring, which is the correct
+     * fallback.
      */
-    private suspend fun loadAdvertiserLogo(url: String) {
+    private suspend fun loadAnimationLogo(url: String) {
         val bitmap: Bitmap? = withContext(Dispatchers.IO) {
             try {
                 val conn = (URL(url).openConnection() as HttpURLConnection).apply {
@@ -991,7 +996,7 @@ class VendingAnimationActivity : KioskActivity() {
                 }
                 conn.inputStream.use { BitmapFactory.decodeStream(it) }
             } catch (e: Exception) {
-                AppLog.w(TAG, "Failed to load advertiser logo from $url: ${e.message}")
+                AppLog.w(TAG, "Failed to load animation logo from $url: ${e.message}")
                 null
             }
         }

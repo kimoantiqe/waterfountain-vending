@@ -188,36 +188,36 @@ class BackendSlotServiceTest {
     fun `parseVendEventResult extracts sponsorship fields when present`() {
         val data = mapOf(
             "eventId" to "evt-1",
-            "customerMessage" to "Thanks for staying hydrated!",
-            "advertiserLogoUrl" to "https://example.com/logo.png"
+            "animationMessage" to "Thanks for staying hydrated!",
+            "animationLogo" to "https://example.com/logo.png"
         )
 
         val r = BackendSlotService.parseVendEventResult(data)
 
-        assertThat(r.customerMessage).isEqualTo("Thanks for staying hydrated!")
-        assertThat(r.advertiserLogoUrl).isEqualTo("https://example.com/logo.png")
+        assertThat(r.animationMessage).isEqualTo("Thanks for staying hydrated!")
+        assertThat(r.animationLogo).isEqualTo("https://example.com/logo.png")
     }
 
     @Test
     fun `parseVendEventResult treats blank sponsorship strings as null`() {
         // Backend can return "" for either field when no can-design message
-        // exists or no advertiser logo is configured. The animation must
+        // exists or no animation logo is configured. The animation must
         // not show an empty billboard or attempt a no-op image load.
         val r = BackendSlotService.parseVendEventResult(
             mapOf(
-                "customerMessage" to "   ",
-                "advertiserLogoUrl" to ""
+                "animationMessage" to "   ",
+                "animationLogo" to ""
             )
         )
-        assertThat(r.customerMessage).isNull()
-        assertThat(r.advertiserLogoUrl).isNull()
+        assertThat(r.animationMessage).isNull()
+        assertThat(r.animationLogo).isNull()
     }
 
     @Test
     fun `parseVendEventResult defaults sponsorship fields to null when absent`() {
         val r = BackendSlotService.parseVendEventResult(mapOf("eventId" to "evt-1"))
-        assertThat(r.customerMessage).isNull()
-        assertThat(r.advertiserLogoUrl).isNull()
+        assertThat(r.animationMessage).isNull()
+        assertThat(r.animationLogo).isNull()
     }
 
     @Test

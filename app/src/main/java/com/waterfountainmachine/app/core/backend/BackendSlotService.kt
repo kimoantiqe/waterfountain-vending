@@ -121,8 +121,8 @@ class BackendSlotService private constructor(private val context: Context) : IBa
                 campaignName = m?.get("campaignName") as? String,
                 canDesignName = m?.get("canDesignName") as? String,
                 advertiserName = m?.get("advertiserName") as? String,
-                customerMessage = stringOrNull("customerMessage"),
-                advertiserLogoUrl = stringOrNull("advertiserLogoUrl")
+                animationMessage = stringOrNull("animationMessage"),
+                animationLogo = stringOrNull("animationLogo")
             )
         }
 
@@ -246,6 +246,7 @@ class BackendSlotService private constructor(private val context: Context) : IBa
             
             val vendResult = parseVendEventResult(result.data)
             AppLog.d(TAG, "📊 Vend result: eventId=${vendResult.eventId}, campaign=${vendResult.campaignName ?: vendResult.campaignId}, design=${vendResult.canDesignName ?: vendResult.canDesignId}, advertiser=${vendResult.advertiserName ?: vendResult.advertiserId}")
+            AppLog.d(TAG, "📊 Animation payload: animationMessage=${vendResult.animationMessage?.let { "'$it'" } ?: "null"}, animationLogo=${vendResult.animationLogo ?: "null"}")
             Result.success(vendResult)
         } catch (e: com.google.firebase.functions.FirebaseFunctionsException) {
             AppLog.e(TAG, "Firebase error: ${e.code}", e)

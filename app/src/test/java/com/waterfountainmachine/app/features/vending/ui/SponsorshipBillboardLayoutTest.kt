@@ -23,7 +23,7 @@ import org.robolectric.annotation.Config
  * which need a Robolectric-friendly Application) to verify the static
  * XML invariants the [VendingAnimationActivity] code relies on:
  *
- *  - billboard starts hidden so a vend with no customerMessage never
+ *  - billboard starts hidden so a vend with no animationMessage never
  *    flashes an empty panel;
  *  - byline starts hidden so a vend with no advertiserName never shows
  *    an orphan "brought to you by" line.

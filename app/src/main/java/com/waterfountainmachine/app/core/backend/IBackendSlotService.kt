@@ -59,11 +59,12 @@ interface IBackendSlotService {
         val campaignName: String?,
         val canDesignName: String?,
         val advertiserName: String?,
-        // Sponsorship presentation fields surfaced at vend time so the
-        // vending animation can show a customer-facing message + swap the
-        // in-ring logo to the advertiser brand. Both are nullable because
-        // a can design with no messages / no advertiser logo is valid.
-        val customerMessage: String? = null,
-        val advertiserLogoUrl: String? = null
+        // Animation surface fields surfaced at vend time so the vending
+        // animation can show a customer-facing message + swap the in-ring
+        // WaterFountain logo to the can design's brand logo. Both are
+        // nullable — a can design with no message / no animation logo is
+        // valid and falls back to the bundled WaterFountain logo.
+        val animationMessage: String? = null,
+        val animationLogo: String? = null
     )
 }

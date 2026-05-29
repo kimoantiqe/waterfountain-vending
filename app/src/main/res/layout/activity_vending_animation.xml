@@ -95,7 +95,7 @@
 
             <!-- Sponsorship billboard - customer message + advertiser byline
                  shown during the reveal moment. Hidden until the backend
-                 returns a non-blank customerMessage in the vend response. -->
+                 returns a non-blank animationMessage in the vend response. -->
             <LinearLayout
                 android:id="@+id/sponsorshipBillboard"
                 android:layout_width="wrap_content"
