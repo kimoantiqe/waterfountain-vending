@@ -11,18 +11,16 @@ import org.robolectric.annotation.Config
 /**
  * Behavioral tests for [RipplePondView].
  *
- * Locks in the Phase A cadence contract:
- *  - [RipplePondView.startCadence] schedules the 3 building beats.
- *  - [RipplePondView.crest] cancels any pending beats so the mega-ripple
- *    can't collide with a tail-end beat or a future internally-scheduled
- *    crest (defensive idempotence — see Phase 2 polish bundle).
- *  - [RipplePondView.pulse] emits a single ripple synchronously, used by
- *    Phase 3 (drop) as the ring-flash punctuation.
+ * Locks in the neumorphic ripple contract:
+ *  - [RipplePondView.startCadence] schedules a recurring emitter so a
+ *    fresh ripple appears at each EMIT_INTERVAL_MS while active.
+ *  - [RipplePondView.crest] cancels the cadence and drains the pond
+ *    before firing the mega ripple (no collisions with in-flight beats).
+ *  - [RipplePondView.pulse] emits a single ripple, used by Phase 3.
  *  - [RipplePondView.stop] clears all in-flight + pending work.
  *
  * Uses [HiltTestApplication] to avoid booting the real
- * WaterFountainApplication (which initializes SQLCipher / EncryptedPrefs
- * and hits the host keystore — irrelevant for view-level tests).
+ * WaterFountainApplication.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(application = HiltTestApplication::class, sdk = [33])
@@ -34,10 +32,12 @@ class RipplePondViewTest {
     }
 
     @Test
-    fun `startCadence schedules pending beats`() {
+    fun `startCadence schedules the recurring emitter and emits the first ripple`() {
         val view = newView()
         view.startCadence()
-        assertThat(view.pendingPostCount()).isEqualTo(view.beatOffsetsMs.size)
+        assertThat(view.isCadenceScheduled()).isTrue()
+        // First ripple fires immediately so the cadence visibly begins.
+        assertThat(view.activeRippleCount()).isEqualTo(1)
         view.stop()
     }
 
@@ -45,20 +45,24 @@ class RipplePondViewTest {
     fun `startCadence is idempotent so back-to-back calls don't double-schedule`() {
         val view = newView()
         view.startCadence()
-        val firstCount = view.pendingPostCount()
+        val firstActive = view.activeRippleCount()
         view.startCadence()
-        assertThat(view.pendingPostCount()).isEqualTo(firstCount)
+        // Second call is a no-op: still one ripple from the initial emit.
+        assertThat(view.activeRippleCount()).isEqualTo(firstActive)
+        assertThat(view.isCadenceScheduled()).isTrue()
         view.stop()
     }
 
     @Test
-    fun `crest cancels pending beats so the climax can't collide with a tail beat`() {
+    fun `crest cancels the cadence and drains the pond before firing the climax`() {
         val view = newView()
         view.startCadence()
-        assertThat(view.pendingPostCount()).isGreaterThan(0)
+        assertThat(view.isCadenceScheduled()).isTrue()
         view.crest()
-        // After crest, no beat is allowed to still be scheduled.
-        assertThat(view.pendingPostCount()).isEqualTo(0)
+        // After crest, no recurring emit is scheduled and only the mega
+        // ripple is in flight.
+        assertThat(view.isCadenceScheduled()).isFalse()
+        assertThat(view.activeRippleCount()).isEqualTo(1)
         view.stop()
     }
 
@@ -84,7 +88,7 @@ class RipplePondViewTest {
         view.startCadence()
         view.pulse()
         view.stop()
-        assertThat(view.pendingPostCount()).isEqualTo(0)
+        assertThat(view.isCadenceScheduled()).isFalse()
         assertThat(view.activeRippleCount()).isEqualTo(0)
     }
 }

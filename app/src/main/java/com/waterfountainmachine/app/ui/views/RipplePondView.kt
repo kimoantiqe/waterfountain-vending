@@ -5,44 +5,34 @@ import android.animation.AnimatorListenerAdapter
 import android.animation.ValueAnimator
 import android.annotation.SuppressLint
 import android.content.Context
+import android.graphics.BlurMaskFilter
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.provider.Settings
 import android.util.AttributeSet
 import android.view.View
-import android.view.animation.DecelerateInterpolator
-import android.view.animation.OvershootInterpolator
 import androidx.annotation.ColorInt
 import androidx.annotation.VisibleForTesting
 import androidx.core.graphics.ColorUtils
-import kotlin.math.hypot
-import kotlin.math.max
 
 /**
- * RipplePondView — replaces ProgressRingView for the dispense animation.
+ * RipplePondView — neumorphic soft-shadow ripple pond.
  *
- * Renders concentric water-ripple strokes emanating from the disc center
- * during the 15s dispense window, then a single mega-ripple at the
- * brand-handoff crest. See docs/animation-mockups/ for the visual spec and
- * VendingAnimationActivity for the surrounding 31s AV choreography.
+ * Faithful Android port of the soft-UI CSS reference: each ripple is a
+ * filled disc the same color as the surface, with a warm-dark drop shadow
+ * offset bottom-right and a cool-light highlight offset top-left. As the
+ * ripple expands (scale 1.0 → 4.0 over ~2s, ease-in-out), the shadows
+ * carry the visible edge outward; the disc itself fades from alpha 1 → 0.
  *
- * Psych anchors baked into the cadence (see PlanGod review notes):
- *  - 4 beats with accelerating gaps (3.5s → 1.2s) mirror the goal-gradient
- *    arousal curve so the screen's tempo tracks the viewer's attention.
- *  - Each ripple's 4s expansion + decelerate is tuned to natural exhale
- *    length so motion entrains breathing rhythm (biophilic calm).
- *  - The mega-ripple at t≈14.5s lands on fireworks.mp3's drop and provides
- *    the peak-end Gestalt closure for the experience.
- *
- * The view is intentionally additive: it draws *only* ripples. The disc /
- * logo are separate views layered on top, so this view safely sits behind
- * everything and fills the full screen with clipChildren disabled on
- * ancestors so ripples may expand past the disc.
+ * Cadence: while [startCadence] is active, a new ripple is emitted every
+ * [EMIT_INTERVAL_MS] so three ripples are always in flight — mirroring
+ * the CSS demo's three staggered dots — but continuously, throughout
+ * Phase 2. The cadence stops on [stop] (or [crest], which also drains the
+ * pond before firing its mega ripple).
  *
  * Reduced motion: when [Settings.Global.ANIMATOR_DURATION_SCALE] is 0 the
- * cadence is a no-op and crest fires a single instantaneous flash. Required
- * for Material a11y compliance.
+ * cadence is a no-op and [crest] fires a single instantaneous flash.
  */
 class RipplePondView @JvmOverloads constructor(
     context: Context,
@@ -50,70 +40,61 @@ class RipplePondView @JvmOverloads constructor(
     defStyleAttr: Int = 0
 ) : View(context, attrs, defStyleAttr) {
 
-    /** A single in-flight ripple. Pooled in [activeRipples] and recycled. */
+    /** A single in-flight ripple. */
     private data class Ripple(
-        var startElapsedMs: Long,
-        var kind: Kind,
-        @ColorInt var color: Int,
-        var baseAlpha: Float,
-        var strokeWidthPx: Float,
-        var startRadiusPx: Float,
-        var endRadiusPx: Float,
-        var durationMs: Long
-    ) {
-        enum class Kind { NORMAL, MEGA }
-    }
-
-    /**
-     * Beat schedule — four building ripples spread across Phase 2's
-     * advertiser window. Cadence is started at the Phase 1→2 reveal
-     * (after a short settle) and runs through to the Phase 3 drop, where
-     * [crest] takes over as the visual climax. Tightening intensities
-     * (0.55 → 1.00) crescendo into the crest; the ~2s lull between the
-     * last beat and the crest gives the moment room to land.
-     */
-    @VisibleForTesting
-    internal val beatOffsetsMs: LongArray = longArrayOf(
-        1_500L,   // Beat 1 — small, signals the cadence has begun
-        4_000L,   // Beat 2 — medium
-        6_500L,   // Beat 3 — large
-        9_000L    // Beat 4 — full strength, primes the crest at ~+2s
+        val startElapsedMs: Long,
+        val durationMs: Long,
+        val startRadiusPx: Float,
+        val endRadiusPx: Float
     )
 
-    private val ripplePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        style = Paint.Style.STROKE
-        strokeCap = Paint.Cap.ROUND
-    }
+    private val density = context.resources.displayMetrics.density
+
+    private val baseRadiusPx = BASE_RADIUS_DP * density
+    private val shadowOffsetPx = SHADOW_OFFSET_DP * density
+    private val shadowBlurPx = SHADOW_BLUR_DP * density
 
     @ColorInt
     private var accentColor: Int = DEFAULT_ACCENT_COLOR
+
     private val activeRipples = ArrayList<Ripple>(MAX_ACTIVE_RIPPLES)
-    private val pendingPosts = ArrayList<Runnable>(beatOffsetsMs.size + 1)
     private var startedAtUptimeMs: Long = -1L
     private var animator: ValueAnimator? = null
 
-    private val density = context.resources.displayMetrics.density
-    private val normalStrokeWidthPx = NORMAL_STROKE_WIDTH_DP * density
-    private val megaStrokeWidthPx = MEGA_STROKE_WIDTH_DP * density
-    private val startRadiusPx = START_RADIUS_DP * density
+    /** Test seam — recurring cadence emitter scheduled via postDelayed. */
+    private var cadenceEmitter: Runnable? = null
+
+    // Paints — pre-allocated so onDraw never allocates.
+    private val fillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.FILL
+    }
+    private val darkShadowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.FILL
+        maskFilter = BlurMaskFilter(shadowBlurPx, BlurMaskFilter.Blur.NORMAL)
+    }
+    private val lightShadowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.FILL
+        maskFilter = BlurMaskFilter(shadowBlurPx, BlurMaskFilter.Blur.NORMAL)
+    }
 
     init {
-        // Pure additive layer — nothing to clip.
-        setLayerType(LAYER_TYPE_HARDWARE, null)
+        // BlurMaskFilter requires software layer.
+        setLayerType(LAYER_TYPE_SOFTWARE, null)
     }
 
     /**
-     * Override the brand accent color used by ripples + crest. Call this from
-     * loadAnimationLogo once Palette has produced a swatch. Reverts to the
-     * default water-blue when [color] is null.
+     * Override the brand accent color used by the disc fill. Defaults to
+     * the neumorphic surface gray (#E0E5EC). Loud brand colors get pinned
+     * into a low-saturation band so the soft-shadow effect survives.
      */
     fun setAccentColor(@ColorInt color: Int?) {
-        accentColor = color?.let { clampForRadialBg(it) } ?: DEFAULT_ACCENT_COLOR
+        accentColor = color ?: DEFAULT_ACCENT_COLOR
     }
 
     /**
-     * Begin the 3-beat ripple cadence. Idempotent — repeated calls are
-     * ignored while a cadence is running. No-op when reduced motion is on.
+     * Begin the continuous ripple cadence. Idempotent — repeated calls
+     * are ignored while a cadence is running. No-op when reduced motion
+     * is on.
      */
     @SuppressLint("ObsoleteSdkInt")
     fun startCadence() {
@@ -121,64 +102,69 @@ class RipplePondView @JvmOverloads constructor(
         if (isReducedMotion()) return
 
         startedAtUptimeMs = android.os.SystemClock.uptimeMillis()
-        // Each beat scales toward 1.0 so the cadence visibly builds:
-        // small → medium → large, then the crest towers above all three.
-        val lastIndex = (beatOffsetsMs.size - 1).coerceAtLeast(1)
-        beatOffsetsMs.forEachIndexed { index, offset ->
-            val intensity = 0.55f + 0.45f * (index.toFloat() / lastIndex.toFloat())
-            val r = Runnable { emitRipple(Ripple.Kind.NORMAL, intensity = intensity) }
-            pendingPosts.add(r)
-            postDelayed(r, offset)
-        }
+        // Fire the first ripple immediately so the cadence visibly begins,
+        // then a self-rescheduling emitter keeps a steady stream going.
+        emitRipple(RIPPLE_DURATION_MS)
+        scheduleNextEmit()
         startDrawLoop()
     }
 
+    private fun scheduleNextEmit() {
+        val r = Runnable {
+            // Guard against stop() racing with the post.
+            if (startedAtUptimeMs <= 0L) return@Runnable
+            emitRipple(RIPPLE_DURATION_MS)
+            scheduleNextEmit()
+        }
+        cadenceEmitter = r
+        postDelayed(r, EMIT_INTERVAL_MS)
+    }
+
     /**
-     * Fire the mega-ripple. Safe to call at any time; idempotent — any
-     * still-scheduled beats are cancelled so the crest cannot collide
-     * with a tail-end beat or a future internally-scheduled crest. Lands
-     * the peak-end moment for the experience.
+     * Fire the mega-ripple. Cancels the cadence and drains any in-flight
+     * ripples so the climax owns the canvas. Safe to call at any time.
      */
     fun crest() {
-        pendingPosts.forEach { removeCallbacks(it) }
-        pendingPosts.clear()
+        cancelCadence()
+        activeRipples.clear()
         if (isReducedMotion()) {
-            // Single instantaneous flash via a short, alpha-only ripple.
-            emitRipple(Ripple.Kind.MEGA, durationOverrideMs = 250L)
+            emitRipple(MEGA_DURATION_MS, scaleFactor = MEGA_SCALE_FACTOR, durationOverrideMs = 250L)
             startDrawLoop()
             return
         }
-        emitRipple(Ripple.Kind.MEGA)
+        emitRipple(MEGA_DURATION_MS, scaleFactor = MEGA_SCALE_FACTOR)
         startDrawLoop()
     }
 
     /**
-     * Fire a single mid-intensity ripple. Used by Phase 3 (drop) as the
-     * "ring flash" punctuation alongside the disc punch — smaller than
-     * [crest] so the WF→advertiser handoff at Phase 2 stays the visual
-     * climax of the cadence, but big enough to land the drop moment.
-     * Reduced-motion: no-op (the disc punch already conveys the beat).
+     * Fire a single mid-intensity ripple. Used by Phase 3 (drop) as a
+     * ring-flash punctuation independent of the crest. Reduced-motion:
+     * no-op.
      */
-    fun pulse(intensity: Float = 0.85f) {
+    fun pulse() {
         if (isReducedMotion()) return
-        emitRipple(Ripple.Kind.NORMAL, intensity = intensity)
+        emitRipple(RIPPLE_DURATION_MS)
         startDrawLoop()
     }
 
     /** Cancel everything in flight. Always safe; idempotent. */
     fun stop() {
-        pendingPosts.forEach { removeCallbacks(it) }
-        pendingPosts.clear()
+        cancelCadence()
         animator?.cancel()
         animator = null
         activeRipples.clear()
-        startedAtUptimeMs = -1L
         invalidate()
     }
 
-    /** Test seam: how many beats are still scheduled. */
+    private fun cancelCadence() {
+        cadenceEmitter?.let { removeCallbacks(it) }
+        cadenceEmitter = null
+        startedAtUptimeMs = -1L
+    }
+
+    /** Test seam: is the recurring emitter currently scheduled? */
     @VisibleForTesting
-    internal fun pendingPostCount(): Int = pendingPosts.size
+    internal fun isCadenceScheduled(): Boolean = cadenceEmitter != null
 
     /** Test seam: how many ripples are currently animating. */
     @VisibleForTesting
@@ -205,73 +191,60 @@ class RipplePondView @JvmOverloads constructor(
                 iter.remove()
                 continue
             }
-            val t = elapsed.toFloat() / r.durationMs.toFloat()
-            // DecelerateInterpolator(2.5f)-equivalent expansion + linear fade
-            val eased = 1f - (1f - t) * (1f - t) * (1f - t)
+            val t = (elapsed.toFloat() / r.durationMs.toFloat()).coerceIn(0f, 1f)
+            // ease-in-out (cubic) — matches CSS `ease-in-out`.
+            val eased = if (t < 0.5f) 4f * t * t * t else 1f - Math.pow((-2f * t + 2f).toDouble(), 3.0).toFloat() / 2f
             val radius = r.startRadiusPx + (r.endRadiusPx - r.startRadiusPx) * eased
-            val alpha = (r.baseAlpha * (1f - t)).coerceIn(0f, 1f)
+            // Alpha rides the same ease — CSS opacity is in the same animation.
+            val alpha = 1f - eased
 
-            ripplePaint.color = ColorUtils.setAlphaComponent(r.color, (alpha * 255f).toInt())
-            ripplePaint.strokeWidth = r.strokeWidthPx
-            canvas.drawCircle(cx, cy, radius, ripplePaint)
+            // Light shadow (top-left): cool-white blur.
+            lightShadowPaint.color = Color.argb(
+                (LIGHT_SHADOW_ALPHA * 255f * alpha).toInt().coerceIn(0, 255),
+                255, 255, 255
+            )
+            canvas.drawCircle(cx - shadowOffsetPx, cy - shadowOffsetPx, radius, lightShadowPaint)
+
+            // Dark shadow (bottom-right): warm-dark blur.
+            darkShadowPaint.color = Color.argb(
+                (DARK_SHADOW_ALPHA * 255f * alpha).toInt().coerceIn(0, 255),
+                163, 177, 198
+            )
+            canvas.drawCircle(cx + shadowOffsetPx, cy + shadowOffsetPx, radius, darkShadowPaint)
+
+            // Disc fill (surface color) on top — alpha fades the whole ring.
+            fillPaint.color = ColorUtils.setAlphaComponent(
+                accentColor, (alpha * 255f).toInt().coerceIn(0, 255)
+            )
+            canvas.drawCircle(cx, cy, radius, fillPaint)
         }
     }
 
     private fun emitRipple(
-        kind: Ripple.Kind,
-        durationOverrideMs: Long? = null,
-        intensity: Float = 1f
+        duration: Long,
+        scaleFactor: Float = SCALE_FACTOR,
+        durationOverrideMs: Long? = null
     ) {
-        // Cap the in-flight pool to keep overdraw bounded even if the host
-        // calls crest() multiple times in quick succession.
         while (activeRipples.size >= MAX_ACTIVE_RIPPLES) {
             activeRipples.removeAt(0)
         }
-        val end = endRadiusForKind(kind)
-        val (dur, baseAlpha, stroke) = when (kind) {
-            Ripple.Kind.NORMAL -> Triple(NORMAL_DURATION_MS, NORMAL_BASE_ALPHA, normalStrokeWidthPx)
-            Ripple.Kind.MEGA   -> Triple(MEGA_DURATION_MS, MEGA_BASE_ALPHA, megaStrokeWidthPx)
-        }
-        val clampedIntensity = intensity.coerceIn(0.2f, 1f)
-        // Interpolate the travel radius from "just past the disc" toward
-        // the full end-radius based on intensity so early beats feel small
-        // and the final beat feels large.
-        val scaledEnd = startRadiusPx + (end - startRadiusPx) * clampedIntensity
         activeRipples.add(
             Ripple(
                 startElapsedMs = android.os.SystemClock.uptimeMillis(),
-                kind = kind,
-                color = accentColor,
-                baseAlpha = baseAlpha * clampedIntensity,
-                strokeWidthPx = stroke * (0.6f + 0.4f * clampedIntensity),
-                startRadiusPx = startRadiusPx,
-                endRadiusPx = scaledEnd,
-                durationMs = durationOverrideMs ?: dur
+                durationMs = durationOverrideMs ?: duration,
+                startRadiusPx = baseRadiusPx,
+                endRadiusPx = baseRadiusPx * scaleFactor
             )
         )
     }
 
-    private fun endRadiusForKind(kind: Ripple.Kind): Float {
-        // Use the screen-diagonal so even short/wide kiosks have ripples that
-        // travel off-canvas at the same visual pace.
-        val diagonal = hypot(width.toFloat(), height.toFloat())
-        val factor = when (kind) {
-            Ripple.Kind.NORMAL -> NORMAL_END_RADIUS_FACTOR
-            Ripple.Kind.MEGA   -> MEGA_END_RADIUS_FACTOR
-        }
-        return max(startRadiusPx * 1.5f, diagonal * factor)
-    }
-
     private fun startDrawLoop() {
         if (animator?.isRunning == true) return
-        // Single long-running animator drives invalidations until the active
-        // pool drains. We use a ValueAnimator (rather than postOnAnimation
-        // recursion) so the loop self-cancels and never leaks between vends.
         animator = ValueAnimator.ofFloat(0f, 1f).apply {
             duration = DRAW_LOOP_DURATION_MS
             interpolator = null
             addUpdateListener {
-                if (activeRipples.isEmpty()) {
+                if (activeRipples.isEmpty() && cadenceEmitter == null) {
                     cancel()
                     return@addUpdateListener
                 }
@@ -295,52 +268,42 @@ class RipplePondView @JvmOverloads constructor(
         return scale == 0f
     }
 
-    /**
-     * Clamp a brand color into a mid-luminance band so it stays legible on
-     * the activity's radial WHITE-CENTER / purple-edges background. Pure
-     * white / very light colors vanish at the center; near-black colors
-     * disappear into the purple edges. We pin L* into [MIN, MAX] without
-     * touching hue/chroma so the brand identity is preserved.
-     */
-    @ColorInt
-    private fun clampForRadialBg(@ColorInt color: Int): Int {
-        val lab = DoubleArray(3)
-        ColorUtils.colorToLAB(color, lab)
-        val clamped = lab[0].coerceIn(MIN_LAB_L_FOR_RADIAL_BG, MAX_LAB_L_FOR_RADIAL_BG)
-        if (clamped == lab[0]) return color
-        return ColorUtils.LABToColor(clamped, lab[1], lab[2])
-    }
-
     companion object {
-        // Default accent: dark teal. Reads against the white center of the
-        // radial background AND survives the purple edges. Replaces the
-        // earlier light water-blue which disappeared on white.
-        @ColorInt private const val DEFAULT_ACCENT_COLOR: Int = 0xFF0B6E8C.toInt()
+        // Neumorphic surface gray — matches CSS `--gray: #e0e5ec`. The
+        // disc reads as the surface itself; the soft shadows do the work.
+        @ColorInt private const val DEFAULT_ACCENT_COLOR: Int = 0xFFE0E5EC.toInt()
 
-        private const val START_RADIUS_DP = 220f      // outside the visible 540dp logo
-        private const val NORMAL_STROKE_WIDTH_DP = 3f
-        private const val MEGA_STROKE_WIDTH_DP = 6f
+        // Start disc roughly matches the visible 540dp logoImage radius
+        // so each ripple appears to emanate from the disc's silhouette.
+        private const val BASE_RADIUS_DP = 270f
 
-        private const val NORMAL_DURATION_MS = 4_000L
-        private const val MEGA_DURATION_MS = 900L
+        // Scale 1 → 4 over the ripple lifetime — matches CSS
+        // `var(--scalingFactor) = 100/25 = 4`.
+        private const val SCALE_FACTOR = 4f
+        private const val MEGA_SCALE_FACTOR = 6f
 
-        private const val NORMAL_BASE_ALPHA = 0.70f
-        private const val MEGA_BASE_ALPHA = 0.95f
+        // Soft-shadow geometry — literal CSS values: 5px offset, 10px blur.
+        private const val SHADOW_OFFSET_DP = 5f
+        private const val SHADOW_BLUR_DP = 10f
 
-        private const val NORMAL_END_RADIUS_FACTOR = 0.70f
-        private const val MEGA_END_RADIUS_FACTOR = 1.40f
+        // Shadow alphas — literal CSS values (`rgba(163,177,198,.6)` +
+        // `rgba(255,255,255,.5)`).
+        private const val DARK_SHADOW_ALPHA = 0.6f
+        private const val LIGHT_SHADOW_ALPHA = 0.5f
+
+        // Ripple cadence — 2s per ripple, new one every ~666ms so three
+        // are always in flight (matches the CSS demo's three staggered
+        // dots, but continuously).
+        private const val RIPPLE_DURATION_MS = 2_000L
+        private const val EMIT_INTERVAL_MS = 666L
+
+        // Mega ripple at the crest — bigger, slightly longer.
+        private const val MEGA_DURATION_MS = 1_200L
 
         private const val MAX_ACTIVE_RIPPLES = 8
 
-        // Generous bound — the cadence finishes by ~18.5s; the loop self-
-        // cancels earlier as soon as the active pool drains.
-        private const val DRAW_LOOP_DURATION_MS = 25_000L
-
-        // L* (perceptual lightness, 0..100) clamp band for the radial
-        // white-center / purple-edges background. Below MIN, brand colors
-        // disappear into the purple edges; above MAX, they wash out against
-        // the white center.
-        private const val MIN_LAB_L_FOR_RADIAL_BG = 30.0
-        private const val MAX_LAB_L_FOR_RADIAL_BG = 55.0
+        // Generous bound — the loop self-cancels as soon as the active
+        // pool drains AND no cadence is scheduled.
+        private const val DRAW_LOOP_DURATION_MS = 60_000L
     }
 }

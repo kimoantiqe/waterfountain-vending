@@ -15,8 +15,8 @@
     - Phase 1 surface (phase1Container, centered): WF logo (bobbing) + the
       "Scan QR" reminder. The disc / ripples / progress text are NOT shown
       in Phase 1 — anticipation begins at the Phase 1→2 reveal.
-    - Phase 2/3 surface (the centered LinearLayout below): progressText →
-      disc (ringContainer + logoImage) → centerMessage → completionText.
+    - Phase 2/3 surface (the centered LinearLayout below): disc
+      (ringContainer + logoImage) → centerMessage → completionText.
       All start alpha=0 and fade in at the Phase 1→2 transition.
     - centerMessage shows the advertiser's animationMessage during Phase 2
       (blank if none was supplied — see VendingAnimationActivity).
@@ -50,21 +50,6 @@
             android:layout_gravity="center"
             android:clipChildren="false"
             android:clipToPadding="false">
-
-            <!-- Progress Text - positioned ON TOP -->
-            <TextView
-                android:id="@+id/progressText"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Your water is on the way!"
-                android:textSize="64sp"
-                android:textColor="#555555"
-                android:fontFamily="@font/gilroy"
-                android:gravity="center"
-                android:alpha="0"
-                android:maxWidth="900dp"
-                android:layout_marginBottom="60dp"
-                android:letterSpacing="0.02"/>
 
             <!-- Disc container: the logo sits at a sensible kiosk-tablet
                  size (~540dp) and the ringContainer gives the ripple pond
@@ -132,9 +117,7 @@
 
     <!-- Phase 1 surface — WF logo (bobbing) above the centered "Scan QR"
          reminder. Fades in at activity start, fades out at the Phase 1→2
-         transition. Re-uses reminderIcon + statusText IDs the activity
-         already references; the previously bottom-pinned QR section was
-         replaced by this centered stack. -->
+         transition. -->
     <LinearLayout
         android:id="@+id/phase1Container"
         android:layout_width="wrap_content"
@@ -158,17 +141,6 @@
             android:scaleType="fitCenter"
             android:alpha="0"
             android:layout_marginBottom="48dp"/>
-
-        <!-- Reminder Icon (centered Phase 1, was bottom-pinned). -->
-        <ImageView
-            android:id="@+id/reminderIcon"
-            android:layout_width="220dp"
-            android:layout_height="220dp"
-            android:src="@drawable/reminder"
-            android:contentDescription="Reminder icon"
-            android:scaleType="fitCenter"
-            android:alpha="0"
-            android:layout_marginBottom="16dp"/>
 
         <!-- QR scan reminder text (centered Phase 1, was bottom-pinned). -->
         <TextView

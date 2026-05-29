@@ -24,12 +24,11 @@ import org.robolectric.annotation.Config
  * XML contract [VendingAnimationActivity] depends on:
  *
  *  - Phase 1 surface: centered phase1Container with wfLogoPhase1 +
- *    reminderIcon + statusText, all starting alpha 0. statusText
- *    pre-populated with the scan-QR reminder copy.
- *  - Phase 2/3 surface: ringContainer + logoImage + progressText +
- *    centerMessage + completionText, all starting alpha 0. centerMessage
- *    starts EMPTY (no default tagline — advertiser-only after the 5b
- *    polish bundle).
+ *    statusText, all starting alpha 0. statusText pre-populated with
+ *    the scan-QR reminder copy.
+ *  - Phase 2/3 surface: ringContainer + logoImage + centerMessage +
+ *    completionText, all starting alpha 0. centerMessage starts EMPTY
+ *    (no default tagline — advertiser-only after the 5b polish bundle).
  *  - The ripple pond fills the activity surface so the cadence crescendo
  *    can radiate full-screen.
  */
@@ -85,11 +84,10 @@ class VendingAnimationLayoutTest {
     fun `phase 1 stack is present and starts hidden so it can fade in for the scan reminder`() {
         val binding = inflate()
         // wfLogoPhase1 is the bobbing WF brand mark above the QR reminder.
-        // reminderIcon + statusText sit centered below it. All start
-        // alpha 0; fadeInPhase1() rises them in.
+        // statusText sits centered below it. Both start alpha 0;
+        // fadeInPhase1() rises them in.
         assertThat(binding.wfLogoPhase1).isNotNull()
         assertThat(binding.wfLogoPhase1.alpha).isEqualTo(0f)
-        assertThat(binding.reminderIcon.alpha).isEqualTo(0f)
         assertThat(binding.statusText.alpha).isEqualTo(0f)
         // statusText pre-populated so Phase 1 always has content.
         assertThat(binding.statusText.text.toString()).contains("Scan the QR")

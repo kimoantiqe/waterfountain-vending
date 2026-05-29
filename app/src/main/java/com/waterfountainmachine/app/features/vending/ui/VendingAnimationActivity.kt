@@ -282,9 +282,9 @@ class VendingAnimationActivity : KioskActivity() {
     private fun initializeViews() {
         // Load random messages from resources
         val completionMessages = resources.getStringArray(R.array.completion_messages)
-        
-        // statusText shows QR reminder (set in XML), progressText shows "Your water is on the way!"
-        binding.progressText.text = "Your water is on the way!"
+
+        // statusText shows QR reminder (set in XML). No more progress copy
+        // during Phase 2 — the disc + advertiser message carry the moment.
         binding.completionText.text = completionMessages.random()
     }
 
@@ -319,7 +319,7 @@ class VendingAnimationActivity : KioskActivity() {
                         WaterFountainConfig.ANIMATION_FADE_IN_DELAY_MS
             )
             fadeOutPhase1()
-            revealDisc()              // ringContainer + logoImage + progressText fade in
+            revealDisc()              // ringContainer + logoImage fade in
             morphToLogo()             // WF → advertiser bitmap (or stays WF) with slower + overshoot reveal
             revealCenterMessage()     // advertiser animationMessage fades in below disc (no-op if blank)
 
@@ -348,7 +348,7 @@ class VendingAnimationActivity : KioskActivity() {
             soundManager.playLongSound(R.raw.fireworks, volume = 0.8f, looping = false)
             discPunch()               // disc scale punch + mega-crest ripple
             launchConfetti()
-            swapProgressToCompletionText()
+            revealCompletionText()
 
             delay(WaterFountainConfig.ANIMATION_PHASE3_PICKUP_DELAY_MS)
             showPickupReminder()
@@ -361,10 +361,9 @@ class VendingAnimationActivity : KioskActivity() {
     }
 
     /**
-     * Phase 1 fade-in: WF logo, scan-reminder icon, scan-reminder text.
-     * Bob starts on the WF logo as soon as it lands. The disc / ripples /
-     * progress text stay hidden through Phase 1 — see [revealDisc] for the
-     * Phase 1→2 reveal.
+     * Phase 1 fade-in: WF logo + scan-reminder text. Bob starts on the
+     * WF logo as soon as it lands. The disc / ripples stay hidden through
+     * Phase 1 — see [revealDisc] for the Phase 1→2 reveal.
      */
     private fun fadeInPhase1() {
         binding.wfLogoPhase1.alpha = 0f
@@ -381,27 +380,13 @@ class VendingAnimationActivity : KioskActivity() {
             .withEndAction { startWfLogoBob() }
             .start()
 
-        binding.reminderIcon.alpha = 0f
-        binding.reminderIcon.translationY = 40f
-        binding.reminderIcon.scaleX = 0.8f
-        binding.reminderIcon.scaleY = 0.8f
-        binding.reminderIcon.animate()
-            .alpha(1f)
-            .translationY(0f)
-            .scaleX(1f)
-            .scaleY(1f)
-            .setDuration(1200)
-            .setStartDelay(150)
-            .setInterpolator(DecelerateInterpolator(3f))
-            .start()
-
         binding.statusText.alpha = 0f
         binding.statusText.translationY = 40f
         binding.statusText.animate()
             .alpha(1f)
             .translationY(0f)
             .setDuration(1200)
-            .setStartDelay(300)
+            .setStartDelay(150)
             .setInterpolator(DecelerateInterpolator(3f))
             .start()
     }
@@ -419,13 +404,6 @@ class VendingAnimationActivity : KioskActivity() {
             .setDuration(600)
             .setInterpolator(DecelerateInterpolator(2f))
             .start()
-        binding.reminderIcon.animate()
-            .alpha(0f)
-            .scaleX(0.7f)
-            .scaleY(0.7f)
-            .setDuration(600)
-            .setInterpolator(DecelerateInterpolator(2f))
-            .start()
         binding.statusText.animate()
             .alpha(0f)
             .translationY(30f)
@@ -435,21 +413,11 @@ class VendingAnimationActivity : KioskActivity() {
     }
 
     /**
-     * Phase 1→2 transition (in): reveal the disc + progress text. Mirrors
-     * the elegant slow rise that fadeInPhase1 uses for the scan reminder,
-     * so the two phases visually rhyme.
+     * Phase 1→2 transition (in): reveal the disc. Mirrors the elegant
+     * slow rise that fadeInPhase1 uses for the scan reminder, so the two
+     * phases visually rhyme.
      */
     private fun revealDisc() {
-        binding.progressText.alpha = 0f
-        binding.progressText.translationY = 40f
-        binding.progressText.animate()
-            .alpha(1f)
-            .translationY(0f)
-            .setDuration(1200)
-            .setStartDelay(150)
-            .setInterpolator(DecelerateInterpolator(3f))
-            .start()
-
         binding.ringContainer.scaleX = 0.90f
         binding.ringContainer.scaleY = 0.90f
         binding.ringContainer.alpha = 0f
@@ -624,23 +592,14 @@ class VendingAnimationActivity : KioskActivity() {
     }
 
     /**
-     * Phase 3 entry: crossfade progressText ("Your water is on the way!")
-     * → completionText ("Your water is ready!") at the can-drop moment,
-     * and fade out centerMessage so the peak-end stack stays clean (one
-     * line of body copy below the disc, not two). The advertiser disc
-     * itself stays full-alpha so the brand association lands with the
-     * physical reward.
+     * Phase 3 entry: fade in completionText ("Your water is ready!") at
+     * the can-drop moment, and fade out centerMessage so the peak-end
+     * stack stays clean. The advertiser disc itself stays full-alpha so
+     * the brand association lands with the physical reward.
      */
-    private fun swapProgressToCompletionText() {
-        binding.progressText.animate()
-            .alpha(0f)
-            .translationY(-30f)
-            .setDuration(500)
-            .setInterpolator(DecelerateInterpolator(2f))
-            .start()
-
-        // Fade out centerMessage in lockstep — it had its 8s Phase 2 hold;
-        // now completionText owns the body-copy slot.
+    private fun revealCompletionText() {
+        // Fade out centerMessage — it had its Phase 2 hold; now
+        // completionText owns the body-copy slot.
         binding.centerMessage.animate()
             .alpha(0f)
             .translationY(-10f)
