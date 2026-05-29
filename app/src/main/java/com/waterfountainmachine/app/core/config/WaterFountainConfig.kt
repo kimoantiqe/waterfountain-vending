@@ -41,14 +41,17 @@ class WaterFountainConfig private constructor(context: Context) {
         // ===== CENTRALIZED CONSTANTS =====
         // All magic numbers from across the app centralized here
         
-        // Animation Timings (VendingAnimationActivity)
+        // Animation Timings (VendingAnimationActivity) — Phase A choreography:
+        //   Phase 1 (scan reminder): t=0..PHASE1_DURATION_MS  — WF logo (bobbing) + centered "Scan QR" reminder
+        //   Phase 2 (advertiser):    t=PHASE1_DURATION_MS..PHASE3_DROP_OFFSET_MS  — disc reveal + ripple cadence build
+        //   Phase 3 (drop):          t=PHASE3_DROP_OFFSET_MS..end  — mega-crest + confetti + completion text
         const val ANIMATION_FADE_IN_DELAY_MS = 50L
-        const val ANIMATION_PROGRESS_START_DELAY_MS = 100L  // Start ring almost immediately
-        const val ANIMATION_PROGRESS_DURATION_MS = 1900L    // Ring fills in ~1.9 seconds
-        const val ANIMATION_RING_COMPLETION_DELAY_MS = 2000L // Ring completes at 2s
-        const val ANIMATION_MORPH_TO_LOGO_DELAY_MS = 2000L   // Logo shows at 2s
-        const val ANIMATION_SHOW_COMPLETION_DELAY_MS = 4000L // Fireworks + confetti at 4s
-        const val ANIMATION_RETURN_TO_MAIN_DELAY_MS = 8000L  // Return to main at 8s
+        const val ANIMATION_PHASE1_DURATION_MS = 3_500L            // WF logo + scan QR reminder dwell (then Phase 2 reveal begins)
+        const val ANIMATION_PHASE2_CADENCE_START_OFFSET_MS = 500L  // delay from Phase 1→2 transition before ripple cadence kicks in (lets the disc reveal settle)
+        const val ANIMATION_MORPH_TO_LOGO_DELAY_MS = 1_000L        // advertiser disc reveal — slower + scale-in overshoot for an intentional entrance
+        const val ANIMATION_PHASE2_MESSAGE_FADE_IN_MS = 800L       // centerMessage fades in just after the disc reveal
+        const val ANIMATION_PHASE3_DROP_OFFSET_MS = 15_000L        // confetti + mega-crest + "Your water is ready!" — synced to can-drop
+        const val ANIMATION_PHASE3_PICKUP_DELAY_MS = 2_500L        // delay from drop to pickup reminder panel
         
         // Confetti Configuration
         const val CONFETTI_SPEED = 20f
@@ -72,37 +75,13 @@ class WaterFountainConfig private constructor(context: Context) {
         const val ADMIN_MAX_ATTEMPTS = 3
         const val ADMIN_LOCKOUT_DURATION_MS = 60 * 60 * 1000L // 1 hour
         const val ADMIN_LOCKOUT_MINUTES = 60 // 1 hour in minutes (for UI display)
-        
-        // Progress Ring Animation
-        const val PROGRESS_RING_COLOR_FADE_PERCENT = 8f // First 8% of progress
-        const val PROGRESS_RING_HIGHLIGHT_START_PERCENT = 2f
-        const val PROGRESS_RING_HIGHLIGHT_FADE_IN_PERCENT = 18f
-        const val PROGRESS_RING_HIGHLIGHT_FADE_OUT_START = 90f
-        const val PROGRESS_RING_HIGHLIGHT_FADE_OUT_PERCENT = 9.5f
-        
-        // Progress Ring View Dimensions
-        const val RING_STROKE_WIDTH = 50f
-        const val INNER_GLOW_STROKE_WIDTH = 70f
-        const val OUTER_GLOW_STROKE_WIDTH = 100f
-        const val SOFT_EDGE_STROKE_WIDTH = 60f
-        
-        // Progress Ring View Blur Radii
-        const val INNER_GLOW_BLUR_RADIUS = 35f
-        const val OUTER_GLOW_BLUR_RADIUS = 60f
-        const val SOFT_EDGE_BLUR_RADIUS = 20f
-        
-        // Progress Ring View Alpha Values
-        const val BACKGROUND_RING_ALPHA = 30
-        const val OUTER_GLOW_MAX_ALPHA = 140
-        const val INNER_GLOW_MAX_ALPHA = 190
-        
-        // Progress Ring View Layout
-        const val VIEW_PADDING = 120
-        
-        // Progress Ring View Animation
-        const val RADIUS_SCALE_FACTOR = 0.42f
-        const val GLOW_RADIUS_OFFSET = 150f
-        
+
+        // (Progress Ring constants removed — replaced by RipplePondView
+        // whose tunables live on the view itself as private companion
+        // constants. The animation surface no longer renders a literal
+        // progress ring; see RipplePondView for the new cadence + crest
+        // visuals.)
+
         // Pickup Reminder Animation (VendingAnimationActivity)
         const val PICKUP_REMINDER_DISPLAY_DURATION_MS = 10_000L  // 10 seconds
         const val PICKUP_REMINDER_FADE_OUT_DURATION_MS = 500L

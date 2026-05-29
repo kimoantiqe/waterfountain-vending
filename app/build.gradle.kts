@@ -226,6 +226,11 @@ dependencies {
     // Confetti library for celebration animation
     implementation("nl.dionsegijn:konfetti-xml:2.0.4")
 
+    // Palette — extracts the advertiser's accent color from the
+    // animationLogo bitmap so the ripple pond + confetti can ride the
+    // brand color at the dopamine peak (see RipplePondView).
+    implementation(libs.androidx.palette.ktx)
+
     // Vendor SDK (SerialPortUtils-release.aar) - replaces USB serial library
     implementation(files("libs/SerialPortUtils-release.aar"))
 

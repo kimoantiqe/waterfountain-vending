@@ -13,16 +13,18 @@ import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.activity.viewModels
+import androidx.annotation.ColorInt
 import androidx.appcompat.app.AppCompatActivity
 import com.waterfountainmachine.app.core.ui.KioskActivity
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.lifecycleScope
+import androidx.palette.graphics.Palette
 import com.waterfountainmachine.app.R
 import com.waterfountainmachine.app.databinding.ActivityVendingAnimationBinding
 import com.waterfountainmachine.app.core.utils.AppLog
-import com.waterfountainmachine.app.ui.views.ProgressRingView
+import com.waterfountainmachine.app.ui.views.RipplePondView
 import com.waterfountainmachine.app.core.utils.FullScreenUtils
 import com.waterfountainmachine.app.core.utils.SoundManager
 import com.waterfountainmachine.app.core.utils.PhoneNumberUtils
@@ -73,6 +75,39 @@ class VendingAnimationActivity : KioskActivity() {
     private var slot: Int = -1 // -1 indicates slot not yet determined by hardware
     private var vendingStartTime: Long = 0
     private var dispenseStartTime: Long = 0
+
+    // --- Ripple-pond brand-handoff state -------------------------------------
+    //
+    // The advertiser's logo bitmap and its extracted accent color are decoded
+    // off the main thread in [loadAnimationLogo] but NOT swapped into
+    // [binding.logoImage] immediately. The bundled WaterFountain logo stays
+    // visible through the 15s ripple cadence so the WF brand owns the
+    // mere-exposure window; the swap happens inside [morphToLogo] at the
+    // crest moment, aligned with the fireworks audio drop, so the advertiser
+    // logo arrives ON the peak-end emotional beat (von Restorff / peak-end
+    // rule). Skipping the swap leaves the WF logo in place — the correct
+    // unbranded-vend fallback.
+    private var pendingAdvertiserBitmap: Bitmap? = null
+    @ColorInt private var pendingAccentColor: Int? = null
+    private var pendingAdvertiserName: String? = null
+    private var pendingAnimationMessage: String? = null
+
+    /**
+     * Phase 2 "breathing" — a subtle infinite scale loop on the disc so
+     * the advertiser hold never reads as a frozen frame. Started after
+     * the centerMessage fade-in completes; stopped at Phase 3 (drop) so
+     * the discPunch can take over the scale property cleanly. Held as a
+     * field for cancellation on Phase 3 entry + onDestroy.
+     */
+    private var discBreathingAnimator: AnimatorSet? = null
+
+    /**
+     * Phase 1 WF logo bob — gentle Y-translation loop so the centered
+     * scan-reminder beat reads as alive, not a frozen splash. Started in
+     * fadeInPhase1; stopped at fadeOutPhase1 + onDestroy.
+     */
+    private var wfLogoBobAnimator: ObjectAnimator? = null
+    // -------------------------------------------------------------------------
     
     // Runnable references for cleanup
     private val logoDelayedRunnable = Runnable {
@@ -85,10 +120,6 @@ class VendingAnimationActivity : KioskActivity() {
             .setInterpolator(OvershootInterpolator(1.2f))
             .withLayer()  // Use hardware layer during animation for smooth 60fps
             .start()
-    }
-    
-    private val confettiDelayedRunnable = Runnable {
-        launchConfetti()
     }
     
     private val pickupReminderRunnable = Runnable {
@@ -264,52 +295,64 @@ class VendingAnimationActivity : KioskActivity() {
     }
 
     private fun startRingAnimation() {
-        // Use coroutines for sequential animations instead of Handler chains
-        lifecycleScope.launch {
-            // Phase 1: Fade in text and ring (0-1s)
-            delay(WaterFountainConfig.ANIMATION_FADE_IN_DELAY_MS)
-            fadeInElements()
+        // centerMessage is advertiser-only now — if no animationMessage was
+        // supplied, revealCenterMessage() no-ops and the slot stays clean.
+        // (Per 5b A: the `message_default` string stays in strings.xml but
+        // is no longer wired in here.)
 
-            // Phase 2: Start ring progress (1s)
-            delay(WaterFountainConfig.ANIMATION_PROGRESS_START_DELAY_MS - WaterFountainConfig.ANIMATION_FADE_IN_DELAY_MS)
-            
-            // Start ring animation - 15 seconds total
-            val ringDuration = 15000L
-            binding.progressRing.animateProgress(ringDuration)
-            
-            // Wait 500ms before starting loading sound (gives ring time to start visually)
-            delay(500L)
-            
-            // Start the loading sound (NOT looping - you'll provide perfectly looped 15s file)
+        // Phase A choreography (3 phases: scan-reminder → advertiser reveal
+        // + ripple build → mega-crest + confetti drop). All timings live as
+        // Config constants so the AV piece is tunable from one place.
+        // Coroutines (not Handler chains) so the flow reads top-to-bottom.
+        lifecycleScope.launch {
+            // ----- Phase 1: scan reminder (t=0 → PHASE1_DURATION_MS) -----
+            // Just the WF logo (bobbing) + centered "Scan QR" reminder.
+            // No disc, no ripples, no progress text — anticipation starts
+            // at the Phase 1→2 reveal.
+            delay(WaterFountainConfig.ANIMATION_FADE_IN_DELAY_MS)
+            fadeInPhase1()
             soundManager.playLongSound(R.raw.loading, volume = 0.6f, looping = false)
 
-            // Phase 3: Ring completion at 15s mark (adjusted for 500ms sound delay)
-            delay(ringDuration - 500L)  // Subtract the 500ms we added before sound started
-            
-            // Stop loading sound (should be finished by now anyway)
+            // ----- Phase 1 → 2 transition: hand off to the advertiser reveal -----
+            delay(
+                WaterFountainConfig.ANIMATION_PHASE1_DURATION_MS -
+                        WaterFountainConfig.ANIMATION_FADE_IN_DELAY_MS
+            )
+            fadeOutPhase1()
+            revealDisc()              // ringContainer + logoImage + progressText fade in
+            morphToLogo()             // WF → advertiser bitmap (or stays WF) with slower + overshoot reveal
+            revealCenterMessage()     // advertiser animationMessage fades in below disc (no-op if blank)
+
+            // ----- Phase 2: ripple cadence build (PHASE1_DURATION_MS → PHASE3_DROP_OFFSET_MS) -----
+            // The cadence kicks in after a short settle so the disc reveal
+            // can land before the ripples start radiating. Four beats
+            // crescendo toward the Phase 3 crest — see RipplePondView.
+            delay(WaterFountainConfig.ANIMATION_PHASE2_CADENCE_START_OFFSET_MS)
+            binding.ripplePond.startCadence()
+
+            // Wait out the remainder of Phase 2 (down to the drop moment).
+            delay(
+                WaterFountainConfig.ANIMATION_PHASE3_DROP_OFFSET_MS -
+                        WaterFountainConfig.ANIMATION_PHASE1_DURATION_MS -
+                        WaterFountainConfig.ANIMATION_PHASE2_CADENCE_START_OFFSET_MS
+            )
+
+            // ----- Phase 3: drop (t=PHASE3_DROP_OFFSET_MS) -----
+            // Mega-crest (now the visual climax — was previously at the
+            // Phase 1→2 transition) + confetti + completionText crossfade
+            // land together on the can drop. fireworks.mp3 fires here so
+            // the audio peak matches the visual peak. Timing is fixed;
+            // wire off VendingUiState.DispensingComplete if hardware-event
+            // sync is needed later.
             soundManager.stopLongSound()
-            
-            // Start fireworks.mp3 (this is the sync point!)
             soundManager.playLongSound(R.raw.fireworks, volume = 0.8f, looping = false)
-            
-            // Fireworks Timeline:
-            // 0:00-0:02 = Ring snap animation (15s-17s total)
-            ringCompletionSnap()
-            morphToLogo()
+            discPunch()               // disc scale punch + mega-crest ripple
+            launchConfetti()
+            swapProgressToCompletionText()
 
-            // Phase 4: 0:02-0:04 into fireworks = Logo fully visible (17s-19s total)
-            delay(2000L)
-            // Logo is already showing from morphToLogo, this is just a timing marker
-
-            // Phase 5: 0:04 into fireworks = Confetti starts (19s total)
-            delay(2000L) // 2 more seconds (4s into fireworks)
-            showCompletion()
-
-            // Phase 6: Show pickup reminder after 2 seconds (21s total)
-            delay(2000L)
+            delay(WaterFountainConfig.ANIMATION_PHASE3_PICKUP_DELAY_MS)
             showPickupReminder()
 
-            // Phase 7: Wait 10 seconds for pickup reminder, then return to main (31s total)
             delay(WaterFountainConfig.PICKUP_REMINDER_DISPLAY_DURATION_MS)
             hidePickupReminder()
             delay(WaterFountainConfig.PICKUP_REMINDER_FADE_OUT_DURATION_MS)
@@ -317,18 +360,27 @@ class VendingAnimationActivity : KioskActivity() {
         }
     }
 
-    private fun fadeInElements() {
-        // Fade in QR reminder text with elegant rise - slower and smoother
-        binding.statusText.alpha = 0f
-        binding.statusText.translationY = 40f
-        binding.statusText.animate()
+    /**
+     * Phase 1 fade-in: WF logo, scan-reminder icon, scan-reminder text.
+     * Bob starts on the WF logo as soon as it lands. The disc / ripples /
+     * progress text stay hidden through Phase 1 — see [revealDisc] for the
+     * Phase 1→2 reveal.
+     */
+    private fun fadeInPhase1() {
+        binding.wfLogoPhase1.alpha = 0f
+        binding.wfLogoPhase1.translationY = 40f
+        binding.wfLogoPhase1.scaleX = 0.92f
+        binding.wfLogoPhase1.scaleY = 0.92f
+        binding.wfLogoPhase1.animate()
             .alpha(1f)
             .translationY(0f)
-            .setDuration(1500)  // Slower fade
-            .setInterpolator(DecelerateInterpolator(3f))  // Much smoother
+            .scaleX(1f)
+            .scaleY(1f)
+            .setDuration(1200)
+            .setInterpolator(DecelerateInterpolator(3f))
+            .withEndAction { startWfLogoBob() }
             .start()
 
-        // Fade in reminder icon with elegant rise
         binding.reminderIcon.alpha = 0f
         binding.reminderIcon.translationY = 40f
         binding.reminderIcon.scaleX = 0.8f
@@ -338,22 +390,66 @@ class VendingAnimationActivity : KioskActivity() {
             .translationY(0f)
             .scaleX(1f)
             .scaleY(1f)
-            .setDuration(1500)
+            .setDuration(1200)
+            .setStartDelay(150)
             .setInterpolator(DecelerateInterpolator(3f))
             .start()
 
-        // Fade in progress text with elegant rise
+        binding.statusText.alpha = 0f
+        binding.statusText.translationY = 40f
+        binding.statusText.animate()
+            .alpha(1f)
+            .translationY(0f)
+            .setDuration(1200)
+            .setStartDelay(300)
+            .setInterpolator(DecelerateInterpolator(3f))
+            .start()
+    }
+
+    /**
+     * Phase 1→2 transition (out): fade the Phase 1 stack so the disc
+     * reveal owns the canvas. Bob is cancelled here so the WF logo can
+     * exit cleanly without continuing to tick after alpha 0.
+     */
+    private fun fadeOutPhase1() {
+        stopWfLogoBob()
+        binding.wfLogoPhase1.animate()
+            .alpha(0f)
+            .translationY(-30f)
+            .setDuration(600)
+            .setInterpolator(DecelerateInterpolator(2f))
+            .start()
+        binding.reminderIcon.animate()
+            .alpha(0f)
+            .scaleX(0.7f)
+            .scaleY(0.7f)
+            .setDuration(600)
+            .setInterpolator(DecelerateInterpolator(2f))
+            .start()
+        binding.statusText.animate()
+            .alpha(0f)
+            .translationY(30f)
+            .setDuration(600)
+            .setInterpolator(DecelerateInterpolator(2f))
+            .start()
+    }
+
+    /**
+     * Phase 1→2 transition (in): reveal the disc + progress text. Mirrors
+     * the elegant slow rise that fadeInPhase1 uses for the scan reminder,
+     * so the two phases visually rhyme.
+     */
+    private fun revealDisc() {
         binding.progressText.alpha = 0f
         binding.progressText.translationY = 40f
         binding.progressText.animate()
             .alpha(1f)
             .translationY(0f)
-            .setDuration(1500)
-            .setStartDelay(200)  // Slight delay after status text
+            .setDuration(1200)
+            .setStartDelay(150)
             .setInterpolator(DecelerateInterpolator(3f))
             .start()
 
-        // Fade in ring container with slight scale - slower and more subtle
         binding.ringContainer.scaleX = 0.90f
         binding.ringContainer.scaleY = 0.90f
         binding.ringContainer.alpha = 0f
@@ -361,16 +457,55 @@ class VendingAnimationActivity : KioskActivity() {
             .alpha(1f)
             .scaleX(1f)
             .scaleY(1f)
-            .setDuration(1500)  // Slower fade
-            .setInterpolator(DecelerateInterpolator(3f))  // Much smoother
+            .setDuration(1200)
+            .setInterpolator(DecelerateInterpolator(3f))
+            .start()
+
+        binding.logoImage.alpha = 0f
+        binding.logoImage.scaleX = 0.92f
+        binding.logoImage.scaleY = 0.92f
+        binding.logoImage.animate()
+            .alpha(1f)
+            .scaleX(1f)
+            .scaleY(1f)
+            .setDuration(1200)
+            .setInterpolator(DecelerateInterpolator(3f))
             .start()
     }
 
-    private fun ringCompletionSnap() {
-        // Glow effect
-        binding.progressRing.animateGlow()
+    /**
+     * Phase 1 bob: gentle Y-translation loop on the WF logo so the
+     * centered scan-reminder beat reads as alive. Reduced amplitude
+     * (±12dp), ease-in-out, infinite reverse. Cancelled at fadeOutPhase1
+     * and onDestroy so it can't tick after the view alpha drops to 0.
+     */
+    private fun startWfLogoBob() {
+        stopWfLogoBob()
+        val amplitudePx = -12f * resources.displayMetrics.density
+        wfLogoBobAnimator = ObjectAnimator.ofFloat(
+            binding.wfLogoPhase1, "translationY", 0f, amplitudePx
+        ).apply {
+            duration = 1800L
+            repeatMode = ObjectAnimator.REVERSE
+            repeatCount = ObjectAnimator.INFINITE
+            interpolator = android.view.animation.AccelerateDecelerateInterpolator()
+            start()
+        }
+    }
 
-        // More dramatic "snap" animation with rotation pulse
+    private fun stopWfLogoBob() {
+        wfLogoBobAnimator?.cancel()
+        wfLogoBobAnimator = null
+    }
+
+    /**
+     * (Retained for callers / tests; no longer invoked at the Phase 1→2
+     * transition since the mega-crest moved to Phase 3 with the confetti
+     * drop. Kept available as a generic disc "snap" if a future moment
+     * needs visual punctuation without firing the crest.)
+     */
+    @Suppress("unused")
+    private fun ringCompletionSnap() {
         val scaleX = ObjectAnimator.ofFloat(binding.ringContainer, "scaleX", 1f, 1.12f, 0.98f, 1.02f, 1f)
         val scaleY = ObjectAnimator.ofFloat(binding.ringContainer, "scaleY", 1f, 1.12f, 0.98f, 1.02f, 1f)
         val rotation = ObjectAnimator.ofFloat(binding.ringContainer, "rotation", 0f, 5f, -3f, 0f)
@@ -384,91 +519,161 @@ class VendingAnimationActivity : KioskActivity() {
     }
 
     private fun morphToLogo() {
-        // Fade out progress text with elegant fall
+        // Brand reveal: revealDisc() just brought the bundled WF logo in.
+        // Now swap to the advertiser bitmap (if any) and re-enter with a
+        // slower, overshoot scale-in so the disc feels intentionally
+        // revealed (not just crossfaded). If no advertiser logo was
+        // supplied the WF logo stays — the correct fallback so unbranded
+        // vends still get the dramatic re-entry.
+        binding.logoImage.animate()
+            .alpha(0f)
+            .scaleX(0.6f)
+            .scaleY(0.6f)
+            .rotation(20f)
+            .setDuration(WaterFountainConfig.ANIMATION_MORPH_TO_LOGO_DELAY_MS)
+            .setInterpolator(DecelerateInterpolator(2.5f))
+            .withLayer()
+            .withEndAction {
+                pendingAdvertiserBitmap?.let {
+                    binding.logoImage.setImageBitmap(it)
+                    binding.logoImage.contentDescription =
+                        getString(R.string.sponsorship_logo_content_description)
+                }
+
+                binding.logoImage.scaleX = 0.3f
+                binding.logoImage.scaleY = 0.3f
+                binding.logoImage.rotation = -45f
+
+                binding.logoImage.postDelayed(logoDelayedRunnable, 80)
+            }
+            .start()
+    }
+
+    /**
+     * Fade in the centerMessage TextView below the disc. Called at the
+     * Phase 1 → 2 transition (crest) so the message lands while the
+     * advertiser logo is re-entering. Content is whatever
+     * pendingAnimationMessage holds (advertiser-supplied OR the default WF
+     * tagline).
+     */
+    private fun revealCenterMessage() {
+        val msg = pendingAnimationMessage?.trim().orEmpty()
+        if (msg.isEmpty()) return
+        val tv = binding.centerMessage
+        tv.text = msg
+        tv.alpha = 0f
+        tv.translationY = 20f
+        tv.animate()
+            .alpha(1f)
+            .translationY(0f)
+            .setStartDelay(WaterFountainConfig.ANIMATION_MORPH_TO_LOGO_DELAY_MS)
+            .setDuration(WaterFountainConfig.ANIMATION_PHASE2_MESSAGE_FADE_IN_MS)
+            .setInterpolator(DecelerateInterpolator(2.5f))
+            .withEndAction { startDiscBreathing() }
+            .start()
+    }
+
+    /**
+     * Phase 2 ambient: very subtle scale loop on the disc so the 8s
+     * advertiser hold doesn't read as a frozen frame. Cancelled at
+     * Phase 3 (discPunch takes over) and on activity teardown.
+     */
+    private fun startDiscBreathing() {
+        stopDiscBreathing()
+        val sx = ObjectAnimator.ofFloat(binding.ringContainer, "scaleX", 1.00f, 1.03f).apply {
+            repeatMode = ObjectAnimator.REVERSE
+            repeatCount = ObjectAnimator.INFINITE
+        }
+        val sy = ObjectAnimator.ofFloat(binding.ringContainer, "scaleY", 1.00f, 1.03f).apply {
+            repeatMode = ObjectAnimator.REVERSE
+            repeatCount = ObjectAnimator.INFINITE
+        }
+        discBreathingAnimator = AnimatorSet().apply {
+            playTogether(sx, sy)
+            duration = 3200L
+            interpolator = android.view.animation.AccelerateDecelerateInterpolator()
+            start()
+        }
+    }
+
+    private fun stopDiscBreathing() {
+        discBreathingAnimator?.cancel()
+        discBreathingAnimator = null
+    }
+
+    /**
+     * Phase 3 disc punctuation: scale punch + the mega-crest ripple land
+     * on the can drop alongside the confetti. Stops the Phase 2 breathing
+     * first so the scale property isn't fought over. The crest is now the
+     * visual climax of the whole flow — cancels any tail-end Phase 2
+     * cadence beats so it can't collide with them (see RipplePondView).
+     */
+    private fun discPunch() {
+        stopDiscBreathing()
+        binding.ringContainer.scaleX = 1f
+        binding.ringContainer.scaleY = 1f
+        val sx = ObjectAnimator.ofFloat(binding.ringContainer, "scaleX", 1f, 1.08f, 1f)
+        val sy = ObjectAnimator.ofFloat(binding.ringContainer, "scaleY", 1f, 1.08f, 1f)
+        AnimatorSet().apply {
+            playTogether(sx, sy)
+            duration = 500L
+            interpolator = OvershootInterpolator(1.6f)
+            start()
+        }
+        binding.ripplePond.crest()
+    }
+
+    /**
+     * Phase 3 entry: crossfade progressText ("Your water is on the way!")
+     * → completionText ("Your water is ready!") at the can-drop moment,
+     * and fade out centerMessage so the peak-end stack stays clean (one
+     * line of body copy below the disc, not two). The advertiser disc
+     * itself stays full-alpha so the brand association lands with the
+     * physical reward.
+     */
+    private fun swapProgressToCompletionText() {
         binding.progressText.animate()
             .alpha(0f)
             .translationY(-30f)
-            .setDuration(600)
+            .setDuration(500)
             .setInterpolator(DecelerateInterpolator(2f))
             .start()
 
-        // Fade out QR reminder text at the same time
-        binding.statusText.animate()
+        // Fade out centerMessage in lockstep — it had its 8s Phase 2 hold;
+        // now completionText owns the body-copy slot.
+        binding.centerMessage.animate()
             .alpha(0f)
-            .translationY(30f)
-            .setDuration(600)
+            .translationY(-10f)
+            .setDuration(500)
             .setInterpolator(DecelerateInterpolator(2f))
             .start()
 
-        // Fade out reminder icon
-        binding.reminderIcon.animate()
-            .alpha(0f)
-            .scaleX(0.7f)
-            .scaleY(0.7f)
-            .setDuration(600)
-            .setInterpolator(DecelerateInterpolator(2f))
-            .start()
-
-        // Shrink the entire ring container dramatically as ring fades
-        binding.ringContainer.animate()
-            .scaleX(0.65f)
-            .scaleY(0.65f)
-            .setDuration(800)
-            .setInterpolator(DecelerateInterpolator(2.5f))
-            .start()
-
-        // Fade out ring with REDUCED rotation for smoother animation
-        binding.progressRing.animate()
-            .alpha(0f)
-            .scaleX(0.7f)
-            .scaleY(0.7f)
-            .rotation(90f)  // Reduced from 180f to 90f
-            .setDuration(800)
-            .setInterpolator(DecelerateInterpolator(2.5f))
-            .withLayer()  // Use hardware layer during animation
-            .start()
-
-        // Fade in logo with dramatic entrance - REDUCED rotation for smooth 60fps
-        binding.logoImage.alpha = 0f
-        binding.logoImage.scaleX = 0.3f
-        binding.logoImage.scaleY = 0.3f
-        binding.logoImage.rotation = -45f  // Reduced from -180f to -45f
-        
-        // Delay logo appearance slightly so ring fades first
-        binding.logoImage.postDelayed(logoDelayedRunnable, 200)
-    }
-
-    private fun showCompletion() {
-        // Fireworks sound is already playing, just show the visuals
-        
-        // Dramatic logo pulse with glow effect, then shrink significantly
-        val scaleX = ObjectAnimator.ofFloat(binding.logoImage, "scaleX", 1f, 1.15f, 1.05f, 1f, 0.85f, 0.7f)
-        val scaleY = ObjectAnimator.ofFloat(binding.logoImage, "scaleY", 1f, 1.15f, 1.05f, 1f, 0.85f, 0.7f)
-        val rotation = ObjectAnimator.ofFloat(binding.logoImage, "rotation", 0f, -5f, 5f, 0f, 0f, 0f)
-
-        AnimatorSet().apply {
-            playTogether(scaleX, scaleY, rotation)
-            duration = 1400 // Extended duration for more dramatic shrink
-            interpolator = DecelerateInterpolator(1.8f)
-            start()
-        }
-
-        // Fade in completion text with elegant rise - start from fully transparent
         binding.completionText.alpha = 0f
-        binding.completionText.translationY = 50f
+        binding.completionText.translationY = 30f
         binding.completionText.animate()
             .alpha(1f)
             .translationY(0f)
-            .setStartDelay(300) // Delay to let logo settle first
-            .setDuration(1000)
+            .setStartDelay(300)
+            .setDuration(900)
             .setInterpolator(DecelerateInterpolator(2.5f))
             .start()
-
-        // Trigger konfetti with slight delay for better timing
-        binding.root.postDelayed(confettiDelayedRunnable, 200)
     }
 
     private fun launchConfetti() {
+        // Brand-tinted confetti palette: when we have an extracted accent
+        // color, ride it for two of the four particle colors so the
+        // celebration belongs to the advertiser. Otherwise fall back to
+        // the neutral white/cream palette. See AGENTS.md: "DRY is
+        // important" — compute once, reuse across all 8 Party blocks.
+        val confettiColors: List<Int> = pendingAccentColor?.let { accent ->
+            val light = androidx.core.graphics.ColorUtils.blendARGB(
+                accent,
+                android.graphics.Color.WHITE,
+                0.35f
+            )
+            listOf(accent, light, 0xFFFFFFFF.toInt(), 0xFFF5F3EB.toInt())
+        } ?: listOf(0xFFFFFF, 0xF5F3EB, 0xE6E6E6, 0xBDC3C7).map { it.toInt() }
+
         // Create multiple konfetti parties across the entire screen with MUCH BIGGER particles
         val parties = listOf(
             // Top left
@@ -478,7 +683,7 @@ class VendingAnimationActivity : KioskActivity() {
                 damping = WaterFountainConfig.CONFETTI_DAMPING,
                 angle = 270,
                 spread = WaterFountainConfig.CONFETTI_SPREAD,
-                colors = listOf(0xFFFFFF, 0xF5F3EB, 0xE6E6E6, 0xBDC3C7).map { it.toInt() },
+                colors = confettiColors,
                 size = listOf(Size(12), Size(16), Size(20), Size(24)), // Much bigger custom sizes
                 emitter = Emitter(duration = WaterFountainConfig.CONFETTI_DURATION_MS, TimeUnit.MILLISECONDS).perSecond(WaterFountainConfig.CONFETTI_PARTICLES_PER_SECOND),
                 position = Position.Relative(0.0, 0.0)
@@ -490,7 +695,7 @@ class VendingAnimationActivity : KioskActivity() {
                 damping = WaterFountainConfig.CONFETTI_DAMPING,
                 angle = 270,
                 spread = WaterFountainConfig.CONFETTI_SPREAD,
-                colors = listOf(0xFFFFFF, 0xF5F3EB, 0xE6E6E6, 0xBDC3C7).map { it.toInt() },
+                colors = confettiColors,
                 size = listOf(Size(12), Size(16), Size(20), Size(24)),
                 emitter = Emitter(duration = WaterFountainConfig.CONFETTI_DURATION_MS, TimeUnit.MILLISECONDS).perSecond(WaterFountainConfig.CONFETTI_PARTICLES_PER_SECOND),
                 position = Position.Relative(0.5, 0.0)
@@ -502,7 +707,7 @@ class VendingAnimationActivity : KioskActivity() {
                 damping = WaterFountainConfig.CONFETTI_DAMPING,
                 angle = 270,
                 spread = WaterFountainConfig.CONFETTI_SPREAD,
-                colors = listOf(0xFFFFFF, 0xF5F3EB, 0xE6E6E6, 0xBDC3C7).map { it.toInt() },
+                colors = confettiColors,
                 size = listOf(Size(12), Size(16), Size(20), Size(24)),
                 emitter = Emitter(duration = WaterFountainConfig.CONFETTI_DURATION_MS, TimeUnit.MILLISECONDS).perSecond(WaterFountainConfig.CONFETTI_PARTICLES_PER_SECOND),
                 position = Position.Relative(1.0, 0.0)
@@ -514,7 +719,7 @@ class VendingAnimationActivity : KioskActivity() {
                 damping = WaterFountainConfig.CONFETTI_DAMPING,
                 angle = 0,
                 spread = 180,
-                colors = listOf(0xFFFFFF, 0xF5F3EB, 0xE6E6E6, 0xBDC3C7).map { it.toInt() },
+                colors = confettiColors,
                 size = listOf(Size(12), Size(16), Size(20), Size(24)),
                 emitter = Emitter(duration = WaterFountainConfig.CONFETTI_DURATION_MS, TimeUnit.MILLISECONDS).perSecond(25),
                 position = Position.Relative(0.0, 0.5)
@@ -526,7 +731,7 @@ class VendingAnimationActivity : KioskActivity() {
                 damping = WaterFountainConfig.CONFETTI_DAMPING,
                 angle = 180,
                 spread = 180,
-                colors = listOf(0xFFFFFF, 0xF5F3EB, 0xE6E6E6, 0xBDC3C7).map { it.toInt() },
+                colors = confettiColors,
                 size = listOf(Size(12), Size(16), Size(20), Size(24)),
                 emitter = Emitter(duration = WaterFountainConfig.CONFETTI_DURATION_MS, TimeUnit.MILLISECONDS).perSecond(25),
                 position = Position.Relative(1.0, 0.5)
@@ -538,7 +743,7 @@ class VendingAnimationActivity : KioskActivity() {
                 damping = WaterFountainConfig.CONFETTI_DAMPING,
                 angle = 90,
                 spread = WaterFountainConfig.CONFETTI_SPREAD,
-                colors = listOf(0xFFFFFF, 0xF5F3EB, 0xE6E6E6, 0xBDC3C7).map { it.toInt() },
+                colors = confettiColors,
                 size = listOf(Size(12), Size(16), Size(20), Size(24)),
                 emitter = Emitter(duration = WaterFountainConfig.CONFETTI_DURATION_MS, TimeUnit.MILLISECONDS).perSecond(WaterFountainConfig.CONFETTI_PARTICLES_PER_SECOND),
                 position = Position.Relative(0.0, 1.0)
@@ -550,7 +755,7 @@ class VendingAnimationActivity : KioskActivity() {
                 damping = WaterFountainConfig.CONFETTI_DAMPING,
                 angle = 90,
                 spread = WaterFountainConfig.CONFETTI_SPREAD,
-                colors = listOf(0xFFFFFF, 0xF5F3EB, 0xE6E6E6, 0xBDC3C7).map { it.toInt() },
+                colors = confettiColors,
                 size = listOf(Size(12), Size(16), Size(20), Size(24)),
                 emitter = Emitter(duration = WaterFountainConfig.CONFETTI_DURATION_MS, TimeUnit.MILLISECONDS).perSecond(WaterFountainConfig.CONFETTI_PARTICLES_PER_SECOND),
                 position = Position.Relative(0.5, 1.0)
@@ -562,7 +767,7 @@ class VendingAnimationActivity : KioskActivity() {
                 damping = WaterFountainConfig.CONFETTI_DAMPING,
                 angle = 90,
                 spread = WaterFountainConfig.CONFETTI_SPREAD,
-                colors = listOf(0xFFFFFF, 0xF5F3EB, 0xE6E6E6, 0xBDC3C7).map { it.toInt() },
+                colors = confettiColors,
                 size = listOf(Size(12), Size(16), Size(20), Size(24)),
                 emitter = Emitter(duration = WaterFountainConfig.CONFETTI_DURATION_MS, TimeUnit.MILLISECONDS).perSecond(WaterFountainConfig.CONFETTI_PARTICLES_PER_SECOND),
                 position = Position.Relative(1.0, 1.0)
@@ -802,12 +1007,31 @@ class VendingAnimationActivity : KioskActivity() {
                             val msg = vendResult.animationMessage
                             if (!msg.isNullOrBlank()) {
                                 val byline = vendResult.advertiserName?.takeIf { it.isNotBlank() }
-                                AppLog.i(TAG, "🪧 Showing sponsorship billboard: msg='$msg', byline='${byline ?: "none"}'")
+                                AppLog.i(TAG, "� Live message swap: msg='$msg', advertiser='${byline ?: "none"}'")
                                 withContext(Dispatchers.Main) {
-                                    showSponsorshipBillboard(msg, byline)
+                                    // Stash for the crest-time reveal
+                                    // (revealCenterMessage reads
+                                    // pendingAnimationMessage when Phase 2
+                                    // begins). If the centerMessage is
+                                    // already visible (vend response landed
+                                    // post-crest), crossfade in place.
+                                    pendingAnimationMessage = msg
+                                    pendingAdvertiserName = byline
+                                    if (binding.centerMessage.alpha >= 0.99f) {
+                                        binding.centerMessage.animate()
+                                            .alpha(0f).setDuration(180)
+                                            .withEndAction {
+                                                binding.centerMessage.text = msg
+                                                binding.centerMessage.animate()
+                                                    .alpha(1f).setDuration(420)
+                                                    .setInterpolator(DecelerateInterpolator(2.5f))
+                                                    .start()
+                                            }
+                                            .start()
+                                    }
                                 }
                             } else {
-                                AppLog.w(TAG, "🪧 No sponsorship billboard: animationMessage=${vendResult.animationMessage?.let { "'$it'" } ?: "null"}")
+                                AppLog.w(TAG, "🩧 No animationMessage in vend response — default message stays.")
                             }
                         },
                         onFailure = { error ->
@@ -930,54 +1154,6 @@ class VendingAnimationActivity : KioskActivity() {
     }
 
     /**
-     * Show the sponsorship billboard (customer message + advertiser byline)
-     * during the reveal moment. Animation: fade-in + slight slide-up (800 ms),
-     * hold (3500 ms), fade-out (600 ms). Must be called on the main thread.
-     *
-     * @param message  customer message from the vend response (already trimmed
-     *                 + non-blank — caller filters blanks).
-     * @param advertiserName  optional sponsor name for the byline. When null,
-     *                 only the message line is shown.
-     */
-    @SuppressLint("SetTextI18n")
-    internal fun showSponsorshipBillboard(message: String, advertiserName: String?) {
-        binding.sponsorshipMessage.text = message
-        if (advertiserName != null) {
-            binding.sponsorshipByline.text = getString(R.string.sponsorship_byline, advertiserName)
-            binding.sponsorshipByline.visibility = View.VISIBLE
-        } else {
-            binding.sponsorshipByline.visibility = View.GONE
-        }
-
-        binding.sponsorshipBillboard.apply {
-            alpha = 0f
-            translationY = 30f
-            visibility = View.VISIBLE
-        }
-        binding.sponsorshipBillboard.animate()
-            .alpha(1f)
-            .translationY(0f)
-            .setDuration(800)
-            .setInterpolator(DecelerateInterpolator(2.5f))
-            .withEndAction {
-                binding.sponsorshipBillboard.postDelayed(billboardFadeOutRunnable, 3500L)
-            }
-            .start()
-    }
-
-    private val billboardFadeOutRunnable = Runnable {
-        binding.sponsorshipBillboard.animate()
-            .alpha(0f)
-            .translationY(20f)
-            .setDuration(600)
-            .setInterpolator(DecelerateInterpolator(2f))
-            .withEndAction {
-                binding.sponsorshipBillboard.visibility = View.GONE
-            }
-            .start()
-    }
-
-    /**
      * Fetch the can design's animation logo over HTTPS and swap it into
      * [logoImage] in place of the bundled WaterFountain logo. Uses
      * [HttpURLConnection] + [BitmapFactory] (no extra image lib) so the app
@@ -1001,14 +1177,40 @@ class VendingAnimationActivity : KioskActivity() {
             }
         }
         if (bitmap != null) {
+            // Palette extraction — gives the ripple pond + confetti a brand-
+            // accurate accent color so the entire AV peak feels like it
+            // belongs to the advertiser, not WaterFountain. Off the main
+            // thread because synchronous Palette can take 30-80ms on the
+            // tablet hardware. Falls back gracefully when no good swatch is
+            // found (water-blue default preserves brand-neutral feel).
+            val accent: Int? = withContext(Dispatchers.Default) {
+                try {
+                    val palette = Palette.from(bitmap).maximumColorCount(16).generate()
+                    palette.vibrantSwatch?.rgb
+                        ?: palette.lightVibrantSwatch?.rgb
+                        ?: palette.mutedSwatch?.rgb
+                        ?: palette.dominantSwatch?.rgb
+                } catch (e: Exception) {
+                    AppLog.w(TAG, "Palette extraction failed: ${e.message}")
+                    null
+                }
+            }
             withContext(Dispatchers.Main) {
                 // Defensive: activity may be finishing by the time the
                 // bitmap decode returns. Skip the swap if so.
-                if (!isFinishing && !isDestroyed) {
-                    binding.logoImage.setImageBitmap(bitmap)
-                    binding.logoImage.contentDescription =
-                        getString(R.string.sponsorship_logo_content_description)
-                }
+                if (isFinishing || isDestroyed) return@withContext
+
+                // Stash for the crest-time brand handoff — do NOT swap
+                // into logoImage here. The dramatic morphToLogo()
+                // crossfade is what makes the advertiser logo land on
+                // the peak-end emotional beat (fireworks audio drop).
+                pendingAdvertiserBitmap = bitmap
+                pendingAccentColor = accent
+
+                // The ripple pond can pick up the brand color immediately
+                // — subsequent normal ripples + the mega crest will all
+                // ride the accent.
+                binding.ripplePond.setAccentColor(accent)
             }
         }
     }
@@ -1037,11 +1239,19 @@ class VendingAnimationActivity : KioskActivity() {
 
         // Additional cleanup in onDestroy as safety net
         binding.logoImage.removeCallbacks(logoDelayedRunnable)
-        binding.root.removeCallbacks(confettiDelayedRunnable)
         binding.pickupReminderPanel.removeCallbacks(pickupReminderRunnable)
         binding.pickupReminderPanel.removeCallbacks(chevronPulseRunnable)
         binding.pickupReminderPanel.removeCallbacks(shimmerRunnable)
-        binding.sponsorshipBillboard.removeCallbacks(billboardFadeOutRunnable)
+
+        // Cancel the Phase 2 breathing loop + Phase 1 bob so they can't
+        // tick after teardown.
+        stopDiscBreathing()
+        stopWfLogoBob()
+
+        // Tear down the ripple pond so it stops any in-flight ripples +
+        // cancels its scheduled beats. Safe to call even if cadence
+        // never started.
+        binding.ripplePond.stop()
 
         // Clean up sound manager (this will also stop any playing sounds)
         if (::soundManager.isInitialized) soundManager.release()

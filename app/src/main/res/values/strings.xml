@@ -55,7 +55,11 @@
         <item>Freshly dispensed!</item>
     </string-array>
 
-    <!-- Sponsorship billboard (shown during vend reveal) -->
-    <string name="sponsorship_byline">brought to you by %1$s</string>
+    <!-- Sponsor brand logo content description (a11y) for the advertiser
+         bitmap that takes over the disc at the crest of Phase 1. -->
     <string name="sponsorship_logo_content_description">Sponsor brand logo</string>
+    <!-- Default message shown below the disc during Phase 2 when the vend
+         response carries no advertiser animationMessage. Keeps the design
+         slot populated for unbranded WF-only vends. -->
+    <string name="message_default">Stay hydrated. Stay you.</string>
 </resources>

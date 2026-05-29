@@ -7,12 +7,28 @@
     android:clipChildren="false"
     android:clipToPadding="false">
 
-    <!-- 
-    LAYOUT STRATEGY: Match MainActivity EXACTLY
-    - Main screen has: LinearLayout with 80dp padding + gravity=center
-    - Logo is 500x500dp inside that centered layout
-    - We replicate this EXACT structure so logo appears in identical position
+    <!--
+    LAYOUT STRATEGY (Phase A: 3-phase scan-reminder → advertiser reveal → drop):
+    - RipplePondView sits at the bottom of the z-stack, full screen, so its
+      ripples can travel past the visible logo without being clipped.
+      clipChildren / clipToPadding disabled on every ancestor.
+    - Phase 1 surface (phase1Container, centered): WF logo (bobbing) + the
+      "Scan QR" reminder. The disc / ripples / progress text are NOT shown
+      in Phase 1 — anticipation begins at the Phase 1→2 reveal.
+    - Phase 2/3 surface (the centered LinearLayout below): progressText →
+      disc (ringContainer + logoImage) → centerMessage → completionText.
+      All start alpha=0 and fade in at the Phase 1→2 transition.
+    - centerMessage shows the advertiser's animationMessage during Phase 2
+      (blank if none was supplied — see VendingAnimationActivity).
+    - No chip, no pip row, no post-vend billboard — the brand IS the disc +
+      message. Anything else competes with it.
     -->
+
+    <!-- Ripple pond (z=0) — additive layer behind all other content. -->
+    <com.waterfountainmachine.app.ui.views.RipplePondView
+        android:id="@+id/ripplePond"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"/>
 
     <!-- Main Content - EXACT COPY of MainActivity structure -->
     <LinearLayout
@@ -32,7 +48,6 @@
             android:orientation="vertical"
             android:gravity="center"
             android:layout_gravity="center"
-            android:layout_marginTop="-260dp"
             android:clipChildren="false"
             android:clipToPadding="false">
 
@@ -51,25 +66,21 @@
                 android:layout_marginBottom="60dp"
                 android:letterSpacing="0.02"/>
 
-            <!-- Progress Ring and HUGE Logo Container -->
+            <!-- Disc container: the logo sits at a sensible kiosk-tablet
+                 size (~540dp) and the ringContainer gives the ripple pond
+                 a generous launch radius around it. Both clipChildren=false
+                 so ripples can travel past container bounds. -->
             <FrameLayout
                 android:id="@+id/ringContainer"
-                android:layout_width="900dp"
-                android:layout_height="900dp"
+                android:layout_width="640dp"
+                android:layout_height="640dp"
                 android:clipChildren="false"
                 android:clipToPadding="false">
 
-                <!-- Custom Progress Ring -->
-                <com.waterfountainmachine.app.ui.views.ProgressRingView
-                    android:id="@+id/progressRing"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:layout_gravity="center"/>
-
                 <ImageView
                     android:id="@+id/logoImage"
-                    android:layout_width="1400dp"
-                    android:layout_height="1400dp"
+                    android:layout_width="540dp"
+                    android:layout_height="540dp"
                     android:src="@drawable/logo"
                     android:contentDescription="@string/waterfountain_logo"
                     android:scaleType="fitCenter"
@@ -77,6 +88,27 @@
                     android:alpha="0"/>
 
             </FrameLayout>
+
+            <!-- Center message — advertiser's animationMessage shown below
+                 the disc during Phase 2. Stays hidden during Phase 1;
+                 fades in at the Phase 1→2 transition alongside the
+                 advertiser logo reveal. Blank if no animationMessage was
+                 supplied (revealCenterMessage no-ops in that case) —
+                 keeps the surface clean for unbranded vends. -->
+            <TextView
+                android:id="@+id/centerMessage"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text=""
+                android:textSize="42sp"
+                android:textColor="#FF1F3242"
+                android:fontFamily="@font/gilroy"
+                android:gravity="center"
+                android:maxWidth="1100dp"
+                android:lineHeight="54sp"
+                android:letterSpacing="0.02"
+                android:layout_marginTop="36dp"
+                android:alpha="0"/>
 
             <!-- Completion Text - positioned BELOW ring -->
             <TextView
@@ -93,72 +125,52 @@
                 android:layout_marginTop="60dp"
                 android:letterSpacing="0.02"/>
 
-            <!-- Sponsorship billboard - customer message + advertiser byline
-                 shown during the reveal moment. Hidden until the backend
-                 returns a non-blank animationMessage in the vend response. -->
-            <LinearLayout
-                android:id="@+id/sponsorshipBillboard"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:gravity="center"
-                android:layout_marginTop="48dp"
-                android:alpha="0"
-                android:visibility="gone">
-
-                <TextView
-                    android:id="@+id/sponsorshipMessage"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:textSize="48sp"
-                    android:textColor="#555555"
-                    android:fontFamily="@font/gilroy"
-                    android:gravity="center"
-                    android:maxWidth="1000dp"
-                    android:lineHeight="60sp"
-                    android:letterSpacing="0.02"/>
-
-                <TextView
-                    android:id="@+id/sponsorshipByline"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:textSize="28sp"
-                    android:textColor="#888888"
-                    android:fontFamily="@font/gilroy"
-                    android:gravity="center"
-                    android:layout_marginTop="16dp"
-                    android:alpha="0.85"
-                    android:visibility="gone"/>
-
-            </LinearLayout>
-
         </LinearLayout>
 
     </LinearLayout>
 
-    <!-- QR Reminder Section - Fixed at bottom, independent of centered content -->
+
+    <!-- Phase 1 surface — WF logo (bobbing) above the centered "Scan QR"
+         reminder. Fades in at activity start, fades out at the Phase 1→2
+         transition. Re-uses reminderIcon + statusText IDs the activity
+         already references; the previously bottom-pinned QR section was
+         replaced by this centered stack. -->
     <LinearLayout
+        android:id="@+id/phase1Container"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_gravity="center"
         android:orientation="vertical"
         android:gravity="center"
-        android:layout_gravity="center|bottom"
-        android:layout_marginBottom="140dp"
         android:clipChildren="false"
         android:clipToPadding="false">
 
-        <!-- Reminder Icon -->
+        <!-- WF logo — Phase 1 brand mark. Bobs up/down via a Y-translation
+             loop started by VendingAnimationActivity.startWfLogoBob().
+             Separate from logoImage (the disc center) so the bob doesn't
+             fight the disc's Phase 2 reveal scale/alpha animation. -->
+        <ImageView
+            android:id="@+id/wfLogoPhase1"
+            android:layout_width="380dp"
+            android:layout_height="380dp"
+            android:src="@drawable/logo"
+            android:contentDescription="@string/waterfountain_logo"
+            android:scaleType="fitCenter"
+            android:alpha="0"
+            android:layout_marginBottom="48dp"/>
+
+        <!-- Reminder Icon (centered Phase 1, was bottom-pinned). -->
         <ImageView
             android:id="@+id/reminderIcon"
-            android:layout_width="280dp"
-            android:layout_height="280dp"
+            android:layout_width="220dp"
+            android:layout_height="220dp"
             android:src="@drawable/reminder"
             android:contentDescription="Reminder icon"
             android:scaleType="fitCenter"
             android:alpha="0"
-            android:layout_marginBottom="10dp"/>
+            android:layout_marginBottom="16dp"/>
 
-        <!-- QR Code Reminder Text -->
+        <!-- QR scan reminder text (centered Phase 1, was bottom-pinned). -->
         <TextView
             android:id="@+id/statusText"
             android:layout_width="wrap_content"
@@ -170,7 +182,7 @@
             android:gravity="center"
             android:alpha="0"
             android:lineHeight="52sp"
-            android:maxWidth="700dp"/>
+            android:maxWidth="900dp"/>
 
     </LinearLayout>
 
