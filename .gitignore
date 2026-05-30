@@ -1,12 +1,9 @@
 *.iml
 .gradle
 /local.properties
-/.idea/caches
-/.idea/libraries
-/.idea/modules.xml
-/.idea/workspace.xml
-/.idea/navEditor.xml
-/.idea/assetWizardSettings.xml
+# IDE state — ignore the whole .idea/ folder; share project config via
+# .editorconfig / build scripts instead.
+/.idea/
 .DS_Store
 /build
 /captures
