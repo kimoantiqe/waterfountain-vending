@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Translucent "platform" disc inside ringContainer, behind logoImage
+  and above RipplePondView. Soft ~20% white so it blooms in subtly with
+  ripple #1 — a hint of a luminous halo rather than a stark white disc.
+  Note: at this alpha it no longer fully occludes ripples behind the
+  logo footprint; ripples bleed through faintly, which is the intended
+  "glowing pond" feel rather than a hard mask.
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="oval">
+    <solid android:color="#33FFFFFF"/>
+</shape>

@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 800" font-family="-apple-system, 'SF Pro Display', 'Inter', sans-serif">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0B1220"/><stop offset="1" stop-color="#070B14"/>
+    </linearGradient>
+    <linearGradient id="stream" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#7FD4F5" stop-opacity="0.85"/>
+      <stop offset="1" stop-color="#4FB8E6" stop-opacity="0.95"/>
+    </linearGradient>
+    <linearGradient id="pool" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#7FD4F5"/><stop offset="1" stop-color="#1F7FB8"/>
+    </linearGradient>
+    <clipPath id="basin">
+      <path d="M 90 720 Q 90 480 200 460 L 400 460 Q 510 480 510 720 Z"/>
+    </clipPath>
+  </defs>
+  <rect width="600" height="800" fill="url(#bg)"/>
+
+  <!-- sponsored chip -->
+  <g transform="translate(300,60)">
+    <rect x="-90" y="-18" width="180" height="36" rx="18" fill="#FFFFFF" fill-opacity="0.06" stroke="#FFFFFF" stroke-opacity="0.10"/>
+    <text x="0" y="5" font-size="13" fill="#9CB2C9" text-anchor="middle" letter-spacing="1.4">SPONSORED BY ACME</text>
+  </g>
+
+  <!-- spout -->
+  <rect x="280" y="120" width="40" height="22" rx="4" fill="#2A3A52"/>
+  <rect x="276" y="138" width="48" height="6" rx="2" fill="#3F5374"/>
+
+  <!-- falling stream -->
+  <rect x="293" y="144" width="14" height="320" rx="6" fill="url(#stream)"/>
+  <!-- droplet detail -->
+  <circle cx="300" cy="220" r="3" fill="#CFEEFB"/>
+  <circle cx="300" cy="310" r="2.5" fill="#CFEEFB"/>
+  <circle cx="300" cy="395" r="3.5" fill="#CFEEFB"/>
+
+  <!-- basin outline (glass-like) -->
+  <path d="M 90 720 Q 90 480 200 460 L 400 460 Q 510 480 510 720 Z"
+        fill="#FFFFFF" fill-opacity="0.03" stroke="#FFFFFF" stroke-opacity="0.22" stroke-width="1.5"/>
+
+  <!-- pool (~60% of basin height filled) clipped to basin -->
+  <g clip-path="url(#basin)">
+    <rect x="80" y="560" width="440" height="200" fill="url(#pool)"/>
+    <!-- meniscus -->
+    <path d="M 80 560 Q 200 545 300 560 T 520 560 L 520 575 L 80 575 Z" fill="#7FD4F5" fill-opacity="0.55"/>
+    <!-- ripple where stream lands -->
+    <ellipse cx="300" cy="562" rx="40" ry="6" fill="#FFFFFF" fill-opacity="0.45"/>
+    <ellipse cx="300" cy="562" rx="62" ry="9" fill="#FFFFFF" fill-opacity="0.15"/>
+    <!-- bubbles -->
+    <circle cx="220" cy="640" r="3" fill="#FFFFFF" fill-opacity="0.30"/>
+    <circle cx="370" cy="680" r="4" fill="#FFFFFF" fill-opacity="0.25"/>
+    <circle cx="280" cy="700" r="2.5" fill="#FFFFFF" fill-opacity="0.35"/>
+  </g>
+
+  <!-- floating logo lockup on the pool surface -->
+  <g transform="translate(300,540)">
+    <rect x="-86" y="-26" width="172" height="52" rx="26"
+          fill="#0B1220" fill-opacity="0.78" stroke="#FFFFFF" stroke-opacity="0.20" stroke-width="1"/>
+    <text x="0" y="6" font-size="22" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="2.5">ACME</text>
+  </g>
+
+  <text x="300" y="770" font-size="11" fill="#3E5067" text-anchor="middle" font-style="italic">Option 4 · Pour Stream + Pool · pool ~60% filled</text>
+</svg>

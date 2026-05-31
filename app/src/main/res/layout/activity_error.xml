@@ -4,7 +4,7 @@
     android:id="@+id/root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/background2">
+    android:background="@drawable/bg_neumorphic">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -29,7 +29,7 @@
                 android:text="@string/wordmark_text"
                 android:contentDescription="@string/waterfountain_wordmark"
                 android:textSize="120sp"
-                android:textColor="@android:color/white"
+                android:textColor="#FF1F3242"
                 android:fontFamily="@font/century_gothic_bold"
                 android:maxLines="1"
                 android:singleLine="true"
@@ -38,10 +38,10 @@
                 android:letterSpacing="-0.05"
                 android:includeFontPadding="false"
                 android:paddingHorizontal="16dp"
-                android:shadowColor="#30000000"
+                android:shadowColor="#18000000"
                 android:shadowDx="0"
-                android:shadowDy="3"
-                android:shadowRadius="6" />
+                android:shadowDy="1"
+                android:shadowRadius="2" />
 
         </LinearLayout>
 
@@ -53,14 +53,15 @@
             android:orientation="vertical"
             android:gravity="center">
 
-            <!-- Sad Girl Image -->
+            <!-- WaterFountain logo (gently bobs up/down via ErrorActivity) -->
             <ImageView
-                android:id="@+id/sadGirlImage"
-                android:layout_width="800dp"
-                android:layout_height="800dp"
+                android:id="@+id/bobLogo"
+                android:layout_width="600dp"
+                android:layout_height="600dp"
                 android:layout_marginBottom="40dp"
-                android:contentDescription="Error"
-                android:src="@drawable/sad_girl" />
+                android:contentDescription="@string/waterfountain_wordmark"
+                android:src="@drawable/logo"
+                android:scaleType="fitCenter" />
 
             <!-- Error/Sorry Message -->
             <TextView

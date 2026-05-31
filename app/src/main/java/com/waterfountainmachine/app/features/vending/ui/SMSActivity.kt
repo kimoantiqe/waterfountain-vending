@@ -412,7 +412,7 @@ class SMSActivity : KioskActivity() {
             
             // Change chevron color back to original purple
             chevronView.setColorFilter(
-                android.graphics.Color.parseColor("#8B7BA8"),
+                android.graphics.Color.parseColor("#3A4250"),
                 android.graphics.PorterDuff.Mode.SRC_IN
             )
             

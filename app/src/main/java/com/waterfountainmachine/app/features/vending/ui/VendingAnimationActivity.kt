@@ -19,6 +19,7 @@ import com.waterfountainmachine.app.core.ui.KioskActivity
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import androidx.core.view.doOnLayout
 import androidx.lifecycle.lifecycleScope
 import androidx.palette.graphics.Palette
 import com.waterfountainmachine.app.R
@@ -116,7 +117,7 @@ class VendingAnimationActivity : KioskActivity() {
             .scaleX(1f)
             .scaleY(1f)
             .rotation(0f)
-            .setDuration(900)
+            .setDuration(1300)
             .setInterpolator(OvershootInterpolator(1.2f))
             .withLayer()  // Use hardware layer during animation for smooth 60fps
             .start()
@@ -151,6 +152,26 @@ class VendingAnimationActivity : KioskActivity() {
 
         binding = ActivityVendingAnimationBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        // Anchor the ripple pond's emit center to the LOGO PLATFORM (the
+        // white-ish circle), not the logoImage. The platform never scales
+        // or rotates — only its alpha animates — so the ripple origin stays
+        // rock-steady when the logo pops in with overshoot scale/rotation.
+        // Anchoring to logoImage would drag the emit point around with
+        // every frame of the pop, making ripples lurch.
+        // Both views are center-aligned in the same FrameLayout so the
+        // visible emit center is unchanged.
+        binding.ripplePond.anchorToView(binding.logoPlatform)
+
+        // Seed radius = the logo platform's radius. Ripples drawn behind
+        // the logo at radii ≤ platform are fully occluded by the platform
+        // (see neumorphic_logo_platform.xml). Starting the seed AT the
+        // platform edge means the first visible frame of each ripple is
+        // already a halo around the logo silhouette — robust to any
+        // advertiser logo PNG's transparency / empty center.
+        binding.logoPlatform.doOnLayout {
+            binding.ripplePond.setSeedRadiusPx(it.width / 2f)
+        }
 
         // Restore slot from savedInstanceState if activity was recreated
         if (savedInstanceState != null) {
@@ -209,9 +230,12 @@ class VendingAnimationActivity : KioskActivity() {
         initializeViews()
         applyFullScreen()
         
-        // Start all views invisible to prevent "boop in" effect
+        // Start all views invisible to prevent "boop in" effect.
+        // NOTE: ringContainer itself stays at alpha 1 — its children
+        // (logoPlatform, logoImage) own their own reveal alphas so the
+        // ripple-synced fade-ins work. Setting ringContainer.alpha=0
+        // here would hide both children regardless of their own alpha.
         binding.statusText.alpha = 0f
-        binding.ringContainer.alpha = 0f
         binding.completionText.alpha = 0f
         binding.logoImage.alpha = 0f
         
@@ -319,22 +343,35 @@ class VendingAnimationActivity : KioskActivity() {
                         WaterFountainConfig.ANIMATION_FADE_IN_DELAY_MS
             )
             fadeOutPhase1()
-            revealDisc()              // ringContainer + logoImage fade in
-            morphToLogo()             // WF → advertiser bitmap (or stays WF) with slower + overshoot reveal
-            revealCenterMessage()     // advertiser animationMessage fades in below disc (no-op if blank)
 
-            // ----- Phase 2: ripple cadence build (PHASE1_DURATION_MS → PHASE3_DROP_OFFSET_MS) -----
-            // The cadence kicks in after a short settle so the disc reveal
-            // can land before the ripples start radiating. Four beats
-            // crescendo toward the Phase 3 crest — see RipplePondView.
-            delay(WaterFountainConfig.ANIMATION_PHASE2_CADENCE_START_OFFSET_MS)
+            // ----- Phase 2: ripples lead the reveal -----
+            // Cadence starts immediately on the empty surface. Each
+            // reveal is synced to a ripple so cause→effect reads cleanly,
+            // and nothing shifts the layout: centerMessage reserves 2
+            // lines of space in XML and we set its text BEFORE Phase 2
+            // visuals begin (alpha still 0), so the only thing that
+            // animates is alpha/scale.
+            //   ripple #1 (t=0)    → translucent platform blooms in
+            //   ripple #2 (t=1800) → advertiser/default text appears
+            //   ripple #3 (t=3200) → logo pops in (overshoot)
+            primeCenterMessageText()
             binding.ripplePond.startCadence()
+            revealPlatform()
+
+            delay(WaterFountainConfig.ANIMATION_PHASE2_TEXT_REVEAL_DELAY_MS)
+            revealCenterMessage()
+
+            delay(
+                WaterFountainConfig.ANIMATION_PHASE2_LOGO_REVEAL_DELAY_MS -
+                        WaterFountainConfig.ANIMATION_PHASE2_TEXT_REVEAL_DELAY_MS
+            )
+            revealLogo()
 
             // Wait out the remainder of Phase 2 (down to the drop moment).
             delay(
                 WaterFountainConfig.ANIMATION_PHASE3_DROP_OFFSET_MS -
                         WaterFountainConfig.ANIMATION_PHASE1_DURATION_MS -
-                        WaterFountainConfig.ANIMATION_PHASE2_CADENCE_START_OFFSET_MS
+                        WaterFountainConfig.ANIMATION_PHASE2_LOGO_REVEAL_DELAY_MS
             )
 
             // ----- Phase 3: drop (t=PHASE3_DROP_OFFSET_MS) -----
@@ -375,7 +412,7 @@ class VendingAnimationActivity : KioskActivity() {
             .translationY(0f)
             .scaleX(1f)
             .scaleY(1f)
-            .setDuration(1200)
+            .setDuration(1600)
             .setInterpolator(DecelerateInterpolator(3f))
             .withEndAction { startWfLogoBob() }
             .start()
@@ -385,8 +422,8 @@ class VendingAnimationActivity : KioskActivity() {
         binding.statusText.animate()
             .alpha(1f)
             .translationY(0f)
-            .setDuration(1200)
-            .setStartDelay(150)
+            .setDuration(1600)
+            .setStartDelay(200)
             .setInterpolator(DecelerateInterpolator(3f))
             .start()
     }
@@ -413,32 +450,64 @@ class VendingAnimationActivity : KioskActivity() {
     }
 
     /**
-     * Phase 1→2 transition (in): reveal the disc. Mirrors the elegant
-     * slow rise that fadeInPhase1 uses for the scan reminder, so the two
-     * phases visually rhyme.
+     * Phase 1→2 transition (in): logo POPS in on ripple #3 with the
+     * classic overshoot-scale + counter-rotation reveal. Pure render
+     * transforms (alpha/scale/rotation) — the logoImage's layout slot
+     * is fixed at 620dp from inflate-time, so nothing else shifts.
      */
-    private fun revealDisc() {
-        binding.ringContainer.scaleX = 0.90f
-        binding.ringContainer.scaleY = 0.90f
-        binding.ringContainer.alpha = 0f
-        binding.ringContainer.animate()
-            .alpha(1f)
-            .scaleX(1f)
-            .scaleY(1f)
-            .setDuration(1200)
-            .setInterpolator(DecelerateInterpolator(3f))
-            .start()
+    private fun revealLogo() {
+        pendingAdvertiserBitmap?.let {
+            binding.logoImage.setImageBitmap(it)
+            binding.logoImage.contentDescription =
+                getString(R.string.sponsorship_logo_content_description)
+        }
 
         binding.logoImage.alpha = 0f
-        binding.logoImage.scaleX = 0.92f
-        binding.logoImage.scaleY = 0.92f
+        binding.logoImage.scaleX = 0.3f
+        binding.logoImage.scaleY = 0.3f
+        binding.logoImage.rotation = -25f
         binding.logoImage.animate()
             .alpha(1f)
             .scaleX(1f)
             .scaleY(1f)
-            .setDuration(1200)
-            .setInterpolator(DecelerateInterpolator(3f))
+            .rotation(0f)
+            .setDuration(WaterFountainConfig.ANIMATION_LOGO_REVEAL_MS)
+            .setInterpolator(OvershootInterpolator(1.2f))
+            .withLayer()
             .start()
+    }
+
+    /**
+     * Ripple #1 partner: slowly bloom the translucent platform up
+     * underneath the first ripple. Subtle scale-from-0.85 + long alpha
+     * fade so it reads as a luminous halo SURFACING, not popping. Scale
+     * is a render transform — layout doesn't shift.
+     */
+    private fun revealPlatform() {
+        binding.logoPlatform.alpha = 0f
+        binding.logoPlatform.scaleX = 0.85f
+        binding.logoPlatform.scaleY = 0.85f
+        binding.logoPlatform.animate()
+            .alpha(1f)
+            .scaleX(1f)
+            .scaleY(1f)
+            .setDuration(WaterFountainConfig.ANIMATION_PHASE2_PLATFORM_REVEAL_MS)
+            .setInterpolator(DecelerateInterpolator(2.5f))
+            .withLayer()
+            .start()
+    }
+
+    /**
+     * Set centerMessage text BEFORE Phase 2 visuals begin so the column
+     * height is settled while the view is still alpha 0. Combined with
+     * minLines=maxLines=2 in XML, this guarantees no layout shift when
+     * [revealCenterMessage] later fades the text in. No-op if no message
+     * is pending (text stays empty — reserved space is invisible).
+     */
+    private fun primeCenterMessageText() {
+        val msg = pendingAnimationMessage?.trim().orEmpty()
+        if (msg.isEmpty()) return
+        binding.centerMessage.text = msg
     }
 
     /**
@@ -449,11 +518,11 @@ class VendingAnimationActivity : KioskActivity() {
      */
     private fun startWfLogoBob() {
         stopWfLogoBob()
-        val amplitudePx = -12f * resources.displayMetrics.density
+        val amplitudePx = -32f * resources.displayMetrics.density
         wfLogoBobAnimator = ObjectAnimator.ofFloat(
             binding.wfLogoPhase1, "translationY", 0f, amplitudePx
         ).apply {
-            duration = 1800L
+            duration = 1400L
             repeatMode = ObjectAnimator.REVERSE
             repeatCount = ObjectAnimator.INFINITE
             interpolator = android.view.animation.AccelerateDecelerateInterpolator()
@@ -487,34 +556,9 @@ class VendingAnimationActivity : KioskActivity() {
     }
 
     private fun morphToLogo() {
-        // Brand reveal: revealDisc() just brought the bundled WF logo in.
-        // Now swap to the advertiser bitmap (if any) and re-enter with a
-        // slower, overshoot scale-in so the disc feels intentionally
-        // revealed (not just crossfaded). If no advertiser logo was
-        // supplied the WF logo stays — the correct fallback so unbranded
-        // vends still get the dramatic re-entry.
-        binding.logoImage.animate()
-            .alpha(0f)
-            .scaleX(0.6f)
-            .scaleY(0.6f)
-            .rotation(20f)
-            .setDuration(WaterFountainConfig.ANIMATION_MORPH_TO_LOGO_DELAY_MS)
-            .setInterpolator(DecelerateInterpolator(2.5f))
-            .withLayer()
-            .withEndAction {
-                pendingAdvertiserBitmap?.let {
-                    binding.logoImage.setImageBitmap(it)
-                    binding.logoImage.contentDescription =
-                        getString(R.string.sponsorship_logo_content_description)
-                }
-
-                binding.logoImage.scaleX = 0.3f
-                binding.logoImage.scaleY = 0.3f
-                binding.logoImage.rotation = -45f
-
-                binding.logoImage.postDelayed(logoDelayedRunnable, 80)
-            }
-            .start()
+        // Deprecated: superseded by [revealLogo] (single-pass overshoot reveal).
+        // Kept as a no-op so any external callers / tests don't break; the
+        // Phase 1→2 flow no longer invokes this.
     }
 
     /**
@@ -528,15 +572,20 @@ class VendingAnimationActivity : KioskActivity() {
         val msg = pendingAnimationMessage?.trim().orEmpty()
         if (msg.isEmpty()) return
         val tv = binding.centerMessage
-        tv.text = msg
+        // Text was primed in primeCenterMessageText() so the layout is
+        // already settled. translationY rides on top of the alpha fade
+        // for a softer "rises into place" feel — it's a render transform,
+        // doesn't shift any other view's position. Long duration + gentle
+        // decelerate so the text drifts in slowly instead of snapping on.
+        if (tv.text.toString() != msg) tv.text = msg
         tv.alpha = 0f
-        tv.translationY = 20f
+        tv.translationY = 28f
         tv.animate()
             .alpha(1f)
             .translationY(0f)
-            .setStartDelay(WaterFountainConfig.ANIMATION_MORPH_TO_LOGO_DELAY_MS)
             .setDuration(WaterFountainConfig.ANIMATION_PHASE2_MESSAGE_FADE_IN_MS)
-            .setInterpolator(DecelerateInterpolator(2.5f))
+            .setInterpolator(DecelerateInterpolator(1.8f))
+            .withLayer()
             .withEndAction { startDiscBreathing() }
             .start()
     }
@@ -597,25 +646,18 @@ class VendingAnimationActivity : KioskActivity() {
      * stack stays clean. The advertiser disc itself stays full-alpha so
      * the brand association lands with the physical reward.
      */
+    /**
+     * Phase 3: intentionally a no-op. The advertiser animationMessage
+     * (centerMessage) stays visible all the way through the can-drop +
+     * pickup window so the brand message owns the screen to the very
+     * last second. The completionText view is left in the layout but
+     * never faded in.
+     */
     private fun revealCompletionText() {
-        // Fade out centerMessage — it had its Phase 2 hold; now
-        // completionText owns the body-copy slot.
-        binding.centerMessage.animate()
-            .alpha(0f)
-            .translationY(-10f)
-            .setDuration(500)
-            .setInterpolator(DecelerateInterpolator(2f))
-            .start()
-
-        binding.completionText.alpha = 0f
-        binding.completionText.translationY = 30f
-        binding.completionText.animate()
-            .alpha(1f)
-            .translationY(0f)
-            .setStartDelay(300)
-            .setDuration(900)
-            .setInterpolator(DecelerateInterpolator(2.5f))
-            .start()
+        // No-op by design. Do NOT fade out centerMessage and do NOT fade
+        // in completionText — the advertiser message must persist through
+        // the climax. See user requirement: "keep the animation message
+        // till the last second."
     }
 
     private fun launchConfetti() {
@@ -1166,10 +1208,10 @@ class VendingAnimationActivity : KioskActivity() {
                 pendingAdvertiserBitmap = bitmap
                 pendingAccentColor = accent
 
-                // The ripple pond can pick up the brand color immediately
-                // — subsequent normal ripples + the mega crest will all
-                // ride the accent.
-                binding.ripplePond.setAccentColor(accent)
+                // Disc fill stays neumorphic gray (don't tint it with the
+                // brand accent — would break the soft-shadow illusion).
+                // The advertiser brand is conveyed by the logo bitmap at
+                // the disc center, not by the disc itself.
             }
         }
     }

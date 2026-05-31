@@ -32,8 +32,8 @@
         android:hint="Current PIN"
         android:textColorHint="#B0B0B0"
         android:layout_marginBottom="16dp"
-        app:boxStrokeColor="#6200EE"
-        app:hintTextColor="#6200EE"
+        app:boxStrokeColor="#3A4250"
+        app:hintTextColor="#3A4250"
         app:boxBackgroundColor="@android:color/transparent"
         app:boxStrokeWidth="2dp"
         style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
@@ -59,8 +59,8 @@
         android:hint="New PIN (8 digits)"
         android:textColorHint="#B0B0B0"
         android:layout_marginBottom="16dp"
-        app:boxStrokeColor="#6200EE"
-        app:hintTextColor="#6200EE"
+        app:boxStrokeColor="#3A4250"
+        app:hintTextColor="#3A4250"
         app:boxBackgroundColor="@android:color/transparent"
         app:boxStrokeWidth="2dp"
         style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
@@ -86,8 +86,8 @@
         android:hint="Confirm New PIN"
         android:textColorHint="#B0B0B0"
         android:layout_marginBottom="24dp"
-        app:boxStrokeColor="#6200EE"
-        app:hintTextColor="#6200EE"
+        app:boxStrokeColor="#3A4250"
+        app:hintTextColor="#3A4250"
         app:boxBackgroundColor="@android:color/transparent"
         app:boxStrokeWidth="2dp"
         style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">

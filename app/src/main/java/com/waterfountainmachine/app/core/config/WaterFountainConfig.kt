@@ -46,10 +46,20 @@ class WaterFountainConfig private constructor(context: Context) {
         //   Phase 2 (advertiser):    t=PHASE1_DURATION_MS..PHASE3_DROP_OFFSET_MS  — disc reveal + ripple cadence build
         //   Phase 3 (drop):          t=PHASE3_DROP_OFFSET_MS..end  — mega-crest + confetti + completion text
         const val ANIMATION_FADE_IN_DELAY_MS = 50L
-        const val ANIMATION_PHASE1_DURATION_MS = 3_500L            // WF logo + scan QR reminder dwell (then Phase 2 reveal begins)
-        const val ANIMATION_PHASE2_CADENCE_START_OFFSET_MS = 500L  // delay from Phase 1→2 transition before ripple cadence kicks in (lets the disc reveal settle)
-        const val ANIMATION_MORPH_TO_LOGO_DELAY_MS = 1_000L        // advertiser disc reveal — slower + scale-in overshoot for an intentional entrance
-        const val ANIMATION_PHASE2_MESSAGE_FADE_IN_MS = 800L       // centerMessage fades in just after the disc reveal
+        const val ANIMATION_PHASE1_DURATION_MS = 5_000L            // WF logo + scan QR reminder dwell (then Phase 2 reveal begins)
+        const val ANIMATION_LOGO_REVEAL_MS = 1_300L                // logo fade-in (synced to ripple #3)
+        // Phase 2 reveal cadence — each delay is measured from the moment
+        // the ripple cadence begins (= Phase 2 start). Ripple gaps are
+        // 1800/1400/1100/... so reveals land WITH each successive ripple:
+        //   ripple #1 (t=0)    → white platform circle appears
+        //   ripple #2 (t=1800) → advertiser/default text appears
+        //   ripple #3 (t=3200) → logo appears
+        const val ANIMATION_PHASE2_PLATFORM_REVEAL_MS = 1_600L      // platform fade-in + bloom duration (with ripple #1)
+        const val ANIMATION_PHASE2_TEXT_REVEAL_DELAY_MS = 1_800L     // cadence start → text reveal (ripple #2)
+        const val ANIMATION_PHASE2_LOGO_REVEAL_DELAY_MS = 3_200L     // cadence start → logo reveal (ripple #3)
+        const val ANIMATION_PHASE2_CADENCE_START_OFFSET_MS = 0L     // legacy; cadence starts immediately at Phase 1→2 transition
+        const val ANIMATION_MORPH_TO_LOGO_DELAY_MS = 1_500L        // legacy; retained for older callers (revealLogo uses ANIMATION_LOGO_REVEAL_MS)
+        const val ANIMATION_PHASE2_MESSAGE_FADE_IN_MS = 2_200L       // centerMessage alpha fade-in duration (slow, deliberate rise)
         const val ANIMATION_PHASE3_DROP_OFFSET_MS = 15_000L        // confetti + mega-crest + "Your water is ready!" — synced to can-drop
         const val ANIMATION_PHASE3_PICKUP_DELAY_MS = 2_500L        // delay from drop to pickup reminder panel
         
@@ -89,7 +99,7 @@ class WaterFountainConfig private constructor(context: Context) {
         const val SHIMMER_REPEAT_INTERVAL_MS = 3000L
         
         // Animation Colors (as Int for setColorFilter)
-        const val COLOR_PURPLE_ACCENT = 0xFF8B7BA8.toInt()
+        const val COLOR_PURPLE_ACCENT = 0xFF3A4250.toInt()
         const val COLOR_DARK_GRAY = 0xFF555555.toInt()
         
         // Slot Configuration

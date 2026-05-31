@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/background2">
+    android:background="@drawable/bg_neumorphic">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -27,7 +27,7 @@
                 android:text="@string/wordmark_text"
                 android:contentDescription="@string/waterfountain_wordmark"
                 android:textSize="120sp"
-                android:textColor="@android:color/white"
+                android:textColor="#FF1F3242"
                 android:fontFamily="@font/century_gothic_bold"
                 android:maxLines="1"
                 android:singleLine="true"
@@ -36,10 +36,10 @@
                 android:letterSpacing="-0.05"
                 android:includeFontPadding="false"
                 android:paddingHorizontal="16dp"
-                android:shadowColor="#30000000"
+                android:shadowColor="#18000000"
                 android:shadowDx="0"
-                android:shadowDy="3"
-                android:shadowRadius="6" />
+                android:shadowDy="1"
+                android:shadowRadius="2" />
 
         </LinearLayout>
 
@@ -83,17 +83,40 @@
                 android:shadowDy="1"
                 android:shadowRadius="2"/>
 
-            <!-- Can Image -->
-            <ImageView
-                android:id="@+id/canImage"
+            <!-- Can Image stack: two overlaid layers so the cycle can
+                 crossfade between cans without flicker. canImage is the
+                 "current" layer (target of bobbing + press animations);
+                 canImageNext is a hidden incoming layer used only during
+                 the liquid morph transition. See MainActivity.startCanMorphCycle. -->
+            <FrameLayout
+                android:id="@+id/canStack"
                 android:layout_width="1000dp"
                 android:layout_height="1000dp"
-                android:src="@drawable/can"
-                android:contentDescription="Water can"
-                android:scaleType="centerCrop"
                 android:layout_marginTop="0dp"
                 android:layout_marginBottom="0dp"
-                android:adjustViewBounds="false"/>
+                android:clipChildren="false"
+                android:clipToPadding="false">
+
+                <ImageView
+                    android:id="@+id/canImage"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:src="@drawable/can1"
+                    android:contentDescription="Water can"
+                    android:scaleType="centerCrop"
+                    android:adjustViewBounds="false"/>
+
+                <ImageView
+                    android:id="@+id/canImageNext"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:contentDescription="@null"
+                    android:importantForAccessibility="no"
+                    android:scaleType="centerCrop"
+                    android:adjustViewBounds="false"
+                    android:alpha="0"/>
+
+            </FrameLayout>
 
             <!-- Tap to start instruction text -->
             <TextView

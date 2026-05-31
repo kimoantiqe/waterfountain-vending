@@ -69,7 +69,7 @@
             android:layout_height="wrap_content"
             android:text="waterfountain.com/terms"
             android:textSize="@dimen/modal_text_size"
-            android:textColor="#8B7BA8"
+            android:textColor="#3A4250"
             android:fontFamily="@font/gilroy"
             android:layout_marginBottom="8dp"/>
 
@@ -79,7 +79,7 @@
             android:layout_height="wrap_content"
             android:text="waterfountain.com/privacy"
             android:textSize="@dimen/modal_text_size"
-            android:textColor="#8B7BA8"
+            android:textColor="#3A4250"
             android:fontFamily="@font/gilroy"/>
 
     </LinearLayout>

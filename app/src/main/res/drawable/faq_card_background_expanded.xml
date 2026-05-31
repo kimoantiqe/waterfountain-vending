@@ -5,7 +5,7 @@
     <item android:left="0dp" android:top="2dp" android:right="2dp" android:bottom="0dp">
         <shape android:shape="rectangle">
             <corners android:radius="20dp"/>
-            <solid android:color="#208B7BA8"/>
+            <solid android:color="#203A4250"/>
         </shape>
     </item>
     
@@ -30,7 +30,7 @@
     <item android:left="0dp" android:top="0dp" android:right="2dp" android:bottom="2dp">
         <shape android:shape="rectangle">
             <corners android:radius="20dp"/>
-            <solid android:color="#0D8B7BA8"/>
+            <solid android:color="#0D3A4250"/>
         </shape>
     </item>
 

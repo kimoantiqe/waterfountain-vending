@@ -54,15 +54,18 @@ class RipplePondViewTest {
     }
 
     @Test
-    fun `crest cancels the cadence and drains the pond before firing the climax`() {
+    fun `crest cancels the cadence and blends the climax with in-flight ripples`() {
         val view = newView()
         view.startCadence()
         assertThat(view.isCadenceScheduled()).isTrue()
+        // startCadence emitted the first ripple immediately.
+        val priorRipples = view.activeRippleCount()
         view.crest()
-        // After crest, no recurring emit is scheduled and only the mega
-        // ripple is in flight.
+        // Cadence is cancelled (no more recurring beats) but the in-flight
+        // ripples are intentionally left to blend with the climax — so we
+        // expect priorRipples + 1 (the mega) in flight.
         assertThat(view.isCadenceScheduled()).isFalse()
-        assertThat(view.activeRippleCount()).isEqualTo(1)
+        assertThat(view.activeRippleCount()).isEqualTo(priorRipples + 1)
         view.stop()
     }
 

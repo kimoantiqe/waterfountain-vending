@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 800" font-family="-apple-system, 'SF Pro Display', 'Inter', sans-serif">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0B1220"/>
+      <stop offset="1" stop-color="#070B14"/>
+    </linearGradient>
+    <linearGradient id="water" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0" stop-color="#1F7FB8"/>
+      <stop offset="1" stop-color="#4FB8E6"/>
+    </linearGradient>
+    <linearGradient id="glassEdge" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.18"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.04"/>
+    </linearGradient>
+    <clipPath id="vesselClip">
+      <rect x="170" y="180" width="260" height="420" rx="56" ry="56"/>
+    </clipPath>
+    <filter id="softGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="14"/>
+    </filter>
+  </defs>
+
+  <!-- background -->
+  <rect width="600" height="800" fill="url(#bg)"/>
+
+  <!-- sponsored chip -->
+  <g transform="translate(300,72)">
+    <rect x="-90" y="-18" width="180" height="36" rx="18" fill="#FFFFFF" fill-opacity="0.06" stroke="#FFFFFF" stroke-opacity="0.10"/>
+    <text x="0" y="5" font-size="13" fill="#9CB2C9" text-anchor="middle" letter-spacing="1.4">SPONSORED BY ACME</text>
+  </g>
+
+  <!-- soft ambient glow behind vessel -->
+  <ellipse cx="300" cy="420" rx="220" ry="260" fill="#4FB8E6" fill-opacity="0.08" filter="url(#softGlow)"/>
+
+  <!-- vessel outline -->
+  <rect x="170" y="180" width="260" height="420" rx="56" ry="56"
+        fill="url(#glassEdge)" stroke="#FFFFFF" stroke-opacity="0.22" stroke-width="1.5"/>
+
+  <!-- water fill (~60%) clipped to vessel -->
+  <g clip-path="url(#vesselClip)">
+    <rect x="170" y="348" width="260" height="252" fill="url(#water)"/>
+
+    <!-- meniscus wave -->
+    <path d="M 170 348 Q 235 332 300 348 T 430 348 L 430 360 L 170 360 Z"
+          fill="#7FD4F5" fill-opacity="0.55"/>
+    <path d="M 170 350 Q 235 336 300 350 T 430 350"
+          fill="none" stroke="#CFEEFB" stroke-opacity="0.55" stroke-width="1.2"/>
+
+    <!-- subtle highlight on left edge of water -->
+    <rect x="178" y="348" width="6" height="252" fill="#FFFFFF" fill-opacity="0.10"/>
+
+    <!-- bubbles -->
+    <circle cx="240" cy="470" r="4" fill="#FFFFFF" fill-opacity="0.35"/>
+    <circle cx="360" cy="520" r="3" fill="#FFFFFF" fill-opacity="0.30"/>
+    <circle cx="320" cy="570" r="5" fill="#FFFFFF" fill-opacity="0.25"/>
+    <circle cx="270" cy="540" r="2.5" fill="#FFFFFF" fill-opacity="0.30"/>
+  </g>
+
+  <!-- glass highlight (specular) -->
+  <rect x="186" y="196" width="16" height="380" rx="8" fill="#FFFFFF" fill-opacity="0.07"/>
+
+  <!-- logo lockup (placeholder wordmark) above meniscus -->
+  <g transform="translate(300,290)">
+    <text x="0" y="0" font-size="48" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="2">ACME</text>
+    <line x1="-46" y1="14" x2="46" y2="14" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="1"/>
+    <text x="0" y="36" font-size="12" fill="#FFFFFF" fill-opacity="0.55" text-anchor="middle" letter-spacing="3">HYDRATION CO.</text>
+  </g>
+
+  <!-- animationMessage line under vessel -->
+  <text x="300" y="668" font-size="22" font-weight="500" fill="#E6EEF7" text-anchor="middle">Stay hydrated, stay you.</text>
+  <text x="300" y="700" font-size="14" fill="#7B92AB" text-anchor="middle">Pouring your water…</text>
+
+  <!-- caption (not part of UI) -->
+  <text x="300" y="775" font-size="11" fill="#3E5067" text-anchor="middle" font-style="italic">Option 1 · Pour Glass · ~60% fill</text>
+</svg>

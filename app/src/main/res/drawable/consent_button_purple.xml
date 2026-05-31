@@ -46,7 +46,7 @@
             <item>
                 <shape android:shape="rectangle">
                     <corners android:radius="20dp"/>
-                    <solid android:color="#8B7BA8"/>
+                    <solid android:color="#3A4250"/>
                 </shape>
             </item>
             <!-- Top highlight for glass effect -->

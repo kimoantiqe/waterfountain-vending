@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/background2">
+    android:background="@drawable/bg_neumorphic">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -42,7 +42,7 @@
                 android:text="@string/wordmark_text"
                 android:contentDescription="@string/waterfountain_wordmark"
                 android:textSize="96sp"
-                android:textColor="@android:color/white"
+                android:textColor="#FF1F3242"
                 android:fontFamily="@font/century_gothic_bold"
                 android:maxLines="1"
                 android:singleLine="true"
@@ -51,10 +51,10 @@
                 android:letterSpacing="-0.05"
                 android:includeFontPadding="false"
                 android:paddingHorizontal="16dp"
-                android:shadowColor="#30000000"
+                android:shadowColor="#18000000"
                 android:shadowDx="0"
-                android:shadowDy="3"
-                android:shadowRadius="6" />
+                android:shadowDy="1"
+                android:shadowRadius="2" />
 
             <!-- Empty space to balance the back button -->
             <View
@@ -413,7 +413,7 @@
                             android:layout_width="56dp"
                             android:layout_height="56dp"
                             android:layout_gravity="center"
-                            android:indeterminateTint="#8B7BA8"
+                            android:indeterminateTint="#3A4250"
                             android:elevation="2dp"
                             android:visibility="gone"/>
                         
@@ -560,7 +560,7 @@
                                 android:layout_weight="1"
                                 android:text="How it works"
                                 android:textSize="24sp"
-                                android:textColor="#8B7BA8"
+                                android:textColor="#3A4250"
                                 android:fontFamily="@font/gilroy"
                                 android:textStyle="bold"
                                 android:gravity="start"/>
@@ -570,7 +570,7 @@
                                 android:layout_width="26dp"
                                 android:layout_height="26dp"
                                 android:src="@drawable/ic_chevron_down"
-                                app:tint="#8B7BA8"
+                                app:tint="#3A4250"
                                 android:rotation="0"/>
 
                         </LinearLayout>
@@ -621,7 +621,7 @@
                                 android:layout_weight="1"
                                 android:text="Why it works"
                                 android:textSize="24sp"
-                                android:textColor="#8B7BA8"
+                                android:textColor="#3A4250"
                                 android:fontFamily="@font/gilroy"
                                 android:textStyle="bold"
                                 android:gravity="start"/>
@@ -631,7 +631,7 @@
                                 android:layout_width="26dp"
                                 android:layout_height="26dp"
                                 android:src="@drawable/ic_chevron_down"
-                                app:tint="#8B7BA8"
+                                app:tint="#3A4250"
                                 android:rotation="0"/>
 
                         </LinearLayout>
@@ -682,7 +682,7 @@
                                 android:layout_weight="1"
                                 android:text="Why we need your phone number"
                                 android:textSize="24sp"
-                                android:textColor="#8B7BA8"
+                                android:textColor="#3A4250"
                                 android:fontFamily="@font/gilroy"
                                 android:textStyle="bold"
                                 android:gravity="start"/>
@@ -692,7 +692,7 @@
                                 android:layout_width="26dp"
                                 android:layout_height="26dp"
                                 android:src="@drawable/ic_chevron_down"
-                                app:tint="#8B7BA8"
+                                app:tint="#3A4250"
                                 android:rotation="0"/>
 
                         </LinearLayout>
@@ -743,7 +743,7 @@
                                 android:layout_weight="1"
                                 android:text="How many you can take"
                                 android:textSize="24sp"
-                                android:textColor="#8B7BA8"
+                                android:textColor="#3A4250"
                                 android:fontFamily="@font/gilroy"
                                 android:textStyle="bold"
                                 android:gravity="start"/>
@@ -753,7 +753,7 @@
                                 android:layout_width="26dp"
                                 android:layout_height="26dp"
                                 android:src="@drawable/ic_chevron_down"
-                                app:tint="#8B7BA8"
+                                app:tint="#3A4250"
                                 android:rotation="0"/>
 
                         </LinearLayout>
@@ -803,7 +803,7 @@
                                 android:layout_weight="1"
                                 android:text="About the water"
                                 android:textSize="24sp"
-                                android:textColor="#8B7BA8"
+                                android:textColor="#3A4250"
                                 android:fontFamily="@font/gilroy"
                                 android:textStyle="bold"
                                 android:gravity="start"/>
@@ -813,7 +813,7 @@
                                 android:layout_width="26dp"
                                 android:layout_height="26dp"
                                 android:src="@drawable/ic_chevron_down"
-                                app:tint="#8B7BA8"
+                                app:tint="#3A4250"
                                 android:rotation="0"/>
 
                         </LinearLayout>
@@ -955,7 +955,7 @@
                 android:layout_height="wrap_content"
                 android:text="www.waterfountain.io"
                 android:textSize="28sp"
-                android:textColor="#8B7BA8"
+                android:textColor="#3A4250"
                 android:fontFamily="@font/gilroy"
                 android:textStyle="bold"
                 android:gravity="center"

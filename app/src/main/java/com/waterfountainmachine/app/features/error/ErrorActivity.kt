@@ -4,6 +4,7 @@ import android.content.Intent
 import android.os.Bundle
 import android.view.KeyEvent
 import android.view.View
+import android.view.animation.AccelerateDecelerateInterpolator
 import androidx.activity.OnBackPressedCallback
 import androidx.core.app.ActivityOptionsCompat
 import androidx.lifecycle.lifecycleScope
@@ -51,6 +52,7 @@ class ErrorActivity : KioskActivity() {
     private lateinit var binding: ActivityErrorBinding
     private lateinit var soundManager: SoundManager
     private lateinit var adminGestureDetector: AdminGestureDetector
+    private var logoBobAnimator: ObjectAnimator? = null
 
     override val fullScreenRoot: View
         get() = binding.root
@@ -70,6 +72,10 @@ class ErrorActivity : KioskActivity() {
         private const val FADE_IN_DURATION = 500L
         private const val DEFAULT_DISPLAY_DURATION = 15000L
         private const val FADE_OUT_DURATION = 500L
+
+        // Bob animation — mirrors MainActivity's can bob for visual continuity.
+        private const val LOGO_BOB_AMPLITUDE_DP = 18f
+        private const val LOGO_BOB_DURATION_MS = 2_600L
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -127,6 +133,31 @@ class ErrorActivity : KioskActivity() {
             delay(displayDuration)
             returnToMainScreen()
         }
+
+        startLogoBob()
+    }
+
+    /**
+     * Gentle vertical bob on the logo — same tempo/curve as the can bob
+     * on [MainActivity] so the kiosk feels coherent across screens.
+     */
+    private fun startLogoBob() {
+        stopLogoBob()
+        val amplitudePx = -LOGO_BOB_AMPLITUDE_DP * resources.displayMetrics.density
+        logoBobAnimator = ObjectAnimator.ofFloat(
+            binding.bobLogo, "translationY", 0f, amplitudePx
+        ).apply {
+            duration = LOGO_BOB_DURATION_MS
+            repeatMode = ObjectAnimator.REVERSE
+            repeatCount = ObjectAnimator.INFINITE
+            interpolator = AccelerateDecelerateInterpolator()
+            start()
+        }
+    }
+
+    private fun stopLogoBob() {
+        logoBobAnimator?.cancel()
+        logoBobAnimator = null
     }
     
     private fun setupAdminGesture() {
@@ -166,6 +197,7 @@ class ErrorActivity : KioskActivity() {
     
     override fun onDestroy() {
         super.onDestroy()
+        stopLogoBob()
         // Clean up sound resources
         if (::soundManager.isInitialized) {
             soundManager.release()

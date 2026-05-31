@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/background2"
+    android:background="@drawable/bg_neumorphic"
     android:clipChildren="false"
     android:clipToPadding="false">
 
@@ -57,15 +57,31 @@
                  so ripples can travel past container bounds. -->
             <FrameLayout
                 android:id="@+id/ringContainer"
-                android:layout_width="640dp"
-                android:layout_height="640dp"
+                android:layout_width="700dp"
+                android:layout_height="700dp"
                 android:clipChildren="false"
                 android:clipToPadding="false">
 
+                <!-- Neumorphic platform: invisible disc matching the bg
+                     center color, sized to ringContainer. Sits BELOW
+                     logoImage and ABOVE RipplePondView, so it occludes
+                     any ripple drawn within the logo's footprint.
+                     Ripples only become visible once they grow past
+                     this platform's edge — emerging as halos around the
+                     logo silhouette regardless of logo PNG transparency. -->
+                <View
+                    android:id="@+id/logoPlatform"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_gravity="center"
+                    android:background="@drawable/neumorphic_logo_platform"
+                    android:alpha="0"
+                    android:importantForAccessibility="no"/>
+
                 <ImageView
                     android:id="@+id/logoImage"
-                    android:layout_width="540dp"
-                    android:layout_height="540dp"
+                    android:layout_width="620dp"
+                    android:layout_height="620dp"
                     android:src="@drawable/logo"
                     android:contentDescription="@string/waterfountain_logo"
                     android:scaleType="fitCenter"
@@ -85,14 +101,17 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text=""
-                android:textSize="42sp"
+                android:textSize="56sp"
                 android:textColor="#FF1F3242"
                 android:fontFamily="@font/gilroy"
                 android:gravity="center"
-                android:maxWidth="1100dp"
+                android:maxWidth="720dp"
                 android:lineHeight="54sp"
                 android:letterSpacing="0.02"
-                android:layout_marginTop="36dp"
+                android:layout_marginTop="160dp"
+                android:minLines="2"
+                android:maxLines="2"
+                android:ellipsize="end"
                 android:alpha="0"/>
 
             <!-- Completion Text - positioned BELOW ring -->
@@ -134,8 +153,8 @@
              fight the disc's Phase 2 reveal scale/alpha animation. -->
         <ImageView
             android:id="@+id/wfLogoPhase1"
-            android:layout_width="380dp"
-            android:layout_height="380dp"
+            android:layout_width="520dp"
+            android:layout_height="520dp"
             android:src="@drawable/logo"
             android:contentDescription="@string/waterfountain_logo"
             android:scaleType="fitCenter"
@@ -158,11 +177,13 @@
 
     </LinearLayout>
 
-    <!-- Konfetti for celebration -->
+    <!-- Konfetti for celebration. View-level alpha softens every
+         particle uniformly without needing per-Party colour tweaks. -->
     <nl.dionsegijn.konfetti.xml.KonfettiView
         android:id="@+id/konfettiView"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"/>
+        android:layout_height="match_parent"
+        android:alpha="0.55"/>
 
     <!-- Pickup Reminder Panel (initially hidden) -->
     <LinearLayout

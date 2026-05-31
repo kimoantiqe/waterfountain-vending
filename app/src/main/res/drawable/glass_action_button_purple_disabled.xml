@@ -4,7 +4,7 @@
     android:shape="rectangle">
     
     <!-- Disabled purple background with reduced opacity -->
-    <solid android:color="#608B7BA8"/>  <!-- 38% opacity purple -->
+    <solid android:color="#603A4250"/>  <!-- 38% opacity purple -->
     
     <!-- Rounded corners matching enabled state -->
     <corners android:radius="16dp"/>
@@ -12,6 +12,6 @@
     <!-- Subtle border -->
     <stroke
         android:width="2dp"
-        android:color="#408B7BA8"/>  <!-- 25% opacity purple border -->
+        android:color="#403A4250"/>  <!-- 25% opacity purple border -->
     
 </shape>

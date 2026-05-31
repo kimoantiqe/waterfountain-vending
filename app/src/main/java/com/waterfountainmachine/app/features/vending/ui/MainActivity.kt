@@ -18,6 +18,9 @@ import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityOptionsCompat
 import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import com.waterfountainmachine.app.R
 import com.waterfountainmachine.app.WaterFountainApplication
@@ -43,6 +46,24 @@ class MainActivity : KioskActivity() {
     private lateinit var adminGestureDetector: AdminGestureDetector
     private lateinit var soundManager: SoundManager
     private lateinit var analyticsManager: AnalyticsManager
+
+    // Can carousel — cycles through can1..can6 every CAN_CYCLE_INTERVAL_MS
+    // with a liquid-morph crossfade. Job is cancelled on stop/destroy.
+    private var canMorphJob: Job? = null
+    private var canIndex: Int = 0
+
+    // Set by the carousel timer; consumed by the bob animator at the
+    // next "bottom" repeat boundary so the swap always lands on a beat.
+    private var canMorphPending: Boolean = false
+    // Parity flag flipped on each bob repeat. Bob starts at translationY=0
+    // ("bottom"); first repeat fires at the peak, so this toggles to false
+    // there and back to true at the next bottom.
+    private var canBobAtBottom: Boolean = true
+
+    // Slow up/down bob on the canStack parent so both crossfade layers
+    // ride the same motion during a morph. Separate from canBobbingAnimator
+    // (which despite the name animates the instructionText pulse).
+    private var canBobAnimator: ObjectAnimator? = null
 
     /**
      * Health monitor (real or mock) provided by the Hilt graph via
@@ -81,6 +102,13 @@ class MainActivity : KioskActivity() {
     companion object {
         private const val TAG = "MainActivity"
         private const val SCREEN_NAME = "main_screen"
+        private val CAN_DRAWABLES = intArrayOf(
+            R.drawable.can1, R.drawable.can2, R.drawable.can3,
+            R.drawable.can4, R.drawable.can5, R.drawable.can6
+        )
+        private const val CAN_CYCLE_INTERVAL_MS = 10_000L
+        private const val CAN_BOB_AMPLITUDE_DP = 18f
+        private const val CAN_BOB_DURATION_MS = 2_600L
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -511,7 +539,9 @@ class MainActivity : KioskActivity() {
         
         // Pause animations to save resources while in background
         canBobbingAnimator?.pause()
-        
+        stopCanMorphCycle()
+        stopCanBob()
+
         AppLog.d(TAG, "MainActivity stopped - animations paused")
     }
     
@@ -533,10 +563,117 @@ class MainActivity : KioskActivity() {
         
         // Resume animations when returning to foreground
         canBobbingAnimator?.resume()
-        
+        startCanMorphCycle()
+        startCanBob()
+
         AppLog.d(TAG, "MainActivity started - animations resumed")
     }
-    
+
+    /**
+     * Cycle the can image through can1..can6 every CAN_CYCLE_INTERVAL_MS
+     * with a "liquid morph" crossfade. Uses two overlapping ImageViews
+     * (canImage = current, canImageNext = incoming) so we can run both
+     * sides of the transition concurrently without touching the bytes of
+     * the live drawable. Idempotent — a second call cancels the previous
+     * job before scheduling a new one.
+     */
+    private fun startCanMorphCycle() {
+        stopCanMorphCycle()
+        canMorphJob = lifecycleScope.launch {
+            while (isActive) {
+                delay(CAN_CYCLE_INTERVAL_MS)
+                if (!isActive) return@launch
+                // Arm the swap; the bob animator will fire it on its next
+                // bottom boundary so the crossfade rides the upswing.
+                canMorphPending = true
+            }
+        }
+    }
+
+    private fun stopCanMorphCycle() {
+        canMorphJob?.cancel()
+        canMorphJob = null
+    }
+
+    /**
+     * Soft cross-dissolve from the live can to [nextDrawableRes], timed
+     * to one bob half-cycle. Triggered by [startCanBob] at the bottom of
+     * the bob so the incoming can fades in while the parent canStack
+     * swings upward — the swap and the motion read as one.
+     */
+    private fun morphToCan(nextDrawableRes: Int) {
+        val current = binding.canImage
+        val incoming = binding.canImageNext
+
+        incoming.setImageResource(nextDrawableRes)
+        incoming.alpha = 0f
+        incoming.translationY = 0f
+        incoming.scaleX = 1f
+        incoming.scaleY = 1f
+        incoming.rotation = 0f
+
+        incoming.animate()
+            .alpha(1f)
+            .setDuration(CAN_BOB_DURATION_MS)
+            .setInterpolator(AccelerateDecelerateInterpolator())
+            .withLayer()
+            .start()
+
+        current.animate()
+            .alpha(0f)
+            .setDuration(CAN_BOB_DURATION_MS)
+            .setInterpolator(AccelerateDecelerateInterpolator())
+            .withLayer()
+            .withEndAction {
+                current.setImageResource(nextDrawableRes)
+                current.alpha = 1f
+                incoming.alpha = 0f
+                incoming.setImageDrawable(null)
+            }
+            .start()
+    }
+
+    /**
+     * Slow vertical bob on the canStack parent (so both layers move
+     * together during a morph). AccelerateDecelerate + infinite reverse
+     * — reads as a gentle hover, not a metronome. Started in onStart,
+     * paused in onStop, cancelled in onDestroy.
+     */
+    private fun startCanBob() {
+        stopCanBob()
+        canBobAtBottom = true
+        val amplitudePx = -CAN_BOB_AMPLITUDE_DP * resources.displayMetrics.density
+        canBobAnimator = ObjectAnimator.ofFloat(
+            binding.canStack, "translationY", 0f, amplitudePx
+        ).apply {
+            duration = CAN_BOB_DURATION_MS
+            repeatMode = ObjectAnimator.REVERSE
+            repeatCount = ObjectAnimator.INFINITE
+            interpolator = AccelerateDecelerateInterpolator()
+            addListener(object : android.animation.AnimatorListenerAdapter() {
+                override fun onAnimationRepeat(animation: android.animation.Animator) {
+                    // Fires at each direction change. First fire = peak,
+                    // second = bottom, etc. Flip the parity, then — if a
+                    // swap is armed and we're at the bottom about to rise —
+                    // launch the crossfade so it lasts exactly one upswing.
+                    canBobAtBottom = !canBobAtBottom
+                    if (canBobAtBottom && canMorphPending) {
+                        canMorphPending = false
+                        val nextIndex = (canIndex + 1) % CAN_DRAWABLES.size
+                        morphToCan(CAN_DRAWABLES[nextIndex])
+                        canIndex = nextIndex
+                    }
+                }
+            })
+            start()
+        }
+    }
+
+    private fun stopCanBob() {
+        canBobAnimator?.cancel()
+        canBobAnimator = null
+    }
+
     override fun onDestroy() {
         super.onDestroy()
         
@@ -550,6 +687,8 @@ class MainActivity : KioskActivity() {
             cancel()
         }
         canBobbingAnimator = null
+        stopCanMorphCycle()
+        stopCanBob()
         
         // Clean up pending callbacks
         binding.root.removeCallbacks(navigationResetRunnable)
