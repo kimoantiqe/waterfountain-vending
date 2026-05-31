@@ -220,7 +220,7 @@ dependencies {
     implementation("androidx.fragment:fragment-ktx:1.6.2")
 
     // QR Code dependencies
-    implementation("com.google.zxing:core:3.5.2")
+    implementation("com.google.zxing:core:3.5.4")
     implementation("com.journeyapps:zxing-android-embedded:4.3.0")
 
     // Confetti library for celebration animation
