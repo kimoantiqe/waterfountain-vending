@@ -85,6 +85,14 @@ class RipplePondView @JvmOverloads constructor(
     private val pendingPosts = ArrayList<Runnable>(CADENCE_GAPS_MS.size)
     private var cadenceActive = false
 
+    /**
+     * Per-beat hook fired the instant a cadence ripple is emitted.
+     * Beat is 0-indexed across the whole cadence (0 = first ripple).
+     * Set BEFORE [startCadence]; cleared automatically by [stop]. The
+     * crest does NOT fire this — it has its own dedicated entry point.
+     */
+    var onCadenceBeat: ((beat: Int) -> Unit)? = null
+
     /** Anchor target — emit center follows this view's center if set. */
     private var anchorView: View? = null
     private var anchorPreDrawListener: android.view.ViewTreeObserver.OnPreDrawListener? = null
@@ -197,13 +205,16 @@ class RipplePondView @JvmOverloads constructor(
         fun intensityFor(index: Int): Float =
             MIN_INTENSITY + (1f - MIN_INTENSITY) * (index.toFloat() / (total - 1).toFloat())
         emitRipple(RIPPLE_DURATION_MS, intensityFor(0))
+        onCadenceBeat?.invoke(0)
         var cumulativeDelay = 0L
         for (index in 1 until total) {
             cumulativeDelay += CADENCE_GAPS_MS[index - 1]
             val intensity = intensityFor(index)
+            val beatIndex = index
             val r = Runnable {
                 if (!cadenceActive) return@Runnable
                 emitRipple(RIPPLE_DURATION_MS, intensity)
+                onCadenceBeat?.invoke(beatIndex)
             }
             // Tracked for cancellation only; once it fires, removeCallbacks
             // in cancelCadence is a harmless no-op for it.
@@ -260,6 +271,7 @@ class RipplePondView @JvmOverloads constructor(
         animator?.cancel()
         animator = null
         activeRipples.clear()
+        onCadenceBeat = null
         invalidate()
     }
 

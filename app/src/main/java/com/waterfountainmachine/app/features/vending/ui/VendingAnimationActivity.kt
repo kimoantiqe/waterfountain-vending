@@ -27,7 +27,7 @@ import com.waterfountainmachine.app.databinding.ActivityVendingAnimationBinding
 import com.waterfountainmachine.app.core.utils.AppLog
 import com.waterfountainmachine.app.ui.views.RipplePondView
 import com.waterfountainmachine.app.core.utils.FullScreenUtils
-import com.waterfountainmachine.app.core.utils.SoundManager
+import com.waterfountainmachine.app.features.vending.audio.DispenseAudio
 import com.waterfountainmachine.app.core.utils.PhoneNumberUtils
 import com.waterfountainmachine.app.core.utils.MachineIdProvider
 import com.waterfountainmachine.app.core.config.WaterFountainConfig
@@ -66,7 +66,7 @@ class VendingAnimationActivity : KioskActivity() {
     private val viewModel: VendingViewModel by viewModels()
     
     // Sound manager
-    private lateinit var soundManager: SoundManager
+    private lateinit var dispenseAudio: DispenseAudio
     private lateinit var analyticsManager: AnalyticsManager
     private lateinit var slotInventoryManager: SlotInventoryManager
     private lateinit var backendSlotService: IBackendSlotService
@@ -220,9 +220,12 @@ class VendingAnimationActivity : KioskActivity() {
         analyticsManager.logVendingStarted()
         
         // Initialize sound manager
-        soundManager = SoundManager(this)
-        soundManager.loadSound(R.raw.fireworks)
-        soundManager.loadSound(R.raw.loading)
+        // Dispense-animation soundtrack: 9-cue profile (ambient pad,
+        // 3 ripple drops, crest swell, brand chime, drop celebration,
+        // ready chime, pickup cue). Missing OGGs no-op silently so the
+        // visuals keep working while the audio is being assembled.
+        dispenseAudio = DispenseAudio(this)
+        dispenseAudio.prepare()
 
         // Setup ViewModel observers
         setupViewModelObservers()
@@ -335,7 +338,6 @@ class VendingAnimationActivity : KioskActivity() {
             // at the Phase 1→2 reveal.
             delay(WaterFountainConfig.ANIMATION_FADE_IN_DELAY_MS)
             fadeInPhase1()
-            soundManager.playLongSound(R.raw.loading, volume = 0.6f, looping = false)
 
             // ----- Phase 1 → 2 transition: hand off to the advertiser reveal -----
             delay(
@@ -355,6 +357,11 @@ class VendingAnimationActivity : KioskActivity() {
             //   ripple #2 (t=1800) → advertiser/default text appears
             //   ripple #3 (t=3200) → logo pops in (overshoot)
             primeCenterMessageText()
+            // Wire per-beat audio BEFORE startCadence so the first beat
+            // (emitted synchronously) carries its drop cue. Pad starts
+            // at the same moment so the bed is in place under the cues.
+            binding.ripplePond.onCadenceBeat = { beat -> dispenseAudio.onRippleEmit(beat) }
+            dispenseAudio.startPad()
             binding.ripplePond.startCadence()
             revealPlatform()
 
@@ -377,13 +384,14 @@ class VendingAnimationActivity : KioskActivity() {
             // ----- Phase 3: drop (t=PHASE3_DROP_OFFSET_MS) -----
             // Mega-crest (now the visual climax — was previously at the
             // Phase 1→2 transition) + confetti + completionText crossfade
-            // land together on the can drop. fireworks.mp3 fires here so
-            // the audio peak matches the visual peak. Timing is fixed;
+            // land together on the can drop. The crest swell fires here
+            // so the audio peak matches the visual peak; celebration +
+            // ready chime stack on top in the next 0.5s. Timing is fixed;
             // wire off VendingUiState.DispensingComplete if hardware-event
             // sync is needed later.
-            soundManager.stopLongSound()
-            soundManager.playLongSound(R.raw.fireworks, volume = 0.8f, looping = false)
+            dispenseAudio.onCrest()
             discPunch()               // disc scale punch + mega-crest ripple
+            dispenseAudio.onDrop()
             launchConfetti()
             revealCompletionText()
 
@@ -474,6 +482,7 @@ class VendingAnimationActivity : KioskActivity() {
             .setDuration(WaterFountainConfig.ANIMATION_LOGO_REVEAL_MS)
             .setInterpolator(OvershootInterpolator(1.2f))
             .withLayer()
+            .withStartAction { dispenseAudio.onBrandReveal() }
             .start()
     }
 
@@ -658,6 +667,10 @@ class VendingAnimationActivity : KioskActivity() {
         // in completionText — the advertiser message must persist through
         // the climax. See user requirement: "keep the animation message
         // till the last second."
+        // Audio-only cue: the "ready" chime still fires here because this
+        // is the conceptual ready-for-pickup beat even though the visual
+        // text reveal was intentionally suppressed.
+        dispenseAudio.onReady()
     }
 
     private fun launchConfetti() {
@@ -784,6 +797,7 @@ class VendingAnimationActivity : KioskActivity() {
      */
     private fun showPickupReminder() {
         binding.pickupReminderPanel.visibility = android.view.View.VISIBLE
+        dispenseAudio.onPickupHint()
         
         // Fade in and slide up animation
         binding.pickupReminderPanel.alpha = 0f
@@ -1255,7 +1269,10 @@ class VendingAnimationActivity : KioskActivity() {
         binding.ripplePond.stop()
 
         // Clean up sound manager (this will also stop any playing sounds)
-        if (::soundManager.isInitialized) soundManager.release()
+        if (::dispenseAudio.isInitialized) {
+            dispenseAudio.stopPad()
+            dispenseAudio.release()
+        }
 
         super.onDestroy()
     }
