@@ -57,12 +57,13 @@ interface IMachineHealthMonitor {
 
     /**
      * The exact string to render on the maintenance screen: the admin's
-     * custom [getMaintenanceMessage] when non-blank, otherwise the default
-     * [UserErrorMessages.MACHINE_MAINTENANCE]. Single source of truth so the
-     * local toggle and the remote flag show consistent text.
+     * custom [getMaintenanceMessage] when non-blank, otherwise the same
+     * default as a disabled machine ([UserErrorMessages.MACHINE_DISABLED]) so
+     * the customer-facing copy stays consistent. Single source of truth for
+     * both the local toggle and the remote flag.
      */
     fun getMaintenanceScreenMessage(): String =
-        getMaintenanceMessage()?.takeIf { it.isNotBlank() } ?: UserErrorMessages.MACHINE_MAINTENANCE
+        getMaintenanceMessage()?.takeIf { it.isNotBlank() } ?: UserErrorMessages.MACHINE_DISABLED
 }
 
 /**

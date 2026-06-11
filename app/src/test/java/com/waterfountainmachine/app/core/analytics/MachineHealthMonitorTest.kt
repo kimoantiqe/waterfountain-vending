@@ -182,7 +182,7 @@ class MachineHealthMonitorTest {
         assertThat(monitor.isMaintenanceMode()).isFalse()
         assertThat(monitor.getMaintenanceMessage()).isNull()
         assertThat(monitor.getMaintenanceScreenMessage())
-            .isEqualTo(UserErrorMessages.MACHINE_MAINTENANCE)
+            .isEqualTo(UserErrorMessages.MACHINE_DISABLED)
     }
 
     @Test
@@ -196,14 +196,14 @@ class MachineHealthMonitorTest {
     fun `getMaintenanceScreenMessage falls back to default for an empty message`() {
         writeMaintenance(true, "")
         assertThat(monitor.getMaintenanceScreenMessage())
-            .isEqualTo(UserErrorMessages.MACHINE_MAINTENANCE)
+            .isEqualTo(UserErrorMessages.MACHINE_DISABLED)
     }
 
     @Test
     fun `getMaintenanceScreenMessage falls back to default for a whitespace-only message`() {
         writeMaintenance(true, "   \n  ")
         assertThat(monitor.getMaintenanceScreenMessage())
-            .isEqualTo(UserErrorMessages.MACHINE_MAINTENANCE)
+            .isEqualTo(UserErrorMessages.MACHINE_DISABLED)
     }
 
     @Test
