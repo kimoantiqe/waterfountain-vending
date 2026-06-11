@@ -106,6 +106,7 @@ class BackendSlotServiceTest {
                 "campaignId" to "camp-1",
                 "canDesignId" to "design-1",
                 "canDesignName" to "Cola",
+                "animationLogo" to "https://cdn/logo.png",
                 "status" to "active"
             ),
             mapOf(
@@ -122,9 +123,11 @@ class BackendSlotServiceTest {
         assertThat(slots[0].slot).isEqualTo(1)
         assertThat(slots[0].remainingBottles).isEqualTo(5)
         assertThat(slots[0].canDesignName).isEqualTo("Cola")
+        assertThat(slots[0].animationLogo).isEqualTo("https://cdn/logo.png")
         assertThat(slots[0].status).isEqualTo(SlotInventoryManager.SlotStatus.ACTIVE)
         assertThat(slots[0].lastUpdated).isEqualTo(now)
         assertThat(slots[1].status).isEqualTo(SlotInventoryManager.SlotStatus.EMPTY)
+        assertThat(slots[1].animationLogo).isNull()
     }
 
     @Test

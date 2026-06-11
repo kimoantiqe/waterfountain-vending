@@ -95,7 +95,8 @@ class BackendSlotService private constructor(private val context: Context) : IBa
                     status = SlotInventoryManager.SlotStatus.fromString(
                         m["status"] as? String ?: "active"
                     ),
-                    lastUpdated = nowMillis
+                    lastUpdated = nowMillis,
+                    animationLogo = m["animationLogo"] as? String
                 )
             }
             return out

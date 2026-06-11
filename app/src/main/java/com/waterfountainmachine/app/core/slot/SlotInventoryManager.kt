@@ -34,6 +34,7 @@ class SlotInventoryManager private constructor(private val context: Context) {
         private const val SUFFIX_CAMPAIGN = "_campaign"
         private const val SUFFIX_DESIGN = "_design"
         private const val SUFFIX_DESIGN_NAME = "_design_name"
+        private const val SUFFIX_ANIMATION_LOGO = "_animation_logo"
         private const val SUFFIX_STATUS = "_status"
         private const val SUFFIX_LAST_UPDATED = "_last_updated"
         
@@ -64,7 +65,10 @@ class SlotInventoryManager private constructor(private val context: Context) {
         val canDesignId: String?,
         val canDesignName: String?,
         val status: SlotStatus,
-        val lastUpdated: Long
+        val lastUpdated: Long,
+        // Advertiser animation-logo URL for this slot's can design (if any).
+        // Used to prefetch + cache the logo before the vend animation runs.
+        val animationLogo: String? = null
     )
     
     enum class SlotStatus {
@@ -117,6 +121,7 @@ class SlotInventoryManager private constructor(private val context: Context) {
         val campaignId = prefs.getString(getCampaignKey(slot), null)
         val canDesignId = prefs.getString(getDesignKey(slot), null)
         val canDesignName = prefs.getString(getDesignNameKey(slot), null)
+        val animationLogo = prefs.getString(getAnimationLogoKey(slot), null)
         val statusStr = prefs.getString(getStatusKey(slot), "ACTIVE") ?: "ACTIVE"
 
         return SlotInventory(
@@ -127,7 +132,8 @@ class SlotInventoryManager private constructor(private val context: Context) {
             canDesignId = canDesignId,
             canDesignName = canDesignName,
             status = SlotStatus.fromString(statusStr),
-            lastUpdated = lastUpdated
+            lastUpdated = lastUpdated,
+            animationLogo = animationLogo
         )
     }
     
@@ -271,6 +277,7 @@ class SlotInventoryManager private constructor(private val context: Context) {
             if (slot.campaignId != null) editor.putString(getCampaignKey(slot.slot), slot.campaignId)
             if (slot.canDesignId != null) editor.putString(getDesignKey(slot.slot), slot.canDesignId)
             if (slot.canDesignName != null) editor.putString(getDesignNameKey(slot.slot), slot.canDesignName)
+            if (slot.animationLogo != null) editor.putString(getAnimationLogoKey(slot.slot), slot.animationLogo)
         }
 
         // Step 3: bump last-sync timestamp in the same transaction.
@@ -363,6 +370,7 @@ class SlotInventoryManager private constructor(private val context: Context) {
     private fun getCampaignKey(slot: Int) = "$PREFIX_BOTTLES${slot}$SUFFIX_CAMPAIGN"
     private fun getDesignKey(slot: Int) = "$PREFIX_BOTTLES${slot}$SUFFIX_DESIGN"
     private fun getDesignNameKey(slot: Int) = "$PREFIX_BOTTLES${slot}$SUFFIX_DESIGN_NAME"
+    private fun getAnimationLogoKey(slot: Int) = "$PREFIX_BOTTLES${slot}$SUFFIX_ANIMATION_LOGO"
     private fun getStatusKey(slot: Int) = "$PREFIX_BOTTLES${slot}$SUFFIX_STATUS"
     private fun getLastUpdatedKey(slot: Int) = "$PREFIX_BOTTLES${slot}$SUFFIX_LAST_UPDATED"
     

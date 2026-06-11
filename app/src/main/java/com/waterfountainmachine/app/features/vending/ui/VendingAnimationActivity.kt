@@ -4,7 +4,6 @@ import android.animation.ObjectAnimator
 import android.annotation.SuppressLint
 import android.content.Intent
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.os.Bundle
 import android.view.View
 import android.view.animation.DecelerateInterpolator
@@ -52,8 +51,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.net.HttpURLConnection
-import java.net.URL
+import com.waterfountainmachine.app.core.utils.AnimationLogoCache
 import java.util.concurrent.TimeUnit
 
 @AndroidEntryPoint
@@ -313,6 +311,13 @@ class VendingAnimationActivity : KioskActivity() {
         // statusText shows QR reminder (set in XML). No more progress copy
         // during Phase 2 — the disc + advertiser message carry the moment.
         binding.completionText.text = completionMessages.random()
+
+        // Prime the billboard with the bundled default message so it is NEVER
+        // empty, even if the vend response (which carries the advertiser
+        // message) is slow or fails. When the real message arrives it
+        // overrides this; because the default keeps the billboard visible by
+        // reveal time, a late advertiser message still crossfades in cleanly.
+        pendingAnimationMessage = getString(R.string.message_default)
     }
 
     override fun onResume() {
@@ -322,10 +327,10 @@ class VendingAnimationActivity : KioskActivity() {
     }
 
     private fun startRingAnimation() {
-        // centerMessage is advertiser-only now — if no animationMessage was
-        // supplied, revealCenterMessage() no-ops and the slot stays clean.
-        // (Per 5b A: the `message_default` string stays in strings.xml but
-        // is no longer wired in here.)
+        // centerMessage is primed with the bundled default message in
+        // initializeViews(), so the billboard always shows something; an
+        // advertiser-supplied animationMessage from the vend response
+        // overrides it (immediately, or via crossfade if it lands late).
 
         // Phase A choreography (3 phases: scan-reminder → advertiser reveal
         // + ripple build → mega-crest + confetti drop). All timings live as
@@ -1169,27 +1174,18 @@ class VendingAnimationActivity : KioskActivity() {
     }
 
     /**
-     * Fetch the can design's animation logo over HTTPS and swap it into
-     * [logoImage] in place of the bundled WaterFountain logo. Uses
-     * [HttpURLConnection] + [BitmapFactory] (no extra image lib) so the app
-     * keeps its dependency surface small — see AGENTS.md "engineered enough,
-     * not over-engineered." Failures are intentionally swallowed: the
-     * existing WaterFountain logo stays in the ring, which is the correct
-     * fallback.
+     * Decode the can design's animation logo (cache-first via
+     * [AnimationLogoCache]) and stash it for the crest-time brand handoff.
+     * Prefetched logos decode from disk instantly; a cold URL is downloaded
+     * once and reused. Failures are intentionally swallowed: the bundled
+     * WaterFountain logo stays in the ring, which is the correct fallback.
      */
     private suspend fun loadAnimationLogo(url: String) {
         val bitmap: Bitmap? = withContext(Dispatchers.IO) {
-            try {
-                val conn = (URL(url).openConnection() as HttpURLConnection).apply {
-                    connectTimeout = 4000
-                    readTimeout = 6000
-                    instanceFollowRedirects = true
-                }
-                conn.inputStream.use { BitmapFactory.decodeStream(it) }
-            } catch (e: Exception) {
-                AppLog.w(TAG, "Failed to load animation logo from $url: ${e.message}")
-                null
-            }
+            // Cache-first: prefetched logos (post inventory sync) decode from
+            // disk instantly; a cold URL is downloaded once and reused. Failures
+            // return null, leaving the bundled WaterFountain logo in place.
+            AnimationLogoCache.getBitmap(this@VendingAnimationActivity, url)
         }
         if (bitmap != null) {
             // Palette extraction — gives the ripple pond + confetti a brand-

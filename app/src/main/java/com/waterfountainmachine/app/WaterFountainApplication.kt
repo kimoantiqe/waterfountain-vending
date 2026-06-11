@@ -189,6 +189,18 @@ class WaterFountainApplication : Application(), Configuration.Provider {
                             val totalBottles = slotInventoryManager.getTotalInventory()
                             val fillRate = slotInventoryManager.getInventoryFillRate()
                             AppLog.i(TAG, "Current inventory: $totalBottles bottles (${String.format("%.1f", fillRate)}% capacity)")
+
+                            // Sync the advertiser logo cache to the current
+                            // inventory: prefetch missing logos so the vend
+                            // animation reads them from disk (no race), and
+                            // prune stale/rotated/updated entries so the cache
+                            // stays healthy. Best-effort.
+                            val logoUrls = slots.mapNotNull { it.animationLogo }.filter { it.isNotBlank() }
+                            AppLog.d(TAG, "Syncing animation logo cache (${logoUrls.size} live logo(s))...")
+                            com.waterfountainmachine.app.core.utils.AnimationLogoCache.syncToInventory(
+                                this@WaterFountainApplication,
+                                logoUrls
+                            )
                         },
                         onFailure = { error: Throwable ->
                             val errorMessage = error.message ?: ""
