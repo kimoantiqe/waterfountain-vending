@@ -8,6 +8,7 @@ import com.waterfountainmachine.app.core.di.HealthMonitorModule
 import com.waterfountainmachine.app.core.utils.AppLog
 import com.waterfountainmachine.app.core.utils.ErrorScreenUtil
 import com.waterfountainmachine.app.core.utils.FullScreenUtils
+import com.waterfountainmachine.app.core.utils.UserErrorMessages
 import java.util.concurrent.TimeUnit
 
 /**
@@ -98,7 +99,7 @@ abstract class KioskActivity : AppCompatActivity() {
         AppLog.w(localClassName, "Machine is DISABLED - $reason")
         ErrorScreenUtil.showError(
             context = this,
-            message = monitor.getDisabledScreenMessage(),
+            message = UserErrorMessages.MACHINE_DISABLED,
             displayDuration = TimeUnit.HOURS.toMillis(24)
         )
         finish()

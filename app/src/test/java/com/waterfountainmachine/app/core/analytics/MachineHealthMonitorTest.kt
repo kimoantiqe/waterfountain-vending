@@ -166,42 +166,44 @@ class MachineHealthMonitorTest {
         assertThat(monitor.getDisabledReason()).isEqualTo("scheduled maintenance")
     }
 
-    // --- getDisabledMessage / getDisabledScreenMessage ------------------
+    // --- getMaintenanceMessage / getMaintenanceScreenMessage -----------
 
-    private fun writeDisabledMessage(message: String?) {
+    private fun writeMaintenance(on: Boolean, message: String?) {
         @Suppress("ApplySharedPref")
         context.getSharedPreferences("machine_health", Context.MODE_PRIVATE)
             .edit()
-            .putString("disabled_message", message)
+            .putBoolean("remote_maintenance_mode", on)
+            .putString("remote_maintenance_message", message)
             .commit()
     }
 
     @Test
-    fun `getDisabledScreenMessage falls back to default when no message is set`() {
-        assertThat(monitor.getDisabledMessage()).isNull()
-        assertThat(monitor.getDisabledScreenMessage())
-            .isEqualTo(UserErrorMessages.MACHINE_DISABLED)
+    fun `isMaintenanceMode defaults to false with default maintenance message`() {
+        assertThat(monitor.isMaintenanceMode()).isFalse()
+        assertThat(monitor.getMaintenanceMessage()).isNull()
+        assertThat(monitor.getMaintenanceScreenMessage())
+            .isEqualTo(UserErrorMessages.MACHINE_MAINTENANCE)
     }
 
     @Test
-    fun `getDisabledScreenMessage returns the admin message when set`() {
-        writeDisabledMessage("Back soon — restocking.")
-        assertThat(monitor.getDisabledMessage()).isEqualTo("Back soon — restocking.")
-        assertThat(monitor.getDisabledScreenMessage()).isEqualTo("Back soon — restocking.")
+    fun `getMaintenanceScreenMessage returns the admin message when set`() {
+        writeMaintenance(true, "Back soon — restocking.")
+        assertThat(monitor.isMaintenanceMode()).isTrue()
+        assertThat(monitor.getMaintenanceScreenMessage()).isEqualTo("Back soon — restocking.")
     }
 
     @Test
-    fun `getDisabledScreenMessage falls back to default for an empty message`() {
-        writeDisabledMessage("")
-        assertThat(monitor.getDisabledScreenMessage())
-            .isEqualTo(UserErrorMessages.MACHINE_DISABLED)
+    fun `getMaintenanceScreenMessage falls back to default for an empty message`() {
+        writeMaintenance(true, "")
+        assertThat(monitor.getMaintenanceScreenMessage())
+            .isEqualTo(UserErrorMessages.MACHINE_MAINTENANCE)
     }
 
     @Test
-    fun `getDisabledScreenMessage falls back to default for a whitespace-only message`() {
-        writeDisabledMessage("   \n  ")
-        assertThat(monitor.getDisabledScreenMessage())
-            .isEqualTo(UserErrorMessages.MACHINE_DISABLED)
+    fun `getMaintenanceScreenMessage falls back to default for a whitespace-only message`() {
+        writeMaintenance(true, "   \n  ")
+        assertThat(monitor.getMaintenanceScreenMessage())
+            .isEqualTo(UserErrorMessages.MACHINE_MAINTENANCE)
     }
 
     @Test

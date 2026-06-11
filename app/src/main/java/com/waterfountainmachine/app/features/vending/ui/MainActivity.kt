@@ -32,6 +32,7 @@ import com.waterfountainmachine.app.core.utils.AnimationUtils
 import com.waterfountainmachine.app.core.utils.HardwareKeyHandler
 import com.waterfountainmachine.app.core.utils.SoundManager
 import com.waterfountainmachine.app.core.utils.ErrorScreenUtil
+import com.waterfountainmachine.app.core.utils.UserErrorMessages
 import com.waterfountainmachine.app.core.analytics.AnalyticsManager
 import com.waterfountainmachine.app.core.analytics.IMachineHealthMonitor
 import com.waterfountainmachine.app.core.analytics.MachineHealthMonitor
@@ -87,8 +88,13 @@ class MainActivity : KioskActivity() {
     private val statusChangeListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
         if (key == "is_disabled") {
             if (machineHealthMonitor.isMachineDisabled()) {
-                AppLog.w(TAG, "⚠️ Machine became DISABLED during runtime - showing maintenance screen")
+                AppLog.w(TAG, "⚠️ Machine became DISABLED during runtime - showing disabled screen")
                 showDisabledScreen()
+            }
+        } else if (key == "remote_maintenance_mode") {
+            if (machineHealthMonitor.isMaintenanceMode()) {
+                AppLog.w(TAG, "⚠️ Remote maintenance ENABLED during runtime - showing maintenance screen")
+                showMaintenanceScreen()
             }
         } else if (key == "maintenance_mode") {
             if (prefs.getBoolean("maintenance_mode", false)) {
@@ -195,8 +201,12 @@ class MainActivity : KioskActivity() {
             showMaintenanceScreen()
             return  // Important: return early to prevent continuing with normal flow
         } else if (machineHealthMonitor.isMachineDisabled()) {
-            AppLog.w(TAG, "Machine is remotely DISABLED - showing maintenance screen")
+            AppLog.w(TAG, "Machine is remotely DISABLED - showing disabled screen")
             showDisabledScreen()
+            return  // Important: return early to prevent continuing with normal flow
+        } else if (machineHealthMonitor.isMaintenanceMode()) {
+            AppLog.w(TAG, "Machine is in remote MAINTENANCE MODE - showing maintenance screen")
+            showMaintenanceScreen()
             return  // Important: return early to prevent continuing with normal flow
         } else {
             AppLog.d(TAG, "Machine status check: ACTIVE")
@@ -208,12 +218,13 @@ class MainActivity : KioskActivity() {
      * Similar to disabled screen but indicates local maintenance
      */
     private fun showMaintenanceScreen() {
-        // Show error screen with maintenance message
-        // Use very long duration (24 hours) - machine won't work until maintenance mode disabled
-        // Admin can still access admin panel via triple-tap
+        // Show error screen with the admin's custom maintenance message when set
+        // (remote maintenance), otherwise the default maintenance text (local
+        // toggle). Very long duration (24 hours) - the machine won't serve until
+        // maintenance is cleared. Admin can still access admin panel via triple-tap.
         ErrorScreenUtil.showError(
             context = this,
-            message = "Machine is temporarily under maintenance.\nSorry for the inconvenience.",
+            message = machineHealthMonitor.getMaintenanceScreenMessage(),
             displayDuration = 24 * 60 * 60 * 1000L // 24 hours
         )
         
@@ -225,13 +236,13 @@ class MainActivity : KioskActivity() {
      * Show disabled screen and finish activity
      */
     private fun showDisabledScreen() {
-        // Show error screen with the admin's custom maintenance message when
-        // set, otherwise the default. Use very long duration (24 hours) - the
-        // machine won't work until re-enabled. Health monitor keeps checking
-        // every 15 mins to detect re-enable.
+        // Disable is a hard security lockout - show the generic out-of-service
+        // message (no custom message; that belongs to maintenance mode). Very
+        // long duration (24 hours); health monitor keeps checking to detect
+        // re-enable.
         ErrorScreenUtil.showError(
             context = this,
-            message = machineHealthMonitor.getDisabledScreenMessage(),
+            message = UserErrorMessages.MACHINE_DISABLED,
             displayDuration = 24 * 60 * 60 * 1000L // 24 hours
         )
         
