@@ -74,6 +74,7 @@
                 android:fontFamily="@font/gilroy"
                 android:gravity="center"
                 android:maxLines="4"
+                android:ellipsize="end"
                 android:lineSpacingExtra="8dp"/>
 
         </LinearLayout>

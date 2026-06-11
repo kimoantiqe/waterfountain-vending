@@ -45,6 +45,7 @@ class BackendMachineService private constructor(private val context: Context) {
                 MachineStatus(
                     status = status,
                     disabledReason = map["disabledReason"] as? String,
+                    disabledMessage = map["disabledMessage"] as? String,
                     disabledAt = (map["disabledAt"] as? Number)?.toLong()
                 )
             )
@@ -83,6 +84,7 @@ class BackendMachineService private constructor(private val context: Context) {
     data class MachineStatus(
         val status: String,
         val disabledReason: String?,
+        val disabledMessage: String?,
         val disabledAt: Long?
     )
     

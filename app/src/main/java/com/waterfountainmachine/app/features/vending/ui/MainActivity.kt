@@ -32,7 +32,6 @@ import com.waterfountainmachine.app.core.utils.AnimationUtils
 import com.waterfountainmachine.app.core.utils.HardwareKeyHandler
 import com.waterfountainmachine.app.core.utils.SoundManager
 import com.waterfountainmachine.app.core.utils.ErrorScreenUtil
-import com.waterfountainmachine.app.core.utils.UserErrorMessages
 import com.waterfountainmachine.app.core.analytics.AnalyticsManager
 import com.waterfountainmachine.app.core.analytics.IMachineHealthMonitor
 import com.waterfountainmachine.app.core.analytics.MachineHealthMonitor
@@ -226,12 +225,13 @@ class MainActivity : KioskActivity() {
      * Show disabled screen and finish activity
      */
     private fun showDisabledScreen() {
-        // Show error screen with maintenance message
-        // Use very long duration (24 hours) - machine won't work until re-enabled
-        // Health monitor will continue checking every 15 mins to detect re-enable
+        // Show error screen with the admin's custom maintenance message when
+        // set, otherwise the default. Use very long duration (24 hours) - the
+        // machine won't work until re-enabled. Health monitor keeps checking
+        // every 15 mins to detect re-enable.
         ErrorScreenUtil.showError(
             context = this,
-            message = UserErrorMessages.MACHINE_DISABLED,
+            message = machineHealthMonitor.getDisabledScreenMessage(),
             displayDuration = 24 * 60 * 60 * 1000L // 24 hours
         )
         

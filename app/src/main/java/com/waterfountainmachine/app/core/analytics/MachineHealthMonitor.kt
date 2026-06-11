@@ -7,6 +7,7 @@ import com.waterfountainmachine.app.BuildConfig
 import com.waterfountainmachine.app.core.security.SecurityModule
 import com.waterfountainmachine.app.core.utils.AppLog
 import com.waterfountainmachine.app.core.utils.CrashlyticsHelper
+import com.waterfountainmachine.app.core.utils.UserErrorMessages
 import com.waterfountainmachine.app.core.slot.SlotInventoryManager
 import com.waterfountainmachine.app.core.backend.BackendMachineService
 import kotlinx.coroutines.CoroutineScope
@@ -39,6 +40,23 @@ interface IMachineHealthMonitor {
      * Optional reason string for [isMachineDisabled]; used only for logs.
      */
     fun getDisabledReason(): String? = null
+
+    /**
+     * Optional customer-facing message set by an admin when disabling the
+     * machine. Unlike [getDisabledReason] (internal/audit-only) this is shown
+     * verbatim on the kiosk maintenance screen. `null`/blank means "use the
+     * default message".
+     */
+    fun getDisabledMessage(): String? = null
+
+    /**
+     * The exact string to render on the maintenance screen: the admin's
+     * custom [getDisabledMessage] when non-blank, otherwise the default
+     * [UserErrorMessages.MACHINE_DISABLED]. Single source of truth so every
+     * kiosk entry point shows the same thing.
+     */
+    fun getDisabledScreenMessage(): String =
+        getDisabledMessage()?.takeIf { it.isNotBlank() } ?: UserErrorMessages.MACHINE_DISABLED
 }
 
 /**
@@ -88,6 +106,7 @@ class MachineHealthMonitor private constructor(private val context: Context) : I
         // SharedPreferences keys for machine status
         private const val KEY_IS_DISABLED = "is_disabled"
         private const val KEY_DISABLED_REASON = "disabled_reason"
+        private const val KEY_DISABLED_MESSAGE = "disabled_message"
         private const val KEY_DISABLED_AT = "disabled_at"
         private const val KEY_LAST_STATUS_CHECK = "last_status_check"
         
@@ -260,6 +279,7 @@ class MachineHealthMonitor private constructor(private val context: Context) : I
                 prefs.edit().apply {
                     putBoolean(KEY_IS_DISABLED, isDisabled)
                     putString(KEY_DISABLED_REASON, status.disabledReason)
+                    putString(KEY_DISABLED_MESSAGE, status.disabledMessage)
                     putLong(KEY_DISABLED_AT, status.disabledAt ?: 0L)
                     putLong(KEY_LAST_STATUS_CHECK, System.currentTimeMillis())
                     apply()
@@ -281,6 +301,7 @@ class MachineHealthMonitor private constructor(private val context: Context) : I
                     prefs.edit().apply {
                         putBoolean(KEY_IS_DISABLED, true)
                         putString(KEY_DISABLED_REASON, "Machine not activated in system")
+                        putString(KEY_DISABLED_MESSAGE, null)
                         putLong(KEY_LAST_STATUS_CHECK, System.currentTimeMillis())
                         apply()
                     }
@@ -307,6 +328,13 @@ class MachineHealthMonitor private constructor(private val context: Context) : I
      */
     override fun getDisabledReason(): String? {
         return prefs.getString(KEY_DISABLED_REASON, null)
+    }
+
+    /**
+     * Get the admin-set customer-facing maintenance message (may be null/blank).
+     */
+    override fun getDisabledMessage(): String? {
+        return prefs.getString(KEY_DISABLED_MESSAGE, null)
     }
     
     /**

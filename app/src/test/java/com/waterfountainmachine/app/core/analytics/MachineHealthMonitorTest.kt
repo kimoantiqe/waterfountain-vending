@@ -4,6 +4,7 @@ import android.app.Application
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
+import com.waterfountainmachine.app.core.utils.UserErrorMessages
 import dagger.hilt.android.testing.HiltTestApplication
 import org.junit.Before
 import org.junit.Test
@@ -163,6 +164,44 @@ class MachineHealthMonitorTest {
 
         assertThat(monitor.isMachineDisabled()).isTrue()
         assertThat(monitor.getDisabledReason()).isEqualTo("scheduled maintenance")
+    }
+
+    // --- getDisabledMessage / getDisabledScreenMessage ------------------
+
+    private fun writeDisabledMessage(message: String?) {
+        @Suppress("ApplySharedPref")
+        context.getSharedPreferences("machine_health", Context.MODE_PRIVATE)
+            .edit()
+            .putString("disabled_message", message)
+            .commit()
+    }
+
+    @Test
+    fun `getDisabledScreenMessage falls back to default when no message is set`() {
+        assertThat(monitor.getDisabledMessage()).isNull()
+        assertThat(monitor.getDisabledScreenMessage())
+            .isEqualTo(UserErrorMessages.MACHINE_DISABLED)
+    }
+
+    @Test
+    fun `getDisabledScreenMessage returns the admin message when set`() {
+        writeDisabledMessage("Back soon — restocking.")
+        assertThat(monitor.getDisabledMessage()).isEqualTo("Back soon — restocking.")
+        assertThat(monitor.getDisabledScreenMessage()).isEqualTo("Back soon — restocking.")
+    }
+
+    @Test
+    fun `getDisabledScreenMessage falls back to default for an empty message`() {
+        writeDisabledMessage("")
+        assertThat(monitor.getDisabledScreenMessage())
+            .isEqualTo(UserErrorMessages.MACHINE_DISABLED)
+    }
+
+    @Test
+    fun `getDisabledScreenMessage falls back to default for a whitespace-only message`() {
+        writeDisabledMessage("   \n  ")
+        assertThat(monitor.getDisabledScreenMessage())
+            .isEqualTo(UserErrorMessages.MACHINE_DISABLED)
     }
 
     @Test
