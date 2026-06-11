@@ -29,10 +29,9 @@
                 android:background="?android:attr/selectableItemBackgroundBorderless"
                 android:contentDescription="@string/back_button"
                 android:src="@drawable/ic_arrow_back"
-                android:alpha="0.9"
                 android:padding="@dimen/back_button_padding"
                 android:scaleType="fitCenter"
-                app:tint="@android:color/white" />
+                app:tint="#1F3242" />
 
             <!-- Centered Wordmark Only (20% smaller for screens with back button) -->
             <TextView
