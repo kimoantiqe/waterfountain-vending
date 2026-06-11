@@ -1,6 +1,7 @@
 package com.waterfountainmachine.app.features.error
 import android.animation.ObjectAnimator
 import android.content.Intent
+import android.content.SharedPreferences
 import android.os.Bundle
 import android.view.KeyEvent
 import android.view.View
@@ -11,9 +12,11 @@ import androidx.lifecycle.lifecycleScope
 import com.waterfountainmachine.app.R
 import com.waterfountainmachine.app.features.admin.utils.AdminGestureDetector
 import com.waterfountainmachine.app.core.config.WaterFountainConfig
+import com.waterfountainmachine.app.core.di.HealthMonitorModule
 import com.waterfountainmachine.app.core.ui.KioskActivity
 import com.waterfountainmachine.app.databinding.ActivityErrorBinding
 import com.waterfountainmachine.app.core.utils.AppLog
+import com.waterfountainmachine.app.core.utils.SecurePreferences
 import com.waterfountainmachine.app.core.utils.SoundManager
 import com.waterfountainmachine.app.core.utils.UserErrorMessages
 import com.waterfountainmachine.app.features.vending.ui.MainActivity
@@ -54,6 +57,20 @@ class ErrorActivity : KioskActivity() {
     private lateinit var adminGestureDetector: AdminGestureDetector
     private var logoBobAnimator: ObjectAnimator? = null
 
+    // Machine-status watch (only armed for the disabled/maintenance screens).
+    // When the machine is no longer disabled/maintenance, return to the main
+    // screen instead of waiting out the 24h timer.
+    private var watchMachineStatus = false
+    private var isReturning = false
+    private val machineHealthPrefs by lazy { getSharedPreferences("machine_health", MODE_PRIVATE) }
+    private val systemSettingsPrefs by lazy { SecurePreferences.getSystemSettings(this) }
+    private val statusChangeListener = SharedPreferences.OnSharedPreferenceChangeListener { _, _ ->
+        if (watchMachineStatus && !machineStillUnavailable()) {
+            AppLog.i(TAG, "Machine recovered (no longer disabled/maintenance) - returning to main")
+            returnToMainScreen()
+        }
+    }
+
     override val fullScreenRoot: View
         get() = binding.root
     
@@ -63,6 +80,9 @@ class ErrorActivity : KioskActivity() {
         // Intent extras
         const val EXTRA_MESSAGE = "message"
         const val EXTRA_DISPLAY_DURATION = "display_duration"
+        // When true, the screen watches machine status and auto-returns to the
+        // main screen as soon as the machine is no longer disabled/maintenance.
+        const val EXTRA_WATCH_MACHINE_STATUS = "watch_machine_status"
         
         // Default messages (use UserErrorMessages constants)
         const val DEFAULT_DAILY_LIMIT_MESSAGE = UserErrorMessages.DAILY_LIMIT_REACHED
@@ -134,7 +154,29 @@ class ErrorActivity : KioskActivity() {
             returnToMainScreen()
         }
 
+        // For the disabled/maintenance screens, also watch machine status so the
+        // kiosk recovers as soon as an admin clears it (within the monitor's
+        // 15-min check) instead of waiting out the 24h timer.
+        watchMachineStatus = intent.getBooleanExtra(EXTRA_WATCH_MACHINE_STATUS, false)
+        if (watchMachineStatus) {
+            machineHealthPrefs.registerOnSharedPreferenceChangeListener(statusChangeListener)
+            systemSettingsPrefs.registerOnSharedPreferenceChangeListener(statusChangeListener)
+            // Guard against a race where status cleared between launch and now.
+            if (!machineStillUnavailable()) returnToMainScreen()
+        }
+
         startLogoBob()
+    }
+
+    /**
+     * True while the machine should remain on the out-of-service screen: it is
+     * remotely disabled, in remote maintenance, or in local maintenance mode.
+     * Reuses the monitor's public accessors so the pref keys live in one place.
+     */
+    private fun machineStillUnavailable(): Boolean {
+        val monitor = HealthMonitorModule.getMachineHealthMonitor(this)
+        val localMaintenance = systemSettingsPrefs.getBoolean("maintenance_mode", false)
+        return monitor.isMachineDisabled() || monitor.isMaintenanceMode() || localMaintenance
     }
 
     /**
@@ -180,6 +222,9 @@ class ErrorActivity : KioskActivity() {
     }
     
     private fun returnToMainScreen() {
+        // Guard against double-invocation (timer + status listener racing).
+        if (isReturning) return
+        isReturning = true
         val intent = Intent(this, MainActivity::class.java)
         // Use SINGLE_TOP to reuse existing MainActivity instance for smooth transition
         intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
@@ -197,6 +242,10 @@ class ErrorActivity : KioskActivity() {
     
     override fun onDestroy() {
         super.onDestroy()
+        if (watchMachineStatus) {
+            machineHealthPrefs.unregisterOnSharedPreferenceChangeListener(statusChangeListener)
+            systemSettingsPrefs.unregisterOnSharedPreferenceChangeListener(statusChangeListener)
+        }
         stopLogoBob()
         // Clean up sound resources
         if (::soundManager.isInitialized) {

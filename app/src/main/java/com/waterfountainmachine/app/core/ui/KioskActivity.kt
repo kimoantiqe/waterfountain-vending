@@ -100,7 +100,8 @@ abstract class KioskActivity : AppCompatActivity() {
         ErrorScreenUtil.showError(
             context = this,
             message = UserErrorMessages.MACHINE_DISABLED,
-            displayDuration = TimeUnit.HOURS.toMillis(24)
+            displayDuration = TimeUnit.HOURS.toMillis(24),
+            watchMachineStatus = true
         )
         finish()
         return true

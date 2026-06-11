@@ -49,11 +49,21 @@ object ErrorScreenUtil {
      * @param context The context to start the activity from
      * @param message The error message to display (use UserErrorMessages constants)
      * @param displayDuration How long to display the message in milliseconds (default: 15 seconds)
+     * @param watchMachineStatus When true, the screen auto-returns to the main
+     *        screen as soon as the machine is no longer disabled/maintenance
+     *        (used by the disabled/maintenance screens so they recover without
+     *        waiting out the full duration).
      */
-    fun showError(context: Context, message: String, displayDuration: Long = 15000L) {
+    fun showError(
+        context: Context,
+        message: String,
+        displayDuration: Long = 15000L,
+        watchMachineStatus: Boolean = false
+    ) {
         val intent = Intent(context, ErrorActivity::class.java)
         intent.putExtra(ErrorActivity.EXTRA_MESSAGE, message)
         intent.putExtra(ErrorActivity.EXTRA_DISPLAY_DURATION, displayDuration)
+        intent.putExtra(ErrorActivity.EXTRA_WATCH_MACHINE_STATUS, watchMachineStatus)
         // Use SINGLE_TOP to reuse existing MainActivity instance for smooth transition
         intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
         context.startActivity(intent)

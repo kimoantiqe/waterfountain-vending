@@ -225,7 +225,8 @@ class MainActivity : KioskActivity() {
         ErrorScreenUtil.showError(
             context = this,
             message = machineHealthMonitor.getMaintenanceScreenMessage(),
-            displayDuration = 24 * 60 * 60 * 1000L // 24 hours
+            displayDuration = 24 * 60 * 60 * 1000L, // 24 hours
+            watchMachineStatus = true
         )
         
         // Finish this activity after showing error screen
@@ -243,7 +244,8 @@ class MainActivity : KioskActivity() {
         ErrorScreenUtil.showError(
             context = this,
             message = UserErrorMessages.MACHINE_DISABLED,
-            displayDuration = 24 * 60 * 60 * 1000L // 24 hours
+            displayDuration = 24 * 60 * 60 * 1000L, // 24 hours
+            watchMachineStatus = true
         )
         
         // Finish this activity after showing error screen
