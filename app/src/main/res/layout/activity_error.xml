@@ -73,6 +73,7 @@
                 android:textColor="#555555"
                 android:fontFamily="@font/gilroy"
                 android:gravity="center"
+                android:maxWidth="640dp"
                 android:maxLines="4"
                 android:ellipsize="end"
                 android:lineSpacingExtra="8dp"/>
