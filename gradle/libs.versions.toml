@@ -9,7 +9,7 @@ lifecycleRuntimeKtx = "2.8.4"
 activityCompose = "1.9.1"
 palette = "1.0.0"
 composeBom = "2024.06.00"
-mockito = "5.4.0"
+mockito = "5.23.0"
 mockitoKotlin = "5.1.0"
 coroutinesTest = "1.7.3"
 
