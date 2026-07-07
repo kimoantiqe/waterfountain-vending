@@ -170,7 +170,7 @@ dependencies {
     implementation("androidx.cardview:cardview:1.0.0")
 
     // Material Design
-    implementation("com.google.android.material:material:1.11.0")
+    implementation("com.google.android.material:material:1.14.0")
     
     // Security - for EncryptedSharedPreferences
     implementation("androidx.security:security-crypto:1.1.0") // Updated from alpha06 to stable
