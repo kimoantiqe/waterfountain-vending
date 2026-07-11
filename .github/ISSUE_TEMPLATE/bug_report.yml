@@ -1,0 +1,36 @@
+name: Bug report
+description: Something isn't working as expected
+labels: [bug]
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Describe the bug, including the screen/flow and device.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: dropdown
+    id: flavor
+    attributes:
+      label: Build flavor
+      options:
+        - devDebug
+        - prodRelease
+        - other
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logcat / context
+      description: Do NOT paste secrets, keystores, or client certificates.
