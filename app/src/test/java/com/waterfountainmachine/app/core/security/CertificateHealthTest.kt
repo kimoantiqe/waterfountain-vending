@@ -4,16 +4,23 @@ import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 
 /**
- * Boundary tests for [CertificateHealth.from].
+ * Boundary tests for [CertificateHealth.from] and
+ * [CertificateHealth.shouldRenew].
  *
  * These thresholds drive admin warnings AND the renewal worker, so they MUST
  * stay aligned with:
- *   - [SecurityModule.shouldRenewCertificate]: daysRemaining in 0..6  (Critical)
+ *   - [SecurityModule.shouldRenewCertificate]: delegates to
+ *     [CertificateHealth.shouldRenew] — daysRemaining in
+ *     0 until [CertificateHealth.RENEWAL_THRESHOLD_DAYS].
  *   - [SecurityModule.isCertificateExpiringSoon]: daysRemaining <= 30 (ExpiringSoon + Critical)
  *   - [SecurityModule.isCertificateExpired]:     daysRemaining < 0    (Expired)
  *
- * If you tweak the bands, update both the runtime checks and these tests
- * together.
+ * The display bands (Critical <= 7, ExpiringSoon <= 30) are intentionally
+ * independent of the renewal trigger ([RENEWAL_THRESHOLD_DAYS] = 15): the
+ * worker starts renewing while the cert is still in the ExpiringSoon band.
+ *
+ * If you tweak the bands or the threshold, update both the runtime checks and
+ * these tests together.
  */
 class CertificateHealthTest {
 
@@ -66,5 +73,57 @@ class CertificateHealthTest {
     fun `long-lived certificate maps to Healthy with original day count`() {
         assertThat(CertificateHealth.from(365))
             .isEqualTo(CertificateHealth.Healthy(daysRemaining = 365))
+    }
+
+    // ---------- shouldRenew (renewal trigger) ----------
+
+    @Test
+    fun `renewal threshold is fifteen days`() {
+        // Guards the ~50%-of-lifetime policy: if the 30-day cert lifetime or
+        // the threshold changes, this test forces a deliberate update.
+        assertThat(CertificateHealth.RENEWAL_THRESHOLD_DAYS).isEqualTo(15)
+    }
+
+    @Test
+    fun `shouldRenew is false when not enrolled`() {
+        assertThat(CertificateHealth.shouldRenew(null)).isFalse()
+    }
+
+    @Test
+    fun `shouldRenew is false for an already-expired cert`() {
+        // An expired cert can't self-renew (renewal needs a valid client
+        // cert); it must be re-enrolled, so we must NOT report renewable.
+        assertThat(CertificateHealth.shouldRenew(-1)).isFalse()
+        assertThat(CertificateHealth.shouldRenew(-30)).isFalse()
+    }
+
+    @Test
+    fun `shouldRenew is true at zero days remaining`() {
+        assertThat(CertificateHealth.shouldRenew(0)).isTrue()
+    }
+
+    @Test
+    fun `shouldRenew is true just inside the window at fourteen days`() {
+        assertThat(CertificateHealth.shouldRenew(14)).isTrue()
+    }
+
+    @Test
+    fun `shouldRenew is false exactly at the threshold of fifteen days`() {
+        // Window is [0, 15) — 15 days is outside, renewal not yet due.
+        assertThat(CertificateHealth.shouldRenew(15)).isFalse()
+    }
+
+    @Test
+    fun `shouldRenew is false well before the window`() {
+        assertThat(CertificateHealth.shouldRenew(20)).isFalse()
+        assertThat(CertificateHealth.shouldRenew(30)).isFalse()
+    }
+
+    @Test
+    fun `shouldRenew covers the old seven-day trigger point`() {
+        // Regression guard: the previous 7-day trigger must still renew under
+        // the widened window.
+        assertThat(CertificateHealth.shouldRenew(6)).isTrue()
+        assertThat(CertificateHealth.shouldRenew(7)).isTrue()
     }
 }

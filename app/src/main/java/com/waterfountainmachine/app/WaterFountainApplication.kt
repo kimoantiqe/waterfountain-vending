@@ -13,6 +13,7 @@ import com.waterfountainmachine.app.core.utils.AppLog
 import com.waterfountainmachine.app.core.slot.SlotInventoryManager
 import com.waterfountainmachine.app.core.backend.IBackendSlotService
 import com.waterfountainmachine.app.core.di.BackendModule
+import com.waterfountainmachine.app.workers.CertificateRenewalWorker
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import dagger.hilt.android.HiltAndroidApp
@@ -176,7 +177,26 @@ class WaterFountainApplication : Application(), Configuration.Provider {
             if (machineId != null) {
                 healthMonitor.start(machineId)
                 AppLog.i(TAG, "Health monitor started for machine: ****${machineId.takeLast(4)}")
-                
+
+                // Certificate renewal: (re)arm the periodic worker and kick an
+                // immediate check on every startup.
+                //
+                // - schedule() uses enqueueUniquePeriodicWork(KEEP), so it's
+                //   idempotent — it self-heals machines whose periodic work was
+                //   never scheduled (enrolled on an older build) or was lost
+                //   (WorkManager DB cleared), without disturbing an existing job.
+                // - triggerImmediateCheck() renews right away when a machine
+                //   comes back online inside the renewal window (e.g. returning
+                //   from maintenance), instead of waiting up to 24h for the next
+                //   periodic run. It's a no-op when renewal isn't needed.
+                try {
+                    CertificateRenewalWorker.schedule(this)
+                    CertificateRenewalWorker.triggerImmediateCheck(this)
+                    AppLog.i(TAG, "Certificate renewal worker armed + immediate check triggered")
+                } catch (e: Exception) {
+                    AppLog.w(TAG, "Failed to arm certificate renewal worker (non-critical)", e)
+                }
+
                 // Initialize remote logging manager
                 initializeRemoteLogging(machineId)
                 

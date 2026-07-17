@@ -196,13 +196,15 @@ object SecurityModule {
     }
 
     /**
-     * Check if certificate should be renewed (less than 7 days remaining).
+     * Check if certificate should be renewed (within
+     * [CertificateHealth.RENEWAL_THRESHOLD_DAYS] of expiry, and not already
+     * expired). Threshold logic lives in [CertificateHealth] so it stays the
+     * single, unit-testable source of truth.
      *
      * @return true if certificate should be renewed
      */
     fun shouldRenewCertificate(): Boolean {
-        val daysRemaining = getDaysUntilExpiry() ?: return false
-        return daysRemaining < 7 && daysRemaining >= 0 // Don't renew if already expired
+        return CertificateHealth.shouldRenew(getDaysUntilExpiry())
     }
 
     /**

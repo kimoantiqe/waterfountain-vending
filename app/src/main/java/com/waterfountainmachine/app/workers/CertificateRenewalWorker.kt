@@ -23,7 +23,7 @@ internal enum class RenewalAction { EXPIRED_FAIL, NOT_NEEDED, RENEW }
  * 
  * Renewal Strategy:
  * - Runs daily to check certificate expiry
- * - Renews when less than 7 days remaining
+ * - Renews when within CertificateHealth.RENEWAL_THRESHOLD_DAYS of expiry
  * - Uses existing certificate to authenticate renewal
  * - Installs new certificate seamlessly (no downtime)
  * 
@@ -201,7 +201,7 @@ class CertificateRenewalWorker @AssistedInject constructor(
                 }
             }
 
-            AppLog.i(TAG, "Certificate needs renewal (< 7 days remaining)")
+            AppLog.i(TAG, "Certificate needs renewal (within renewal threshold). Days remaining: $daysRemaining")
 
             // Log renewal attempt
             val renewalParams = Bundle().apply {
