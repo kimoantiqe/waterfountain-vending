@@ -188,7 +188,7 @@ dependencies {
     implementation("androidx.work:work-runtime-ktx:2.9.0")
     
     // Firebase - for backend integration
-    implementation(platform("com.google.firebase:firebase-bom:32.7.0")) // Keeping stable version for compatibility
+    implementation(platform("com.google.firebase:firebase-bom:34.16.0")) // Keeping stable version for compatibility
     implementation("com.google.firebase:firebase-functions-ktx")
     implementation("com.google.firebase:firebase-auth-ktx")
     implementation("com.google.firebase:firebase-crashlytics-ktx")
