@@ -203,14 +203,14 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
     
     // Hilt Dependency Injection
-    implementation("com.google.dagger:hilt-android:2.50")
-    kapt("com.google.dagger:hilt-android-compiler:2.50")
+    implementation("com.google.dagger:hilt-android:2.60.1")
+    kapt("com.google.dagger:hilt-android-compiler:2.60.1")
 
     // Hilt + WorkManager integration — lets @HiltWorker classes be
     // assisted-injected via HiltWorkerFactory (registered in
     // WaterFountainApplication's Configuration.Provider override).
-    implementation("androidx.hilt:hilt-work:1.2.0")
-    kapt("androidx.hilt:hilt-compiler:1.2.0")
+    implementation("androidx.hilt:hilt-work:1.4.0")
+    kapt("androidx.hilt:hilt-compiler:1.4.0")
     
     // Lifecycle & ViewModel
     implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.7.0")
@@ -254,8 +254,8 @@ dependencies {
     // under Robolectric via HiltTestApplication + HiltAndroidRule.
     // Compiler is bound to kaptTest so the test-only Hilt component is
     // generated for the unit-test classpath (no androidTest needed).
-    testImplementation("com.google.dagger:hilt-android-testing:2.50")
-    kaptTest("com.google.dagger:hilt-android-compiler:2.50")
+    testImplementation("com.google.dagger:hilt-android-testing:2.60.1")
+    kaptTest("com.google.dagger:hilt-android-compiler:2.60.1")
 }
 
 // ---------------------------------------------------------------------------
