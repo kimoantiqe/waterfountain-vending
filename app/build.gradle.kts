@@ -199,8 +199,8 @@ dependencies {
     // Certificate auth provides sufficient security without requiring Play Integrity API
     
     // Kotlin Coroutines for Firebase async operations
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.11.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.11.0")
     
     // Hilt Dependency Injection
     implementation("com.google.dagger:hilt-android:2.50")
